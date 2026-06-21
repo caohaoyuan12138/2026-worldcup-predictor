@@ -115,7 +115,7 @@ schedule = local_data.load_schedule()
 # 先建中文名映射
 name_map = {
     "墨西哥": "Mexico", "南非": "South Africa", "韩国": "South Korea", "捷克": "Czech Republic",
-    "加拿大": "Canada", "波黑": "Bosnia", "美国": "USA", "巴拉圭": "Paruguay",
+    "加拿大": "Canada", "波黑": "Bosnia", "美国": "USA", "巴拉圭": "Paraguay",
     "卡塔尔": "Qatar", "瑞士": "Switzerland", "巴西": "Brazil", "摩洛哥": "Morocco",
     "海地": "Haiti", "苏格兰": "Scotland", "澳大利亚": "Australia", "土耳其": "Turkey",
     "德国": "Germany", "库拉索": "Curaçao", "荷兰": "Netherlands", "日本": "Japan",

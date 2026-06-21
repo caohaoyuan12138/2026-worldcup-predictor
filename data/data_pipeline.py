@@ -83,7 +83,7 @@ def clean_odds_data(raw_odds: List[Dict]) -> List[Dict]:
             "markets": item.get("markets", {})
         })
 
-    return clean
+    return cleaned
 
 
 def format_schedule(api_matches: List[Dict]) -> List[Dict]:

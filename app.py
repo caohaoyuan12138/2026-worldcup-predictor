@@ -248,8 +248,7 @@ def load_all_data():
         aid = m.get("guest_team_id") or name2id.get(m.get("guest_team_name", ""))
         if hid and aid:
             try:
-                _, is_ko = _detect_stage_and_knockout(m)
-                stage, _ = _detect_stage_and_knockout(m)
+                stage, is_ko = _detect_stage_and_knockout(m)
                 engine.update_after_match(int(hid), int(aid), int(hg), int(ag), stage=stage)
             except Exception:
                 pass

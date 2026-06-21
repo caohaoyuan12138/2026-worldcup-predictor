@@ -19,6 +19,7 @@ env/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
@@ -30,6 +31,8 @@ Thumbs.db
 # Data cache (large files, regenerated at runtime)
 data_local/juhe_*.json
 data_local/elo_cache.json
+data_local/odds_*.json
+data_local/cache_stats.json
 
 # Uploads
 uploads/
@@ -37,3 +40,15 @@ uploads/
 # Temp
 *.tmp
 *.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+.env.local
