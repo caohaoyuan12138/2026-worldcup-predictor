@@ -20,6 +20,8 @@ import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
 import model.llm_analyzer as llm  # 大模型推理增强
+import model.explanation_layer as exp  # 解释层模块
+import model.score_matrix as sm  # 比分矩阵模块
 import data.bsd_api as bsd  # BSD实时数据API
 import data.news_api as news  # 新闻数据API
 
@@ -1078,6 +1080,75 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
 
     # ── 9. 实时情报 ──
     result["extra"] = extra
+    
+    # ── 10. 解释层分析（核心）──
+    try:
+        # 创建解释引擎
+        explanation_engine = exp.ExplanationEngine()
+        
+        # 收集所有数据
+        elo_data = result.get("elo", {})
+        poisson_data = result.get("poisson", {})
+        mc_data = result.get("monte_carlo", {})
+        bayesian_data = result.get("bayesian", {})
+        environment_data = result.get("environment", {})
+        
+        # 获取伤病数据
+        try:
+            match_news = news.get_match_news_summary(hn, an)
+            injury_data = {
+                "home_injuries": match_news.get("home_injuries", {}).get("confirmed_out", []),
+                "away_injuries": match_news.get("away_injuries", {}).get("confirmed_out", []),
+                "home_fitness": 100 - match_news.get("home_injuries", {}).get("impact_score", 0) * 2,
+                "away_fitness": 100 - match_news.get("away_injuries", {}).get("impact_score", 0) * 2,
+            }
+        except:
+            injury_data = {
+                "home_injuries": [],
+                "away_injuries": [],
+                "home_fitness": 100,
+                "away_fitness": 100,
+            }
+        
+        # 战术数据
+        tactical_data = {
+            "home_formation": environment_data.get("home_tactical", "4-3-3"),
+            "away_formation": environment_data.get("away_tactical", "4-4-2"),
+            "home_style": environment_data.get("home_tactical", "balanced"),
+            "away_style": environment_data.get("away_tactical", "balanced"),
+        }
+        
+        # 市场数据
+        bsd_odds_data = result.get("bsd_odds", {})
+        market_data = {
+            "odds_home": bsd_odds_data.get("average_home", oh) if oh else None,
+            "odds_draw": bsd_odds_data.get("average_draw", od) if od else None,
+            "odds_away": bsd_odds_data.get("average_away", oa) if oa else None,
+        }
+        
+        # 生成比分矩阵
+        lambda_home = poisson_data.get("lambda_home", 1.4)
+        lambda_away = poisson_data.get("lambda_away", 1.4)
+        score_matrix = sm.generate_score_matrix(lambda_home, lambda_away)
+        
+        # 执行解释层分析
+        explanation_result = explanation_engine.analyze(
+            elo_data=elo_data,
+            poisson_data=poisson_data,
+            mc_data=mc_data,
+            bayesian_data=bayesian_data,
+            environment_data=environment_data,
+            injury_data=injury_data,
+            tactical_data=tactical_data,
+            market_data=market_data,
+            score_matrix=score_matrix,
+        )
+        
+        result["explanation"] = explanation_result
+        
+    except Exception as e:
+        # 解释层失败不影响主流程
+        pass
 
     return result
 
@@ -1460,6 +1531,204 @@ def _render_analysis_card(data: dict):
     if extra:
         with st.expander("🌐 实时情报"):
             st.markdown(f'<div class="search-result">{extra}</div>', unsafe_allow_html=True)
+    
+    # ── 11. 解释层核心输出 ──
+    explanation = data.get("explanation")
+    if explanation:
+        st.divider()
+        st.markdown("### 🎯 核心预测输出")
+        
+        # 胜平负概率
+        probs = explanation.win_draw_lose_probs
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("主胜概率", f"{probs['home_win']:.1%}")
+        c2.metric("平局概率", f"{probs['draw']:.1%}")
+        c3.metric("客胜概率", f"{probs['away_win']:.1%}")
+        
+        # 调整因子展示
+        adjustments = probs.get("adjustments", {})
+        if adjustments:
+            adj_text = "调整因子: Elo{:+.1%} | 环境{:+.1%} | 伤病主{:+.1%}/客{:+.1%} | 战术{:+.1%}".format(
+                adjustments.get("elo", 0),
+                adjustments.get("environment", 0),
+                adjustments.get("injury_home", 0),
+                adjustments.get("injury_away", 0),
+                adjustments.get("tactical_home", 0),
+            )
+            c4.metric("调整", adj_text[:30])
+        
+        # 预期进球
+        goals = explanation.expected_goals
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"{_hn} 预期进球", f"{goals['lambda_home']:.2f}")
+        c2.metric(f"{_an} 预期进球", f"{goals['lambda_away']:.2f}")
+        c3.metric("总预期进球", f"{goals['total_expected']:.2f}")
+        
+        # 大小球预测
+        over_under = explanation.total_goals_prediction
+        c1, c2, c3 = st.columns(3)
+        c1.metric("大小球推荐", over_under['recommendation'])
+        c2.metric("置信度", over_under['confidence'])
+        c3.metric("最可能总进球", f"{over_under['most_likely_total']}")
+        
+        # 首选比分
+        st.info(f"**📌 首选比分**: {explanation.top_score}")
+        
+        # 比分概率列表
+        score_probs = explanation.score_probs[:5]
+        score_str = " | ".join([f"{s['score']} ({s['probability']}%)".format(s) for s in score_probs])
+        st.caption(f"比分池: {score_str}")
+    
+    # ── 12. 解释层维度展示 ──
+    if explanation:
+        with st.expander("🔬 解释层维度分析"):
+            st.markdown("**这不是装饰，所有维度都会影响最终预测！**")
+            
+            # Elo评分系统
+            elo_analysis = explanation.elo_analysis
+            st.markdown(f"**📊 Elo评分系统**")
+            st.markdown(f"  • 主队评分: {elo_analysis['home_rating']} | 客队评分: {elo_analysis['away_rating']}")
+            st.markdown(f"  • 评分差距: {elo_analysis['diff']} → {elo_analysis['level']}")
+            st.markdown(f"  • 对胜率影响: {elo_analysis['impact']*100:+.1f}%")
+            
+            # 补水时刻战术影响
+            hydration = explanation.hydration_impact
+            st.markdown(f"**💧 补水时刻战术影响**")
+            st.markdown(f"  • 上半场30分钟: 主队战术调整概率{hydration['first_half_30min']['home_tactical_shift']*100:.1f}%")
+            st.markdown(f"  • 下半场30分钟: 主队战术调整概率{hydration['second_half_30min']['home_tactical_shift']*100:.1f}%")
+            st.markdown(f"  • 补水后进球影响: {hydration['goal_impact']*100:+.1f}%")
+            st.markdown(f"  • {hydration['summary']}")
+            
+            # 主场/天气因素
+            env_factors = explanation.environment_factors
+            st.markdown(f"**🌍 主场/天气因素**")
+            st.markdown(f"  • 主场优势: +{env_factors['home_advantage']*100:.1f}%")
+            st.markdown(f"  • 温度影响: {env_factors['temperature_impact']*100:+.1f}%")
+            st.markdown(f"  • 雨天影响: {env_factors['rain_impact']*100:+.1f}%")
+            st.markdown(f"  • 海拔影响: {env_factors['altitude_impact']*100:+.1f}%")
+            st.markdown(f"  • 总环境影响: {env_factors['total_impact']*100:+.1f}%")
+            
+            # 伤停/体能
+            injury_fitness = explanation.injury_fitness
+            st.markdown(f"**🏥 伤停/体能分析**")
+            st.markdown(f"  • 主队伤病人数: {injury_fitness['home_injury_count']} → 影响{injury_fitness['home_injury_impact']*100:+.1f}%")
+            st.markdown(f"  • 客队伤病人数: {injury_fitness['away_injury_count']} → 影响{injury_fitness['away_injury_impact']*100:+.1f}%")
+            st.markdown(f"  • 主队体能: {injury_fitness['home_fitness']}% → 影响{injury_fitness['home_fitness_impact']*100:+.1f}%")
+            st.markdown(f"  • 客队体能: {injury_fitness['away_fitness']}% → 影响{injury_fitness['away_fitness_impact']*100:+.1f}%")
+            
+            # 战术相克
+            tactical = explanation.tactical_matchup
+            st.markdown(f"**⚔️ 战术相克分析**")
+            st.markdown(f"  • 阵型: {tactical['home_formation']} vs {tactical['away_formation']}")
+            st.markdown(f"  • 风格: {tactical['home_style']} vs {tactical['away_style']}")
+            st.markdown(f"  • 主队战术优势: {tactical['total_home_advantage']*100:+.1f}%")
+            st.markdown(f"  • {tactical['summary']}")
+            
+            # 市场信号
+            market = explanation.market_signals
+            st.markdown(f"**📈 市场信号分析**")
+            st.markdown(f"  • 赔率: 主胜{market['odds_home']} 平{market['odds_draw']} 客胜{market['odds_away']}")
+            st.markdown(f"  • 隐含概率: 主胜{market['implied_home']:.1%} 平{market['implied_draw']:.1%} 客胜{market['implied_away']:.1%}")
+            st.markdown(f"  • 市场信号: {market['signal']} (置信度{market['confidence']})")
+    
+    # ── 13. 风险分析（拆分）──
+    if explanation:
+        risk = explanation.risk_analysis
+        with st.expander("⚠️ 风险分析（多维度拆分）"):
+            # 冷门风险
+            upset = risk['upset']
+            st.markdown(f"**🎯 冷门风险**")
+            st.markdown(f"  • 风险级别: {upset['level']}")
+            st.markdown(f"  • 冷门概率: {upset['probability']:.1%}")
+            st.markdown(f"  • 方向: {upset['direction']}")
+            
+            # 角球风险
+            corner = risk['corner']
+            st.markdown(f"**🚩 角球风险**")
+            st.markdown(f"  • 主队预期角球: {corner['home_corners_expected']}")
+            st.markdown(f"  • 客队预期角球: {corner['away_corners_expected']}")
+            st.markdown(f"  • 总角球预期: {corner['total_corners_expected']}")
+            st.markdown(f"  • 大9.5角球概率: {corner['over_9_5_prob']:.1%}")
+            
+            # 红黄牌风险
+            card = risk['card']
+            st.markdown(f"**📋 红黄牌风险**")
+            st.markdown(f"  • 主队预期黄牌: {card['home_cards_expected']}")
+            st.markdown(f"  • 客队预期黄牌: {card['away_cards_expected']}")
+            st.markdown(f"  • 总黄牌预期: {card['total_cards_expected']}")
+            st.markdown(f"  • 红牌概率: {card['red_card_probability']:.1%}")
+            
+            # 双方进球风险
+            btts = risk['btts']
+            st.markdown(f"**⚽ 双方进球(BTTS)**")
+            st.markdown(f"  • 概率: {btts['probability']:.1%}")
+            st.markdown(f"  • 推荐: {btts['recommendation']}")
+            
+            # 大小球风险
+            over_under_risk = risk['over_under']
+            st.markdown(f"**📊 大小球风险**")
+            st.markdown(f"  • 风险级别: {over_under_risk['level']}")
+            st.markdown(f"  • 预期总进球: {over_under_risk['expected_total']}")
+            
+            # 关键球员风险
+            key_player = risk['key_player']
+            st.markdown(f"**👤 关键球员风险**")
+            st.markdown(f"  • 风险级别: {key_player['level']}")
+            st.markdown(f"  • 主队关键伤病: {key_player['home_key_injuries']}")
+            st.markdown(f"  • 客队关键伤病: {key_player['away_key_injuries']}")
+            if key_player['affected_players']:
+                st.markdown(f"  • 受影响球员: {', '.join(key_player['affected_players'])}")
+            
+            # 球员心理压力
+            psychology = risk['psychology']
+            st.markdown(f"**🧠 球员心理压力**")
+            st.markdown(f"  • 压力级别: {psychology['level']}")
+            st.markdown(f"  • 主队压力: {psychology['home_pressure']}")
+            st.markdown(f"  • 客队压力: {psychology['away_pressure']}")
+            st.markdown(f"  • 压力不对称: {psychology['pressure_asymmetry']:.2f}")
+            
+            # 观点摘要
+            st.divider()
+            st.markdown(f"**📝 风险观点摘要**")
+            st.markdown(risk['summary'])
+    
+    # ── 14. 0-8球比分矩阵 ──
+    if explanation:
+        with st.expander("📊 0-8球比分矩阵"):
+            matrix = explanation.score_matrix
+            
+            # 显示矩阵表格
+            st.markdown("**比分概率矩阵（百分比）**")
+            
+            # 创建DataFrame显示
+            import pandas as pd
+            df_matrix = pd.DataFrame(matrix, 
+                                     columns=[f"客{j}球" for j in range(len(matrix[0]))],
+                                     index=[f"主{i}球" for i in range(len(matrix))])
+            
+            # 高亮显示概率>5%的比分
+            def highlight_high(s):
+                return ['background-color: #90EE90' if v > 5 else '' for v in s]
+            
+            st.dataframe(df_matrix.style.apply(highlight_high))
+            
+            # 矩阵分析
+            matrix_analysis = sm.analyze_matrix(matrix)
+            
+            c1, c2, c3, c4, c5 = st.columns(5)
+            c1.metric("主胜概率", f"{matrix_analysis['home_win_prob']}%")
+            c2.metric("平局概率", f"{matrix_analysis['draw_prob']}%")
+            c3.metric("客胜概率", f"{matrix_analysis['away_win_prob']}%")
+            c4.metric("大2.5球", f"{matrix_analysis['over_2_5_prob']}%")
+            c5.metric("双方进球", f"{matrix_analysis['btts_prob']}%")
+            
+            st.caption(f"主队零封概率: {matrix_analysis['clean_sheet_home']}% | 客队零封概率: {matrix_analysis['clean_sheet_away']}%")
+    
+    # ── 15. 观点摘要 ──
+    if explanation:
+        st.divider()
+        st.markdown("### 📝 观点摘要")
+        st.markdown(explanation.summary)
 
 
 def _detect_stage_and_knockout(match):
