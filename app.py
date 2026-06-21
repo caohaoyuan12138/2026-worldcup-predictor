@@ -19,6 +19,7 @@ import model.elo_engine as elo
 import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
+import model.llm_analyzer as llm  # 大模型推理增强
 import data.bsd_api as bsd  # BSD实时数据API
 import data.news_api as news  # 新闻数据API
 
@@ -1281,6 +1282,64 @@ def _render_analysis_card(data: dict):
             for line in reasoning.split("\n"):
                 if line.strip():
                     st.markdown(line.strip())
+    
+    # ── LLM大模型推理增强 ──
+    if llm.LLM_CONFIG.get("api_key"):
+        with st.expander("🤖 大模型深度分析"):
+            st.caption("基于所有数据，大模型生成深度分析...")
+            
+            # 收集数据
+            elo_data_for_llm = {
+                "home_rating": elo.get("home_rating", 1500),
+                "away_rating": elo.get("away_rating", 1500),
+                "diff": elo.get("diff", 0),
+                "home_fifa_rank": elo.get("home_fifa_rank", "?"),
+                "away_fifa_rank": elo.get("away_fifa_rank", "?"),
+            }
+            
+            bsd_odds_data = data.get("bsd_odds", {})
+            odds_data_for_llm = {
+                "average_home": bsd_odds_data.get("average_home", "?"),
+                "average_draw": bsd_odds_data.get("average_draw", "?"),
+                "average_away": bsd_odds_data.get("average_away", "?"),
+                "implied_home": f"{bsd_odds_data.get('market_probs', {}).get('home_win', 0):.1%}",
+                "implied_draw": f"{bsd_odds_data.get('market_probs', {}).get('draw', 0):.1%}",
+                "implied_away": f"{bsd_odds_data.get('market_probs', {}).get('away_win', 0):.1%}",
+            }
+            
+            # 获取新闻数据
+            try:
+                match_news = news.get_match_news_summary(_hn, _an)
+                injury_data_for_llm = {
+                    "home_summary": match_news.get("home_injuries", {}).get("summary", ""),
+                    "away_summary": match_news.get("away_injuries", {}).get("summary", ""),
+                    "home_impact": match_news.get("home_injuries", {}).get("impact_score", 0),
+                    "away_impact": match_news.get("away_injuries", {}).get("impact_score", 0),
+                }
+                news_data_for_llm = [n.get("title", "") for n in match_news.get("home_news", [])[:3]]
+                news_data_for_llm.extend([n.get("title", "") for n in match_news.get("away_news", [])[:3]])
+            except:
+                injury_data_for_llm = {"home_summary": "暂无", "away_summary": "暂无", "home_impact": 0, "away_impact": 0}
+                news_data_for_llm = []
+            
+            report_data_for_llm = {
+                "home_report": "",
+                "away_report": "",
+            }
+            
+            # 调用LLM生成分析
+            with st.spinner("🤖 大模型分析中..."):
+                llm_analysis = llm.generate_match_analysis(
+                    _hn, _an,
+                    elo_data_for_llm,
+                    odds_data_for_llm,
+                    injury_data_for_llm,
+                    news_data_for_llm,
+                    report_data_for_llm,
+                )
+            
+            st.markdown(llm_analysis)
+            st.caption(f"数据来源: {llm.LLM_CONFIG.get('provider', '?')} | 模型: {llm.LLM_CONFIG.get('model', '?')}")
 
     # ── 8. 环境因素 ──
     env = data.get("environment", {})
@@ -2040,6 +2099,26 @@ def main():
             st.success("✅ BSD API已配置")
         else:
             st.info("💡 配置后可获取：伤病/阵容/赔率等实时数据")
+
+        # ── LLM API Key 配置（大模型推理）──
+        st.divider()
+        st.markdown("**🤖 LLM API Key（大模型推理）**")
+        st.caption("可选：DeepSeek/OpenAI/Ollama")
+        
+        llm_provider = st.selectbox(
+            "LLM提供商",
+            options=["deepseek", "openai", "ollama"],
+            key="llm_provider_select"
+        )
+        
+        llm_key_input = st.text_input("LLM API Key", type="password", key="llm_api_key_input")
+        llm_model_input = st.text_input("模型名称", value="deepseek-chat", key="llm_model_input")
+        
+        if llm_key_input:
+            llm.set_llm_config(llm_provider, llm_key_input, llm_model_input)
+            st.success(f"✅ {llm_provider} 已配置")
+        else:
+            st.info("💡 配置后可使用大模型增强推理分析")
 
         # ── 自动同步间隔 ──
         st.divider()

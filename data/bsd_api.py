@@ -13,17 +13,45 @@ API文档: https://sports.bzzoiro.com/docs/football/
 """
 
 import requests
-import streamlit as st
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import time
+
+# 尝试导入streamlit（如果可用则使用缓存）
+try:
+    import streamlit as st
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+
+# 缓存装饰器（兼容非Streamlit环境）
+def cache_data(ttl=300, show_spinner=False):
+    def decorator(func):
+        if HAS_STREAMLIT:
+            return st.cache_data(ttl=ttl, show_spinner=show_spinner)(func)
+        else:
+            # 简单的内存缓存
+            cache = {}
+            last_call = {}
+            def wrapper(*args, **kwargs):
+                key = str(args) + str(kwargs)
+                now = datetime.now()
+                if key in cache and key in last_call:
+                    if (now - last_call[key]).total_seconds() < ttl:
+                        return cache[key]
+                result = func(*args, **kwargs)
+                cache[key] = result
+                last_call[key] = now
+                return result
+            return wrapper
+    return decorator
 
 # BSD API配置
 BSD_API_BASE = "https://sports.bzzoiro.com/api"
 BSD_API_KEY = "e26606d78375f28b58a121ba421d1682ebe27d0d"  # 已配置的API Key
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@cache_data(ttl=300, show_spinner=False)
 def get_bsd_events(team_name: str = None, date: str = None, limit: int = 20) -> List[Dict]:
     """
     获取比赛事件列表
@@ -80,7 +108,7 @@ def get_bsd_events(team_name: str = None, date: str = None, limit: int = 20) -> 
         return []
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@cache_data(ttl=300, show_spinner=False)
 def get_team_injuries(team_name: str) -> Dict:
     """
     获取球队伤病/停赛信息
@@ -159,7 +187,7 @@ def get_team_injuries(team_name: str) -> Dict:
     return result
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@cache_data(ttl=300, show_spinner=False)
 def get_match_lineups(home_team: str, away_team: str) -> Dict:
     """
     获取比赛阵容信息（赛前1小时可用）
@@ -230,7 +258,7 @@ def get_match_lineups(home_team: str, away_team: str) -> Dict:
     return result
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@cache_data(ttl=300, show_spinner=False)
 def get_coach_info(team_name: str) -> Dict:
     """
     获取教练战术信息
@@ -295,7 +323,7 @@ def get_coach_info(team_name: str) -> Dict:
     return result
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@cache_data(ttl=300, show_spinner=False)
 def get_best_odds(home_team: str, away_team: str) -> Dict:
     """
     获取最佳赔率对比（17+博彩公司）
