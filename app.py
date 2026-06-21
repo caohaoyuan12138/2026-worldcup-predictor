@@ -1,7 +1,7 @@
 """
 2026 美加墨世界杯比分预测模型 — Streamlit 主入口
 四层融合架构：Elo + Dixon-Coles 泊松 + 蒙特卡洛 + 贝叶斯
-数据源：本地 JSON 文件（standings.json / schedule.json）
+数据源：本地 JSON 文件（standings.json / schedule.json） + BSD API实时数据
 """
 
 import json, os, sys, time
@@ -19,6 +19,7 @@ import model.elo_engine as elo
 import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
+import data.bsd_api as bsd  # BSD实时数据API
 
 # ──────────────────────────────────────────────
 #  球队元数据（中文名 → 完整信息）
@@ -764,6 +765,23 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         stage=stage,
         motivation_home=motivation_home,
         motivation_away=motivation_away)
+    
+    # ── 2.1 BSD API实时数据调整 ──
+    bsd_adjustment_note = ""
+    if bsd.is_bsd_available():
+        inj_h = bsd.get_team_injuries(hn)
+        inj_a = bsd.get_team_injuries(an)
+        
+        # 根据伤病调整lambda
+        lh_adj, la_adj = bsd.adjust_lambda_for_injuries(lh, la, inj_h, inj_a)
+        
+        if lh_adj != lh or la_adj != la:
+            bsd_adjustment_note = (
+                f"BSD实时数据调整: 主队λ从{lh:.3f}调整为{lh_adj:.3f}，"
+                f"客队λ从{la:.3f}调整为{la_adj:.3f}"
+            )
+            lh, la = lh_adj, la_adj
+    
     result["poisson"] = {
         "lambda_home": round(lh, 3),
         "lambda_away": round(la, 3),
@@ -771,6 +789,7 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         "stage_avg_goals": stage,
         "motivation_home": motivation_home,
         "motivation_away": motivation_away,
+        "bsd_adjustment": bsd_adjustment_note,
     }
 
     # ── 3. 蒙特卡洛维度 ──
@@ -892,6 +911,10 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     else:
         pred_parts.append(f"⚽ 预计进球适中（{total_goals:.1f}球）")
         reasoning.append(f"• 泊松模型：{hn}期望进球{lh:.2f}，{an}期望进球{la:.2f}，合计{total_goals:.1f}球，属于正常进球范围。")
+    
+    # 6.2.1 BSD实时数据调整说明
+    if bsd_adjustment_note:
+        reasoning.append(f"• BSD实时数据：{bsd_adjustment_note}。伤病/停赛球员已纳入期望进球调整。")
 
     # 6.3 蒙特卡洛最可能比分
     if top:
@@ -1098,6 +1121,10 @@ def _render_analysis_card(data: dict):
         ma = pois.get("motivation_away", 1.0)
         if abs(mh - 1.0) > 0.01 or abs(ma - 1.0) > 0.01:
             st.caption(f"动机因子: 主队×{mh:.2f} / 客队×{ma:.2f}")
+        # BSD实时数据调整说明
+        bsd_adj = pois.get("bsd_adjustment", "")
+        if bsd_adj:
+            st.info(f"📡 {bsd_adj}")
 
     # ── 3. 蒙特卡洛模拟 ──
     mc = data.get("monte_carlo", {})
@@ -1229,7 +1256,41 @@ def _render_analysis_card(data: dict):
         for line in env_lines:
             st.markdown(f"  {line}")
 
-    # ── 8. 实时情报 ──
+    # ── 8. 实时数据（BSD API）──
+    if bsd.is_bsd_available():
+        with st.expander("📡 实时数据（BSD API）"):
+            realtime_data = bsd.get_realtime_match_data(_hn, _an)
+            
+            # 伤病信息
+            inj_h = realtime_data.get("injuries_home", {})
+            inj_a = realtime_data.get("injuries_away", {})
+            st.markdown(f"**📋 {_hf} {_hn} 伤病情况:**")
+            st.markdown(f"  {inj_h.get('summary', '暂无数据')}")
+            st.markdown(f"**📋 {_af} {_an} 伤病情况:**")
+            st.markdown(f"  {inj_a.get('summary', '暂无数据')}")
+            
+            # 阵容信息
+            lineup = realtime_data.get("lineups", {})
+            st.markdown(f"**👕 阵容:** {lineup.get('summary', '暂无数据')}")
+            
+            # 教练信息
+            coach_h = realtime_data.get("coach_home", {})
+            coach_a = realtime_data.get("coach_away", {})
+            if coach_h.get("summary"):
+                st.markdown(f"**👤 {_hn} 教练:** {coach_h.get('summary', '')}")
+            if coach_a.get("summary"):
+                st.markdown(f"**👤 {_an} 教练:** {coach_a.get('summary', '')}")
+            
+            # 赔率对比
+            odds = realtime_data.get("odds", {})
+            if odds.get("summary"):
+                st.markdown(f"**💰 赔率:** {odds.get('summary', '')}")
+            
+            # 综合摘要
+            st.divider()
+            st.markdown(realtime_data.get("summary", ""))
+
+    # ── 9. 实时情报（手动导入）──
     extra = data.get("extra")
     if extra:
         with st.expander("🌐 实时情报"):
@@ -1862,6 +1923,17 @@ def main():
             st.caption(f"已赛 {f} | 未赛 {len(ms)-f}")
         stnc = data.get("standings") or []
         if stnc: st.metric("球队",f"{len(stnc)} 支")
+
+        # ── BSD API Key 配置（实时数据）──
+        st.divider()
+        st.markdown("**🔑 BSD API Key（实时数据）**")
+        st.caption("免费获取: https://sports.bzzoiro.com/register/")
+        bsd_key_input = st.text_input("API Key", type="password", key="bsd_api_key_input")
+        if bsd_key_input:
+            bsd.set_bsd_api_key(bsd_key_input)
+            st.success("✅ BSD API已配置")
+        else:
+            st.info("💡 配置后可获取：伤病/阵容/赔率等实时数据")
 
         # ── 自动同步间隔 ──
         st.divider()
