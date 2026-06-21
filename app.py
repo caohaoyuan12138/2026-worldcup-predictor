@@ -830,8 +830,9 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     except Exception:
         pass
 
-    # ── 6. 综合预测（融合所有维度）──
+    # ── 6. 综合预测（融合所有维度 + 详细推理）──
     pred_parts = []
+    reasoning = []  # 详细推理过程
 
     # 6.1 Elo 实力判断
     ew = exp["home_win"]
@@ -840,42 +841,58 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     elo_diff = eh - ea
     if elo_diff > 80:
         pred_parts.append(f"🏠 {hn} 实力明显占优（Elo差 {elo_diff:+.0f}）")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}超过80分，实力差距显著。Elo模型预测{hn}胜率{ew:.1%}。")
     elif elo_diff > 40:
         pred_parts.append(f"🏠 {hn} 实力占优（Elo差 {elo_diff:+.0f}）")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}，{hn}略占优势。Elo模型预测{hn}胜率{ew:.1%}。")
     elif elo_diff < -80:
         pred_parts.append(f"✈️ {an} 实力明显占优（Elo差 {elo_diff:+.0f}）")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}超过80分，{an}实力明显更强。Elo模型预测{an}胜率{ea:.1%}。")
     elif elo_diff < -40:
         pred_parts.append(f"✈️ {an} 实力占优（Elo差 {elo_diff:+.0f}）")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}，{an}略占优势。Elo模型预测{an}胜率{ea:.1%}。")
     else:
         pred_parts.append("⚖️ 两队实力接近")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值仅{abs(elo_diff):.0f}分，两队实力非常接近。Elo模型预测平局概率{ed:.1%}。")
 
     # 6.2 泊松期望进球判断
     total_goals = lh + la
     if total_goals > 2.8:
         pred_parts.append(f"🔥 预计进球较多（{total_goals:.1f}球）")
+        reasoning.append(f"• 泊松模型：{hn}期望进球{lh:.2f}，{an}期望进球{la:.2f}，合计{total_goals:.1f}球。两队进攻火力强，预计是一场进球大战。")
     elif total_goals < 1.8:
         pred_parts.append(f"🛡️ 预计进球偏少（{total_goals:.1f}球）")
+        reasoning.append(f"• 泊松模型：{hn}期望进球{lh:.2f}，{an}期望进球{la:.2f}，合计{total_goals:.1f}球。两队防守稳健或进攻乏力，预计进球不多。")
     else:
         pred_parts.append(f"⚽ 预计进球适中（{total_goals:.1f}球）")
+        reasoning.append(f"• 泊松模型：{hn}期望进球{lh:.2f}，{an}期望进球{la:.2f}，合计{total_goals:.1f}球，属于正常进球范围。")
 
     # 6.3 蒙特卡洛最可能比分
     if top:
         best_score = top[0]
         pred_parts.append(f"🎯 最可能比分 {best_score['score']}（{best_score['probability']}%）")
+        top3_str = ", ".join([f"{s['score']}({s['probability']}%)" for s in top[:3]])
+        reasoning.append(f"• 蒙特卡洛模拟{config.MC_SIMULATIONS}次：最可能比分是{best_score['score']}（概率{best_score['probability']}%）。TOP3比分：{top3_str}。")
 
     # 6.4 动机因子影响
     if abs(motivation_home - 1.0) > 0.05 or abs(motivation_away - 1.0) > 0.05:
         mot_lines = []
+        mot_reasons = []
         if motivation_home > 1.05:
             mot_lines.append(f"{hn}战意高涨")
+            mot_reasons.append(f"{hn}动机因子{motivation_home:.2f}（生死战/关键出线战）")
         elif motivation_home < 0.95:
             mot_lines.append(f"{hn}战意一般")
+            mot_reasons.append(f"{hn}动机因子{motivation_home:.2f}（已出线可能轮换 / 已淘汰）")
         if motivation_away > 1.05:
             mot_lines.append(f"{an}战意高涨")
+            mot_reasons.append(f"{an}动机因子{motivation_away:.2f}（生死战/关键出线战）")
         elif motivation_away < 0.95:
             mot_lines.append(f"{an}战意一般")
+            mot_reasons.append(f"{an}动机因子{motivation_away:.2f}（已出线可能轮换 / 已淘汰）")
         if mot_lines:
             pred_parts.append(f"💪 {' / '.join(mot_lines)}")
+            reasoning.append(f"• 动机分析：{'；'.join(mot_reasons)}。动机因子已调整期望进球。")
 
     # 6.5 市场赔率融合判断
     if result.get("bayesian"):
@@ -891,12 +908,18 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         if abs(diff_mm) > 0.08:
             if diff_mm > 0:
                 pred_parts.append(f"📈 模型看好{hn}（模型{model_home:.1%} vs 市场{market_home:.1%}）")
+                reasoning.append(f"• 贝叶斯融合：模型预测{hn}胜率{model_home:.1%}，但市场赔率隐含胜率仅{market_home:.1%}，存在{diff_mm:.1%}的价值偏差。模型权重{bay['weight_model']:.0%}，市场权重{bay['weight_market']:.0%}。")
             else:
                 pred_parts.append(f"📉 市场看好{hn}（市场{market_home:.1%} vs 模型{model_home:.1%}）")
+                reasoning.append(f"• 贝叶斯融合：市场赔率隐含{hn}胜率{market_home:.1%}，高于模型预测的{model_home:.1%}，市场可能掌握了模型未考虑的信息（如伤病、阵容）。模型权重{bay['weight_model']:.0%}，市场权重{bay['weight_market']:.0%}。")
+        else:
+            reasoning.append(f"• 贝叶斯融合：模型与市场基本一致（偏差{abs(diff_mm):.1%}），融合后{hn}胜率{bw:.1%}，置信度{conf:.0%}。")
         if conf > 0.7:
             pred_parts.append(f"✅ 融合置信度高（{conf:.0%}）")
+            reasoning.append(f"  → 融合置信度{conf:.0%}（高），预测可靠性较强。")
         elif conf < 0.4:
             pred_parts.append(f"⚠️ 融合置信度低（{conf:.0%}），建议谨慎")
+            reasoning.append(f"  → 融合置信度{conf:.0%}（低），模型与市场分歧大或数据不足，建议谨慎参考。")
 
     # 6.6 Kelly 仓位建议
     if result.get("kelly"):
@@ -905,27 +928,45 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         edge = kel["edge"]
         if rec in ("轻仓", "中仓", "重仓"):
             pred_parts.append(f"💰 Kelly建议{rec}（edge {edge:+.1%}）")
+            reasoning.append(f"• Kelly公式：模型概率{kel.get('model_prob', 0):.1%} vs 市场隐含概率{kel.get('market_prob', 0):.1%}，edge={edge:+.1%}。半Kelly策略建议{rec}，仓位{kel.get('adjusted_stake', 0)*100:.2f}%。")
         elif rec == "观望":
             pred_parts.append(f"👀 Kelly建议观望（edge {edge:+.1%}）")
+            reasoning.append(f"• Kelly公式：edge={edge:+.1%}接近零，无明确价值，建议观望。")
 
     # 6.7 淘汰赛加时提示
     if is_knockout:
         if ed > 0.25:
             pred_parts.append(f"⏱️ 淘汰赛平局概率{ed:.1%}，可能进入加时")
+            reasoning.append(f"• 淘汰赛特性：90分钟平局概率{ed:.1%}，若平局将进入30分钟加时赛（进球期望降至常规时间的40%）。")
         if sim.get("extra_time") and sim["extra_time"].get("draw_pct", 0) > 30:
             pred_parts.append("🎯 加时后仍可能点球决胜")
+            et_draw = sim["extra_time"].get("draw_pct", 0)
+            reasoning.append(f"• 加时赛模拟：加时后仍平局概率{et_draw:.1f}%，将进入点球大战（假设命中率75%，每队5轮）。")
 
     # 6.8 环境因素
+    env_factors = []
     if env.is_water_break:
         pred_parts.append("💧 补水机制激活（高温）")
+        env_factors.append(f"气温{env.temperature}°C超过阈值，补水机制激活，下半场体能恢复+3%")
     if env.venue_altitude > 1500:
         pred_parts.append(f"⛰️ 高海拔场地（{env.venue_altitude}m）")
+        env_factors.append(f"海拔{env.venue_altitude}m，低海拔球队体能-6%")
     if env.is_rain:
         pred_parts.append("🌧️ 雨天作战")
+        env_factors.append("雨天影响：控球型球队进攻-2%，长传型球队+2%")
     if abs(env.timezone_diff_hours) > 3:
         pred_parts.append(f"🕐 时差影响（{env.timezone_diff_hours:.0f}h）")
+        env_factors.append(f"时差{env.timezone_diff_hours:.0f}小时，体能-3%")
+    if env.is_high_stakes:
+        env_factors.append("大赛高压环境，双方进攻期望-3%（更保守）")
+    if env_factors:
+        reasoning.append(f"• 环境因素：{'；'.join(env_factors)}。")
+    else:
+        reasoning.append(f"• 环境因素：中性环境（气温{env.temperature}°C，海拔{env.venue_altitude}m，无雨天/时差影响）。")
 
+    # 最终预测结论
     result["prediction"] = "\n".join(pred_parts) if pred_parts else "❓ 数据不足，无法给出综合预测"
+    result["prediction_reasoning"] = "\n".join(reasoning) if reasoning else ""
 
     # ── 7. 环境因素摘要 ──
     result["environment"] = {
@@ -1097,25 +1138,66 @@ def _render_analysis_card(data: dict):
     if pred:
         st.info(f"**📌 综合预测**: {pred}")
 
+    # 显示详细推理过程
+    reasoning = data.get("prediction_reasoning", "")
+    if reasoning:
+        with st.expander("🔍 预测推理过程（点击查看详细分析）"):
+            for line in reasoning.split("\n"):
+                if line.strip():
+                    st.markdown(line.strip())
+
     # ── 7. 环境因素 ──
     env = data.get("environment", {})
-    if env and any(v for k, v in env.items() if k != "home_tactical"):
-        with st.expander("🌍 环境因素"):
-            env_lines = []
-            if env.get("temperature", 22) > 28:
-                env_lines.append(f"🌡️ 高温 {env['temperature']}°C（补水机制已激活）")
-            if env.get("altitude", 0) > 1500:
-                env_lines.append(f"⛰️ 海拔 {env['altitude']}m")
-            if env.get("is_rain"):
-                env_lines.append("🌧️ 有雨")
-            if abs(env.get("timezone_diff", 0)) > 2:
-                env_lines.append(f"🕐 时差 {env['timezone_diff']:.0f}h")
-            if env.get("is_high_stakes"):
-                env_lines.append("🔥 大赛高压")
-            if env.get("home_tactical") and env.get("away_tactical"):
-                env_lines.append(f"⚔️ 战术: {env['home_tactical']} vs {env['away_tactical']}")
-            for line in env_lines:
-                st.markdown(f"  {line}")
+    # 始终显示环境因素（即使都是默认值，也展示中性环境说明）
+    with st.expander("🌍 环境因素"):
+        env_lines = []
+        temp = env.get("temperature", 22)
+        alt = env.get("altitude", 0)
+        is_rain = env.get("is_rain", False)
+        tz = env.get("timezone_diff", 0)
+        is_high = env.get("is_high_stakes", False)
+        ht = env.get("home_tactical", "balanced")
+        at = env.get("away_tactical", "balanced")
+
+        # 气温（始终显示）
+        if temp > 28:
+            env_lines.append(f"🌡️ 高温 {temp}°C（补水机制已激活）")
+        elif temp > 25:
+            env_lines.append(f"🌡️ 气温 {temp}°C（接近补水阈值）")
+        else:
+            env_lines.append(f"🌡️ 气温 {temp}°C（舒适）")
+
+        # 海拔（始终显示）
+        if alt > 1500:
+            env_lines.append(f"⛰️ 高海拔 {alt}m（体能影响-6%）")
+        elif alt > 0:
+            env_lines.append(f"⛰️ 海拔 {alt}m（轻微影响）")
+        else:
+            env_lines.append(f"⛰️ 海拔 {alt}m（海平面）")
+
+        # 天气
+        if is_rain:
+            env_lines.append("🌧️ 有雨（控球型-2%，长传型+2%）")
+        else:
+            env_lines.append("☀️ 无雨")
+
+        # 时差（始终显示）
+        if abs(tz) > 3:
+            env_lines.append(f"🕐 时差 {tz:.0f}h（体能-3%）")
+        else:
+            env_lines.append(f"🕐 时差 {tz:.0f}h（无影响）")
+
+        # 比赛重要性
+        if is_high:
+            env_lines.append("🔥 大赛高压（进攻期望-3%）")
+        else:
+            env_lines.append("⚽ 小组赛阶段（正常压力）")
+
+        # 战术
+        env_lines.append(f"⚔️ 战术: {ht} vs {at}")
+
+        for line in env_lines:
+            st.markdown(f"  {line}")
 
     # ── 8. 实时情报 ──
     extra = data.get("extra")
@@ -1224,6 +1306,11 @@ def render_predictions(data):
     with t1:
         if not done:
             st.info("暂无已完成比赛")
+
+        # 模型复盘统计
+        review_stats = {"total": 0, "correct_direction": 0, "correct_result": 0,
+                        "elo_correct": 0, "poisson_correct": 0, "mc_correct": 0}
+
         for m in sorted(done, key=lambda x: x.get("date", ""), reverse=True)[:30]:
             h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
             hf, af = flag(h), flag(a)
@@ -1260,27 +1347,144 @@ def render_predictions(data):
                 )
                 _render_analysis_card(analysis)
 
+                # ── 模型复盘 ──
+                if hs is not None and gs is not None:
+                    actual_h = int(hs)
+                    actual_a = int(gs)
+                    actual_result = "home" if actual_h > actual_a else ("away" if actual_a > actual_h else "draw")
+
+                    # Elo复盘
+                    elo_pred = analysis.get("elo", {})
+                    if elo_pred:
+                        elo_home = elo_pred.get("home_win", 0)
+                        elo_draw = elo_pred.get("draw", 0)
+                        elo_away = elo_pred.get("away_win", 0)
+                        elo_pred_result = "home" if elo_home > max(elo_draw, elo_away) else ("away" if elo_away > max(elo_home, elo_draw) else "draw")
+                        elo_correct = (elo_pred_result == actual_result)
+                        review_stats["elo_correct"] += int(elo_correct)
+
+                    # 泊松复盘
+                    pois_pred = analysis.get("poisson", {})
+                    if pois_pred:
+                        lh_p = pois_pred.get("lambda_home", 0)
+                        la_p = pois_pred.get("lambda_away", 0)
+                        pois_pred_result = "home" if lh_p > la_p else ("away" if la_p > lh_p else "draw")
+                        pois_correct = (pois_pred_result == actual_result)
+                        review_stats["poisson_correct"] += int(pois_correct)
+
+                    # 蒙特卡洛复盘
+                    mc_pred = analysis.get("monte_carlo", {})
+                    if mc_pred:
+                        mc_home = mc_pred.get("home_win", 0)
+                        mc_draw = mc_pred.get("draw", 0)
+                        mc_away = mc_pred.get("away_win", 0)
+                        mc_pred_result = "home" if mc_home > max(mc_draw, mc_away) else ("away" if mc_away > max(mc_home, mc_draw) else "draw")
+                        mc_correct = (mc_pred_result == actual_result)
+                        review_stats["mc_correct"] += int(mc_correct)
+
+                    # 综合方向判断（Elo+泊松+MC多数投票）
+                    votes = []
+                    if elo_pred: votes.append(elo_pred_result)
+                    if pois_pred: votes.append(pois_pred_result)
+                    if mc_pred: votes.append(mc_pred_result)
+                    if votes:
+                        from collections import Counter
+                        majority = Counter(votes).most_common(1)[0][0]
+                        direction_correct = (majority == actual_result)
+                        review_stats["correct_direction"] += int(direction_correct)
+                        review_stats["total"] += 1
+
+                    # 显示单场复盘
+                    with st.expander("📊 模型复盘"):
+                        c1, c2, c3 = st.columns(3)
+                        if elo_pred:
+                            c1.metric("Elo预测", f"{'✅' if elo_correct else '❌'} {elo_pred_result}")
+                        if pois_pred:
+                            c2.metric("泊松预测", f"{'✅' if pois_correct else '❌'} {pois_pred_result}")
+                        if mc_pred:
+                            c3.metric("MC预测", f"{'✅' if mc_correct else '❌'} {mc_pred_result}")
+                        st.caption(f"实际结果: {actual_h}:{actual_a} ({actual_result}) | 多数投票: {'✅' if direction_correct else '❌'}")
+
+        # 显示整体复盘统计
+        if review_stats["total"] > 0:
+            st.divider()
+            st.subheader("📈 模型复盘统计")
+            total = review_stats["total"]
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("总场次", total)
+            c2.metric("方向正确率", f"{review_stats['correct_direction']/total:.1%}")
+            if review_stats["elo_correct"] > 0:
+                c3.metric("Elo准确率", f"{review_stats['elo_correct']/total:.1%}")
+            if review_stats["mc_correct"] > 0:
+                c4.metric("MC准确率", f"{review_stats['mc_correct']/total:.1%}")
+            st.caption("方向正确率 = Elo+泊松+MC 多数投票与实际结果一致的比率")
+
     # ── Tab 2: 未赛预测 ──
     with t2:
         # 检查是否有已导入的赔率
         imported_odds = st.session_state.get("_imported_odds", {})
 
-        c1, c2 = st.columns(2)
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        tomorrow = today + timedelta(days=1)
+
+        # 按日期分组未赛比赛
+        matches_by_date = {}
+        for m in todo:
+            d = m.get("date", "")[:10]
+            if d:
+                matches_by_date.setdefault(d, []).append(m)
+
+        # 找出有比赛的所有日期（排序）
+        all_dates = sorted(matches_by_date.keys())
+
+        # 默认只展示"后一天"的比赛（即明天，如果明天有比赛；否则找下一个有比赛的日期）
+        default_show_date = None
+        for d in all_dates:
+            d_obj = datetime.strptime(d, "%Y-%m-%d").date()
+            if d_obj >= today:
+                default_show_date = d
+                break
+
+        c1, c2, c3 = st.columns([2, 2, 3])
         with c1:
             sa = st.checkbox("显示全部比赛", value=False)
         with c2:
             sg = st.selectbox("按小组筛选",
                               ["全部"] + sorted({m.get("group_name", "") for m in todo if m.get("group_name")}))
+        with c3:
+            if sa:
+                date_options = ["全部日期"] + all_dates
+                sd = st.selectbox("按日期筛选", date_options, index=0)
+            else:
+                # 非全部模式：显示当前默认日期信息
+                if default_show_date:
+                    dd = datetime.strptime(default_show_date, "%Y-%m-%d").date()
+                    day_label = "今天" if dd == today else ("明天" if dd == tomorrow else f"{dd.month}月{dd.day}日")
+                    st.info(f"📅 展示 {day_label} ({default_show_date}) 的 {len(matches_by_date.get(default_show_date, []))} 场比赛")
+                else:
+                    st.info("📅 暂无 upcoming 比赛")
+
         filt = todo
         if not sa:
-            from datetime import datetime, timedelta
-            now = datetime.now()
-            co = now + timedelta(days=21)
-            filt = [m for m in filt if not m.get("date") or datetime.strptime(m["date"][:10], "%Y-%m-%d") <= co]
+            # 只展示后一天（默认日期）的比赛
+            if default_show_date:
+                filt = matches_by_date.get(default_show_date, [])
+            else:
+                filt = []
+        else:
+            # 全部模式但按日期筛选
+            if sa and 'sd' in dir() and sd != "全部日期":
+                filt = matches_by_date.get(sd, [])
+
         if sg != "全部":
             filt = [m for m in filt if m.get("group_name") == sg]
+
         if not filt:
-            st.info("暂无符合条件的比赛")
+            if not sa and default_show_date:
+                st.info(f"⏳ {default_show_date} 暂无符合条件的比赛")
+            else:
+                st.info("暂无符合条件的比赛")
 
         for m in filt:
             h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
