@@ -829,7 +829,7 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
 
     # ── 3. 蒙特卡洛维度 ──
     env = _build_match_environment(hid, aid, hn, an)
-    sim = mc.Simulator(n_sim=5000).run_detailed(lh, la, env,
+    sim = mc.Simulator(n_sim=config.MC_SIMULATIONS).run_detailed(lh, la, env,
                                                  is_knockout=is_knockout)
     mc_hw = sim.get("final_home_win", sim["home_win"]) if is_knockout else sim["home_win"]
     mc_aw = sim.get("final_away_win", sim["away_win"]) if is_knockout else sim["away_win"]
@@ -909,9 +909,10 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     reasoning = []  # 详细推理过程
 
     # 6.1 Elo 实力判断
+    # 注意：eh/ea 是Elo评分，ew/ed/aw 是胜率概率
     ew = exp["home_win"]
     ed = exp["draw"]
-    ea = exp["away_win"]
+    aw = exp["away_win"]  # 改为 aw，避免覆盖 ea（客队Elo评分）
     elo_diff = eh - ea
     # 获取FIFA排名用于推理
     hid_fifa = result["elo"].get("home_fifa_rank", "?")
@@ -926,10 +927,10 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}，{hn}略占优势。{fifa_info}。Elo模型预测{hn}胜率{ew:.1%}。")
     elif elo_diff < -80:
         pred_parts.append(f"✈️ {an} 实力明显占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}超过80分，{an}实力明显更强。{fifa_info}。Elo模型预测{an}胜率{ea:.1%}。")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}超过80分，{an}实力明显更强。{fifa_info}。Elo模型预测{an}胜率{aw:.1%}。")
     elif elo_diff < -40:
         pred_parts.append(f"✈️ {an} 实力占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}，{an}略占优势。{fifa_info}。Elo模型预测{an}胜率{ea:.1%}。")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}，{an}略占优势。{fifa_info}。Elo模型预测{an}胜率{aw:.1%}。")
     else:
         pred_parts.append("⚖️ 两队实力接近")
         reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值仅{abs(elo_diff):.0f}分，两队实力非常接近。{fifa_info}。Elo模型预测平局概率{ed:.1%}。")
@@ -1155,7 +1156,7 @@ def _render_analysis_card(data: dict):
     # ── 3. 蒙特卡洛模拟 ──
     mc = data.get("monte_carlo", {})
     if mc:
-        st.markdown("**🎲 蒙特卡洛模拟 (5000次)**")
+        st.markdown(f"**🎲 蒙特卡洛模拟 ({config.MC_SIMULATIONS}次)**")
         hw = mc.get("home_win", 0)
         dr = mc.get("draw", 0)
         aw = mc.get("away_win", 0)
