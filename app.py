@@ -66,60 +66,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def search_team_news(team_name, query_type="status"):
-    """搜索球队动态 — 使用 Wikipedia API（免费、稳定、无需代理）"""
-    q = {"status": f"{team_name} national football team 2026 World Cup",
-         "recent": f"{team_name} football recent matches 2026"}.get(query_type, "")
-    res = []
-    try:
-        # 使用 Wikipedia API（更稳定）
-        wiki_api = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-        team_page = f"{team_name}_national_football_team"
-        # 尝试英文队名
-        eng_names = {
-            "墨西哥": "Mexico", "捷克": "Czech_Republic", "南非": "South_Africa",
-            "韩国": "South_Korea", "加拿大": "Canada", "波黑": "Bosnia_and_Herzegovina",
-            "卡塔尔": "Qatar", "瑞士": "Switzerland", "巴西": "Brazil",
-            "摩洛哥": "Morocco", "海地": "Haiti", "苏格兰": "Scotland",
-            "美国": "United_States", "土耳其": "Turkey", "巴拉圭": "Paraguay",
-            "澳大利亚": "Australia", "德国": "Germany", "库拉索": "Curaçao",
-            "科特迪瓦": "Ivory_Coast", "厄瓜多尔": "Ecuador", "荷兰": "Netherlands",
-            "瑞典": "Sweden", "日本": "Japan", "突尼斯": "Tunisia",
-            "比利时": "Belgium", "埃及": "Egypt", "伊朗": "Iran",
-            "新西兰": "New_Zealand", "西班牙": "Spain", "佛得角": "Cape_Verde",
-            "沙特阿拉伯": "Saudi_Arabia", "乌拉圭": "Uruguay", "法国": "France",
-            "伊拉克": "Iraq", "塞内加尔": "Senegal", "挪威": "Norway",
-            "阿根廷": "Argentina", "阿尔及利亚": "Algeria", "奥地利": "Austria",
-            "约旦": "Jordan", "葡萄牙": "Portugal", "刚果民主共和国": "DR_Congo",
-            "乌兹别克斯坦": "Uzbekistan", "哥伦比亚": "Colombia", "英格兰": "England",
-            "克罗地亚": "Croatia", "加纳": "Ghana", "巴拿马": "Panama",
-        }
-        eng_name = eng_names.get(team_name, team_name.replace(" ", "_"))
-        r = requests.get(f"{wiki_api}{eng_name}", timeout=5)
-        if r.status_code == 200:
-            d = r.json()
-            extract = d.get("extract", "")
-            if extract:
-                res.append(f"📰 {team_name} 简介: {extract[:250]}...")
-            # 添加模拟动态（因为 Wikipedia 不提供实时新闻）
-            res.append(f"⚽ {team_name} 2026世界杯参赛球队")
-            res.append(f"🏆 查看最新动态请访问官方体育新闻网站")
-        else:
-            # 如果 Wikipedia 也没有，返回默认提示
-            res.append(f"⚽ {team_name} 是2026世界杯参赛球队")
-            res.append(f"💡 实时动态请手动查询体育新闻网站")
-    except requests.exceptions.Timeout:
-        res.append(f"⚠️ 搜索超时，请稍后重试")
-    except requests.exceptions.ConnectionError:
-        res.append(f"⚠️ 网络连接失败，实时搜索暂不可用")
-        res.append(f"💡 建议：手动查询 ESPN/BBC/Sky Sports 等体育网站")
-    except Exception as e:
-        res.append(f"⚠️ 搜索服务暂不可用")
-        res.append(f"💡 {team_name} 是2026世界杯参赛球队")
-    return res if res else [f"⚽ {team_name} 2026世界杯参赛球队"]
-
-
 # ──────────────────────────────────────────────
 #  数据加载
 # ──────────────────────────────────────────────
@@ -1377,9 +1323,6 @@ def render_predictions(data):
     done = [m for m in matches if m.get("match_des") == "完赛"]
     todo = [m for m in matches if m.get("match_des") != "完赛"]
 
-    # 搜索增强开关从全局侧边栏读取
-    srch = st.session_state.get("search_enhanced", False)
-
     t1, t2, t3 = st.tabs([
         f"📺 已完赛 ({len(done)})",
         f"🔮 未赛预测 ({len(todo)})",
@@ -1412,19 +1355,10 @@ def render_predictions(data):
                     continue
                 stage, is_knockout = _detect_stage_and_knockout(m)
                 mh, ma = _estimate_motivation(m, standings, hid, aid)
-                xtra = None
-                if srch:
-                    with st.spinner("🌐 搜索中..."):
-                        hn_ = search_team_news(h, "status") if h else []
-                        an_ = search_team_news(a, "status") if a else []
-                    ps = []
-                    if hn_: ps.append(f"**{h}**:{'; '.join(hn_[:2])}")
-                    if an_: ps.append(f"**{a}**:{'; '.join(an_[:2])}")
-                    xtra = "|".join(ps) if ps else None
                 analysis = _do_analysis(
                     hid, aid, engine, h, a,
                     m.get("odds_home"), m.get("odds_draw"), m.get("odds_away"),
-                    stage, xtra,
+                    stage, None,  # xtra 已移除
                     is_knockout=is_knockout,
                     motivation_home=mh, motivation_away=ma,
                     use_market_odds=bool(m.get("odds_home")),
@@ -1585,14 +1519,6 @@ def render_predictions(data):
                 else:
                     st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
 
-                if srch:
-                    st.markdown(f"**📰 {h} 动态:**")
-                    for it in search_team_news(h, "status")[:3]:
-                        st.markdown(f'<div class="search-result">{it}</div>', unsafe_allow_html=True)
-                    st.markdown(f"**📰 {a} 动态:**")
-                    for it in search_team_news(a, "status")[:3]:
-                        st.markdown(f'<div class="search-result">{it}</div>', unsafe_allow_html=True)
-
                 if st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
                     hid = m.get("host_team_id") or gid(h)
                     aid = m.get("guest_team_id") or gid(a)
@@ -1608,20 +1534,10 @@ def render_predictions(data):
                     od = oi.get("od") if oi else None
                     oa = oi.get("oa") if oi else None
 
-                    xtra = None
-                    if srch:
-                        with st.spinner("🌐 搜索中..."):
-                            hn_ = search_team_news(h, "status") if h else []
-                            an_ = search_team_news(a, "status") if a else []
-                        ps = []
-                        if hn_: ps.append(f"**{h}**:{'; '.join(hn_[:2])}")
-                        if an_: ps.append(f"**{a}**:{'; '.join(an_[:2])}")
-                        xtra = "|".join(ps) if ps else None
-
                     analysis = _do_analysis(
                         hid, aid, engine, h, a,
                         oh, od, oa,
-                        stage, xtra,
+                        stage, None,  # xtra 已移除
                         is_knockout=is_knockout,
                         motivation_home=mh, motivation_away=ma,
                         use_market_odds=bool(oh),
@@ -1946,12 +1862,6 @@ def main():
             st.caption(f"已赛 {f} | 未赛 {len(ms)-f}")
         stnc = data.get("standings") or []
         if stnc: st.metric("球队",f"{len(stnc)} 支")
-
-        # ── 全局搜索增强开关 ──
-        st.divider()
-        st.session_state.setdefault("search_enhanced", False)
-        st.checkbox("🌐 实时搜索增强（分析球队动态）",
-                     key="search_enhanced")
 
         # ── 自动同步间隔 ──
         st.divider()
