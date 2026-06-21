@@ -2,10 +2,11 @@
 大模型推理增强模块
 
 支持的LLM：
-1. OpenAI API (GPT-4)
+1. OpenAI API (GPT-4, GPT-3.5等)
 2. DeepSeek API (国产，便宜)
 3. Anthropic API (Claude)
 4. 本地模型 (Ollama)
+5. 自定义模型（任何兼容OpenAI格式的API）
 
 用途：
 - 分析战报内容，提取关键信息
@@ -19,29 +20,78 @@ from typing import Dict, List, Optional
 
 # LLM配置
 LLM_CONFIG = {
-    "provider": "deepseek",  # openai / deepseek / anthropic / ollama
+    "provider": "deepseek",  # openai / deepseek / anthropic / ollama / custom
     "api_key": None,  # 用户配置
-    "model": "deepseek-chat",  # gpt-4 / deepseek-chat / claude-3-opus / llama3
-    "base_url": {
+    "model": "deepseek-chat",  # 模型名称
+    "base_url": None,  # 自定义API地址（可选）
+    "api_type": "openai",  # openai格式 / anthropic格式
+    # 预设的API地址
+    "preset_urls": {
         "openai": "https://api.openai.com/v1",
         "deepseek": "https://api.deepseek.com/v1",
         "anthropic": "https://api.anthropic.com/v1",
         "ollama": "http://localhost:11434/v1",
+        # 其他常见模型
+        "moonshot": "https://api.moonshot.cn/v1",  # Kimi
+        "zhipu": "https://open.bigmodel.cn/api/paas/v4",  # 智谱GLM
+        "qwen": "https://dashscope.aliyuncs.com/api/v1",  # 通义千问
+        "baichuan": "https://api.baichuan-ai.com/v1",  # 百川
+        "minimax": "https://api.minimax.chat/v1",  # MiniMax
+        "siliconflow": "https://api.siliconflow.cn/v1",  # SiliconFlow
+        "deepinfra": "https://api.deepinfra.com/v1/openai",  # DeepInfra
+        "together": "https://api.together.xyz/v1",  # Together AI
+        "groq": "https://api.groq.com/openai/v1",  # Groq
+        "perplexity": "https://api.perplexity.ai",  # Perplexity
     }
 }
 
 
-def set_llm_config(provider: str, api_key: str, model: str = None):
-    """设置LLM配置"""
+def set_llm_config(provider: str, api_key: str, model: str = None, base_url: str = None, api_type: str = None):
+    """
+    设置LLM配置
+    
+    Args:
+        provider: 提供商名称（openai/deepseek/anthropic/ollama/custom）
+        api_key: API密钥
+        model: 模型名称（可选）
+        base_url: 自定义API地址（可选，用于custom或覆盖预设）
+        api_type: API格式（openai/anthropic，可选）
+    """
     LLM_CONFIG["provider"] = provider
     LLM_CONFIG["api_key"] = api_key
+    
     if model:
         LLM_CONFIG["model"] = model
+    
+    if base_url:
+        LLM_CONFIG["base_url"] = base_url
+    
+    if api_type:
+        LLM_CONFIG["api_type"] = api_type
+    
+    # 如果是预设provider，自动设置api_type
+    if provider == "anthropic":
+        LLM_CONFIG["api_type"] = "anthropic"
+    elif provider in ["openai", "deepseek", "ollama", "moonshot", "zhipu", "qwen", 
+                       "baichuan", "minimax", "siliconflow", "deepinfra", "together", 
+                       "groq", "perplexity", "custom"]:
+        LLM_CONFIG["api_type"] = "openai"
+
+
+def get_base_url() -> str:
+    """获取API地址"""
+    # 优先使用自定义地址
+    if LLM_CONFIG["base_url"]:
+        return LLM_CONFIG["base_url"]
+    
+    # 使用预设地址
+    provider = LLM_CONFIG["provider"]
+    return LLM_CONFIG["preset_urls"].get(provider, "")
 
 
 def call_llm(prompt: str, system_prompt: str = None) -> str:
     """
-    调用LLM API（支持OpenAI/DeepSeek/Anthropic/Ollama）
+    调用LLM API（支持所有兼容OpenAI格式的模型）
     
     Args:
         prompt: 用户输入
@@ -53,17 +103,49 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
     if not LLM_CONFIG["api_key"]:
         return "⚠️ 未配置LLM API Key"
     
-    provider = LLM_CONFIG["provider"]
+    api_type = LLM_CONFIG.get("api_type", "openai")
     
     # Anthropic API格式不同
-    if provider == "anthropic":
+    if api_type == "anthropic":
         return call_anthropic(prompt, system_prompt)
     
-    # OpenAI/DeepSeek/Ollama格式相同
-    base_url = LLM_CONFIG["base_url"].get(provider, "")
+    # OpenAI兼容格式（支持所有兼容OpenAI的API）
+    return call_openai_compatible(prompt, system_prompt)
+
+
+def call_openai_compatible(prompt: str, system_prompt: str = None) -> str:
+    """
+    调用OpenAI兼容格式的API
+    
+    支持所有兼容OpenAI格式的模型：
+    - OpenAI (GPT-4, GPT-3.5)
+    - DeepSeek
+    - Moonshot (Kimi)
+    - 智谱GLM
+    - 通义千问
+    - 百川
+    - MiniMax
+    - SiliconFlow
+    - DeepInfra
+    - Together AI
+    - Groq
+    - Perplexity
+    - Ollama (本地)
+    - 任何自定义OpenAI兼容API
+    
+    Args:
+        prompt: 用户输入
+        system_prompt: 系统提示
+    
+    Returns:
+        LLM生成的文本
+    """
+    api_key = LLM_CONFIG["api_key"]
+    model = LLM_CONFIG["model"]
+    base_url = get_base_url()
     
     headers = {
-        "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
@@ -73,7 +155,7 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
     messages.append({"role": "user", "content": prompt})
     
     payload = {
-        "model": LLM_CONFIG["model"],
+        "model": model,
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 1000,
@@ -84,17 +166,20 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
             f"{base_url}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=30
+            timeout=60
         )
         
         if r.status_code == 200:
             data = r.json()
             return data["choices"][0]["message"]["content"]
         else:
-            return f"⚠️ LLM API错误: {r.status_code}"
+            error_msg = r.json().get("error", {}).get("message", r.text[:100])
+            return f"⚠️ API错误: {r.status_code} - {error_msg}"
     
+    except requests.exceptions.Timeout:
+        return "⚠️ API超时"
     except Exception as e:
-        return f"⚠️ LLM调用失败: {str(e)[:50]}"
+        return f"⚠️ 调用失败: {str(e)[:50]}"
 
 
 def call_anthropic(prompt: str, system_prompt: str = None) -> str:

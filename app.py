@@ -2103,32 +2103,67 @@ def main():
         # ── LLM API Key 配置（大模型推理）──
         st.divider()
         st.markdown("**🤖 LLM API Key（大模型推理）**")
-        st.caption("可选：DeepSeek/OpenAI/Anthropic/Ollama")
+        st.caption("可选：支持所有兼容OpenAI格式的模型")
         
         llm_provider = st.selectbox(
             "LLM提供商",
-            options=["deepseek", "openai", "anthropic", "ollama"],
+            options=[
+                "deepseek", "openai", "anthropic", "ollama",
+                "moonshot", "zhipu", "qwen", "baichuan", 
+                "minimax", "siliconflow", "groq", "custom"
+            ],
             key="llm_provider_select"
         )
         
-        # 根据提供商设置默认模型
-        default_models = {
-            "deepseek": "deepseek-chat",
-            "openai": "gpt-4",
-            "anthropic": "claude-3-opus-20240229",
-            "ollama": "llama3",
+        # 根据提供商设置默认模型和提示
+        provider_info = {
+            "deepseek": {"model": "deepseek-chat", "hint": "国产，便宜"},
+            "openai": {"model": "gpt-4", "hint": "GPT-4/GPT-3.5"},
+            "anthropic": {"model": "claude-3-opus-20240229", "hint": "Claude"},
+            "ollama": {"model": "llama3", "hint": "本地免费"},
+            "moonshot": {"model": "moonshot-v1-8k", "hint": "Kimi"},
+            "zhipu": {"model": "glm-4", "hint": "智谱GLM"},
+            "qwen": {"model": "qwen-turbo", "hint": "通义千问"},
+            "baichuan": {"model": "Baichuan2-Turbo", "hint": "百川"},
+            "minimax": {"model": "abab6.5-chat", "hint": "MiniMax"},
+            "siliconflow": {"model": "Qwen/Qwen2-7B-Instruct", "hint": "SiliconFlow"},
+            "groq": {"model": "mixtral-8x7b-32768", "hint": "Groq（快速）"},
+            "custom": {"model": "", "hint": "自定义模型"},
         }
         
         llm_key_input = st.text_input("LLM API Key", type="password", key="llm_api_key_input")
+        
+        # 模型名称（可自定义）
+        default_model = provider_info.get(llm_provider, {}).get("model", "")
         llm_model_input = st.text_input(
             "模型名称", 
-            value=default_models.get(llm_provider, "deepseek-chat"), 
-            key="llm_model_input"
+            value=default_model, 
+            key="llm_model_input",
+            help="可自定义模型名称"
         )
         
+        # 自定义API地址（仅custom需要）
+        if llm_provider == "custom":
+            llm_base_url = st.text_input(
+                "API地址",
+                value="",
+                key="llm_base_url_input",
+                help="输入兼容OpenAI格式的API地址，如 https://api.example.com/v1"
+            )
+        
+        # 配置LLM
         if llm_key_input:
-            llm.set_llm_config(llm_provider, llm_key_input, llm_model_input)
-            st.success(f"✅ {llm_provider} 已配置")
+            base_url = None
+            if llm_provider == "custom":
+                base_url = st.session_state.get("llm_base_url_input", "")
+            
+            if base_url:
+                llm.set_llm_config(llm_provider, llm_key_input, llm_model_input, base_url)
+            else:
+                llm.set_llm_config(llm_provider, llm_key_input, llm_model_input)
+            
+            hint = provider_info.get(llm_provider, {}).get("hint", "")
+            st.success(f"✅ {llm_provider} 已配置 ({hint})")
         else:
             st.info("💡 配置后可使用大模型增强推理分析")
 

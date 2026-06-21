@@ -22,7 +22,7 @@ metadata:
 | **贝叶斯融合** | 模型预测 + 市场赔率融合 |
 | **实时数据** | BSD API赔率、伤病、阵容 |
 | **新闻分析** | RSS新闻、WorldCupWiki伤病名单 |
-| **大模型推理** | DeepSeek/OpenAI/Anthropic/Ollama增强分析 |
+| **大模型推理** | 支持所有兼容OpenAI格式的模型（DeepSeek/OpenAI/Anthropic/Kimi/智谱/通义/百川/MiniMax/Groq/Ollama/自定义） |
 
 ## 命令
 
@@ -179,6 +179,24 @@ export BSD_API_KEY="your-api-key"
 
 ### LLM API Key（大模型推理）
 
+支持所有兼容OpenAI格式的模型：
+
+**预设模型：**
+
+| 提供商 | 环境变量 | 默认模型 |
+|--------|---------|---------|
+| DeepSeek | `LLM_PROVIDER="deepseek"` | deepseek-chat |
+| OpenAI | `LLM_PROVIDER="openai"` | gpt-4 |
+| Anthropic | `LLM_PROVIDER="anthropic"` | claude-3-opus |
+| Moonshot (Kimi) | `LLM_PROVIDER="moonshot"` | moonshot-v1-8k |
+| 智谱GLM | `LLM_PROVIDER="zhipu"` | glm-4 |
+| 通义千问 | `LLM_PROVIDER="qwen"` | qwen-turbo |
+| 百川 | `LLM_PROVIDER="baichuan"` | Baichuan2-Turbo |
+| MiniMax | `LLM_PROVIDER="minimax"` | abab6.5-chat |
+| SiliconFlow | `LLM_PROVIDER="siliconflow"` | Qwen/Qwen2-7B-Instruct |
+| Groq | `LLM_PROVIDER="groq"` | mixtral-8x7b-32768 |
+| Ollama | `LLM_PROVIDER="ollama"` | llama3 |
+
 **DeepSeek（推荐，便宜）：**
 ```bash
 export LLM_PROVIDER="deepseek"
@@ -200,9 +218,16 @@ export LLM_MODEL="claude-3-opus-20240229"
 
 **Ollama（本地免费）：**
 ```bash
-# 先安装Ollama
 ollama pull llama3
 export LLM_PROVIDER="ollama"
+```
+
+**自定义模型（任何OpenAI兼容API）：**
+```bash
+export LLM_PROVIDER="custom"
+export LLM_API_KEY="your-api-key"
+export LLM_MODEL="your-model-name"
+export LLM_BASE_URL="https://api.example.com/v1"
 ```
 
 ## 安装

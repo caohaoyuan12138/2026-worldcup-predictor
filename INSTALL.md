@@ -48,6 +48,22 @@ set_bsd_api_key("your-api-key")
 
 ### LLM API Key（大模型推理）
 
+支持所有兼容OpenAI格式的模型：
+
+| 提供商 | API地址 | 价格 | 默认模型 |
+|--------|---------|------|---------|
+| DeepSeek | api.deepseek.com | ¥0.001/千token | deepseek-chat |
+| OpenAI | api.openai.com | $0.03/千token | gpt-4 |
+| Anthropic | api.anthropic.com | $0.015/千token | claude-3-opus |
+| Moonshot | api.moonshot.cn | ¥0.012/千token | moonshot-v1-8k |
+| 智谱GLM | open.bigmodel.cn | ¥0.01/千token | glm-4 |
+| 通义千问 | dashscope.aliyuncs.com | ¥0.008/千token | qwen-turbo |
+| 百川 | api.baichuan-ai.com | ¥0.01/千token | Baichuan2-Turbo |
+| MiniMax | api.minimax.chat | ¥0.02/千token | abab6.5-chat |
+| SiliconFlow | api.siliconflow.cn | ¥0.004/千token | Qwen/Qwen2-7B |
+| Groq | api.groq.com | 免费（有限） | mixtral-8x7b |
+| Ollama | localhost:11434 | 免费（本地） | llama3 |
+
 **DeepSeek（推荐，便宜）：**
 ```bash
 export LLM_PROVIDER="deepseek"
@@ -71,6 +87,14 @@ export LLM_MODEL="claude-3-opus-20240229"
 ```bash
 ollama pull llama3
 export LLM_PROVIDER="ollama"
+```
+
+**自定义模型（任何OpenAI兼容API）：**
+```bash
+export LLM_PROVIDER="custom"
+export LLM_API_KEY="your-api-key"
+export LLM_MODEL="your-model-name"
+export LLM_BASE_URL="https://api.example.com/v1"
 ```
 
 ---
