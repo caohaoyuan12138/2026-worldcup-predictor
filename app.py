@@ -22,6 +22,7 @@ import model.bayesian as bayesian
 import model.llm_analyzer as llm  # 大模型推理增强
 import model.explanation_layer as exp  # 解释层模块
 import model.score_matrix as sm  # 比分矩阵模块
+import model.review as review  # 复盘模块
 import data.bsd_api as bsd  # BSD实时数据API
 import data.news_api as news  # 新闻数据API
 
@@ -207,8 +208,9 @@ def _auto_sync_if_needed():
         st.session_state["_api_last_check"] = ts
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)  # 缓存5分钟
 def load_all_data():
+    """加载所有数据（带缓存）"""
     raw = ld.load_all()                       # {"standings":[...],"schedule":[...],"teams":[...]}
     # 兼容两种 key 名：schedule 或 matches
     matches = raw.get("schedule") or raw.get("matches") or []
@@ -226,6 +228,8 @@ def load_all_data():
                         is_defending_champion=(code == "FRA"),
                         is_host_nation=is_host)
     name2id = {cn_: tid for cn_, (tid, *_) in TEAM.items()}
+    
+    # 只处理已完赛的比赛
     for m in matches:
         if m.get("match_des") != "完赛":
             continue
@@ -243,6 +247,13 @@ def load_all_data():
     raw["elo"] = engine
     raw["matches"] = matches   # 保证下游 render_xxx(data) 能拿到数据
     return raw
+
+
+@st.cache_resource  # Elo引擎作为资源缓存，不重复初始化
+def get_elo_engine():
+    """获取Elo引擎（资源缓存）"""
+    data = load_all_data()
+    return data.get("elo")
 
 
 def flag(cn_name):
@@ -1859,6 +1870,10 @@ def render_predictions(data):
                     use_market_odds=bool(m.get("odds_home")),
                 )
                 _render_analysis_card(analysis)
+                
+                # 保存预测数据到session_state（用于复盘）
+                prediction_key = f"_prediction_{h}_{a}"
+                st.session_state[prediction_key] = analysis
 
                 # ── 模型复盘 ──
                 if hs is not None and gs is not None:
@@ -2080,7 +2095,161 @@ def render_predictions(data):
 
 
 # ──────────────────────────────────────────────
-#  Tab 4 — 仓位建议（Kelly + 过滤 + 风控）
+#  Tab 4 — 复盘分析
+# ──────────────────────────────────────────────
+def render_review(data):
+    """复盘分析Tab"""
+    st.header("📝 复盘分析")
+    st.caption("比赛结束后，根据真实赛果分析预测准确性")
+    
+    # 初始化复盘引擎
+    if "_review_engine" not in st.session_state:
+        st.session_state["_review_engine"] = review.ReviewEngine()
+    
+    engine = st.session_state["_review_engine"]
+    
+    # 获取已完赛比赛
+    matches = data.get("matches") or []
+    finished_matches = [m for m in matches if m.get("match_des") == "完赛"]
+    
+    if not finished_matches:
+        st.info("暂无已完赛比赛可供复盘")
+        return
+    
+    # 统计数据展示
+    stats = engine.get_statistics()
+    if stats["total"] > 0:
+        st.subheader("📊 总体命中率统计")
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("复盘场次", stats["total"])
+        c2.metric("一选命中", f"{stats['first_choice_hit_rate']}%")
+        c3.metric("胜平负命中", f"{stats['result_hit_rate']}%")
+        c4.metric("大小球命中", f"{stats['over_under_hit_rate']}%")
+        c5.metric("总进球区间", f"{stats['total_range_hit_rate']}%")
+        c6.metric("冷门命中", f"{stats['upset_hit_rate']}%")
+        
+        st.caption(f"平均比分偏差: {stats['avg_score_deviation']}球 | 平均总进球偏差: {stats['avg_total_deviation']}球")
+    
+    st.divider()
+    
+    # 选择比赛复盘
+    st.subheader("🔍 单场复盘")
+    
+    # 比赛选择
+    match_options = [f"{m.get('host_team_name','?')} vs {m.get('guest_team_name','?')} ({m.get('host_team_score','?')}-{m.get('guest_team_score','?')})" 
+                     for m in finished_matches]
+    
+    selected_match = st.selectbox("选择已完赛比赛", match_options, key="review_match_select")
+    
+    if selected_match:
+        # 获取比赛数据
+        idx = match_options.index(selected_match)
+        match_data = finished_matches[idx]
+        
+        home_name = match_data.get("host_team_name", "")
+        away_name = match_data.get("guest_team_name", "")
+        actual_home_goals = match_data.get("host_team_score", 0)
+        actual_away_goals = match_data.get("guest_team_score", 0)
+        
+        st.markdown(f"**比赛**: {home_name} vs {away_name}")
+        st.markdown(f"**实际比分**: {actual_home_goals}-{actual_away_goals}")
+        
+        # 检查是否有预测数据
+        prediction_key = f"_prediction_{home_name}_{away_name}"
+        prediction_data = st.session_state.get(prediction_key)
+        
+        if prediction_data:
+            # 执行复盘
+            if st.button("📊 开始复盘", key="start_review_btn"):
+                result = engine.review_match(
+                    f"{home_name} vs {away_name}",
+                    actual_home_goals,
+                    actual_away_goals,
+                    prediction_data
+                )
+                
+                # 显示命中情况
+                st.subheader("命中情况")
+                c1, c2, c3, c4, c5 = st.columns(5)
+                c1.metric("一选命中", "✅" if result.first_choice_hit else "❌")
+                c2.metric("二选命中", "✅" if result.second_choice_hit else "❌")
+                c3.metric("胜平负命中", "✅" if result.result_hit else "❌")
+                c4.metric("大小球命中", "✅" if result.over_under_hit else "❌")
+                c5.metric("总进球区间", "✅" if result.total_range_hit else "❌")
+                
+                # 显示偏差分析
+                st.subheader("偏差分析")
+                st.markdown(f"**比分偏差**: {result.score_deviation}球")
+                st.markdown(f"**结果偏差**: {result.result_deviation}")
+                st.markdown(f"**总进球偏差**: {result.total_goals_deviation}球")
+                
+                # 偏差原因
+                st.subheader("偏差原因")
+                for reason in result.deviation_reasons:
+                    st.markdown(f"- {reason}")
+                
+                # 显示完整报告
+                st.divider()
+                st.subheader("复盘报告")
+                st.markdown(result.report)
+                
+                # 保存复盘历史
+                st.success("复盘完成！数据已保存到历史记录")
+        else:
+            st.warning("⚠️ 该比赛尚未进行预测分析，请先在'比赛分析'页面进行分析")
+            st.info("提示：点击'比赛分析'，选择该比赛，点击'分析这场比赛'按钮进行预测")
+    
+    st.divider()
+    
+    # 复盘历史
+    st.subheader("📚 复盘历史")
+    
+    if engine.history:
+        for i, r in enumerate(engine.history[-10:], 1):  # 显示最近10场
+            with st.expander(f"{i}. {r.match} - {r.actual_score}"):
+                st.markdown(f"**预测比分**: {r.predicted_top_score}")
+                st.markdown(f"**命中**: 一选{'✅' if r.first_choice_hit else '❌'} | 胜平负{'✅' if r.result_hit else '❌'} | 大小球{'✅' if r.over_under_hit else '❌'}")
+                st.markdown(f"**偏差原因**: {r.deviation_reasons[0] if r.deviation_reasons else '无'}")
+    else:
+        st.info("暂无复盘历史")
+    
+    # 导出复盘数据
+    st.divider()
+    st.subheader("📤 导出复盘数据")
+    
+    if st.button("导出复盘报告（JSON）", key="export_review_btn"):
+        if engine.history:
+            import json
+            from datetime import datetime
+            
+            export_data = {
+                "statistics": engine.get_statistics(),
+                "history": [
+                    {
+                        "match": r.match,
+                        "actual_score": r.actual_score,
+                        "predicted_score": r.predicted_top_score,
+                        "first_choice_hit": r.first_choice_hit,
+                        "result_hit": r.result_hit,
+                        "over_under_hit": r.over_under_hit,
+                        "deviation_reasons": r.deviation_reasons,
+                    }
+                    for r in engine.history
+                ],
+                "export_time": datetime.now().isoformat(),
+            }
+            
+            st.download_button(
+                "下载 JSON 文件",
+                json.dumps(export_data, ensure_ascii=False, indent=2),
+                file_name=f"review_report_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+        else:
+            st.warning("暂无复盘数据可导出")
+
+
+#  Tab 5 — 仓位建议（Kelly + 过滤 + 风控）
 # ──────────────────────────────────────────────
 def render_portfolio(data):
     st.header("💰 Kelly 仓位建议")
@@ -2470,12 +2639,13 @@ def main():
         st.divider()
         if st.button("🔄 刷新"): st.cache_data.clear(); st.rerun()
 
-    tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","💰 仓位建议","🛠️ 数据管理"])
+    tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理"])
     with tabs[0]: render_standings(data)
     with tabs[1]: render_knockout(data)
     with tabs[2]: render_predictions(data)
-    with tabs[3]: render_portfolio(data)
-    with tabs[4]: render_data_manager()
+    with tabs[3]: render_review(data)
+    with tabs[4]: render_portfolio(data)
+    with tabs[5]: render_data_manager()
 
 
 if __name__ == "__main__":
