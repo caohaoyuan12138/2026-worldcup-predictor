@@ -20,6 +20,7 @@ import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
 import data.bsd_api as bsd  # BSD实时数据API
+import data.news_api as news  # 新闻数据API
 
 # ──────────────────────────────────────────────
 #  球队元数据（中文名 → 完整信息）
@@ -916,6 +917,25 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     if bsd_adjustment_note:
         reasoning.append(f"• BSD实时数据：{bsd_adjustment_note}。伤病/停赛球员已纳入期望进球调整。")
 
+    # 6.2.2 新闻数据推理
+    try:
+        news_summary = news.format_news_for_prediction(hn, an)
+        if news_summary and "暂无" not in news_summary:
+            reasoning.append(f"• 新闻动态：{news_summary}")
+            
+            # 获取伤病影响调整
+            match_news = news.get_match_news_summary(hn, an)
+            news_adj = match_news.get("impact_adjustment", {})
+            
+            # 如果新闻数据有伤病影响，进一步调整lambda
+            if news_adj.get("lambda_home", 1.0) < 1.0 or news_adj.get("lambda_away", 1.0) < 1.0:
+                # 新闻伤病调整叠加到BSD调整之上
+                lh = lh * news_adj.get("lambda_home", 1.0)
+                la = la * news_adj.get("lambda_away", 1.0)
+                reasoning.append(f"• 伤病名单影响：根据WorldCupWiki伤病名单，{hn}λ调整为{lh:.3f}，{an}λ调整为{la:.3f}。")
+    except Exception as e:
+        pass  # 新闻数据获取失败不影响主流程
+
     # 6.3 蒙特卡洛最可能比分
     if top:
         best_score = top[0]
@@ -1290,7 +1310,34 @@ def _render_analysis_card(data: dict):
             st.divider()
             st.markdown(realtime_data.get("summary", ""))
 
-    # ── 9. 实时情报（手动导入）──
+    # ── 9. 新闻动态（RSS + WorldCupWiki）──
+    with st.expander("📰 新闻动态（免费数据源）"):
+        match_news = news.get_match_news_summary(_hn, _an)
+        
+        # 伤病名单
+        st.markdown(f"**📋 {_hn} 伤病名单:**")
+        st.markdown(f"  {match_news['home_injuries']['summary']}")
+        st.markdown(f"**📋 {_an} 伤病名单:**")
+        st.markdown(f"  {match_news['away_injuries']['summary']}")
+        
+        # 影响评分
+        st.caption(f"伤病影响评分: {_hn} {match_news['home_injuries']['impact_score']}/10 | {_an} {match_news['away_injuries']['impact_score']}/10")
+        
+        # 最新新闻
+        st.divider()
+        st.markdown(f"**📰 {_hn} 最新新闻:**")
+        for n in match_news["home_news"][:3]:
+            st.markdown(f"  • [{n['title'][:60]}...]({n['link']})")
+        
+        st.markdown(f"**📰 {_an} 最新新闻:**")
+        for n in match_news["away_news"][:3]:
+            st.markdown(f"  • [{n['title'][:60]}...]({n['link']})")
+        
+        # 数据来源
+        st.divider()
+        st.caption("数据来源: Sports Mole RSS | WorldCupWiki 伤病名单")
+
+    # ── 10. 实时情报（手动导入）──
     extra = data.get("extra")
     if extra:
         with st.expander("🌐 实时情报"):
