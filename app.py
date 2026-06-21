@@ -1049,7 +1049,33 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         "away_tactical": env.away_tactical_style,
     }
 
-    # ── 8. 实时情报 ──
+    # ── 8. BSD实时赔率 ──
+    result["bsd_odds"] = None
+    if bsd.is_bsd_available():
+        try:
+            bsd_odds_data = bsd.get_best_odds(hn, an)
+            if bsd_odds_data and bsd_odds_data.get("summary"):
+                result["bsd_odds"] = bsd_odds_data
+                # 如果没有手动导入赔率，使用BSD赔率作为市场赔率
+                if not use_market_odds and bsd_odds_data.get("average_home"):
+                    oh = bsd_odds_data.get("average_home")
+                    od = bsd_odds_data.get("average_draw")
+                    oa = bsd_odds_data.get("average_away")
+                    if oh and od and oa:
+                        # 重新计算贝叶斯融合
+                        mp = bayesian.calc_market_implied_prob(float(oh), float(od), float(oa))
+                        prior = {"home_win": exp["home_win"], "draw": exp["draw"], "away_win": exp["away_win"]}
+                        posterior = bayesian.bayesian_fusion(prior, mp)
+                        result["bayesian"] = {
+                            "market_probs": mp,
+                            "posterior_probs": posterior,
+                            "source": "BSD API",
+                        }
+                        reasoning.append(f"• BSD实时赔率：主胜{oh:.2f}（隐含概率{mp['home_win']:.1%}）、平{od:.2f}（{mp['draw']:.1%}）、客胜{oa:.2f}（{mp['away_win']:.1%}）。贝叶斯融合后：主胜{posterior['home_win']:.1%}、平{posterior['draw']:.1%}、客胜{posterior['away_win']:.1%}。")
+        except Exception as e:
+            pass  # BSD赔率获取失败不影响主流程
+
+    # ── 9. 实时情报 ──
     result["extra"] = extra
 
     return result
@@ -1192,8 +1218,41 @@ def _render_analysis_card(data: dict):
         c2.metric("融合平局", f"{bayes.get('draw', 0):.1%}")
         c3.metric("融合客胜", f"{bayes.get('away_win', 0):.1%}")
         st.caption(f"模型权重 {bayes.get('weight_model',0):.0%} / 市场权重 {bayes.get('weight_market',0):.0%} | 置信度 {bayes.get('confidence',0):.1%}")
+        # 显示赔率来源
+        source = bayes.get("source", "手动导入")
+        if source == "BSD API":
+            st.caption("📡 赔率来源: BSD API 实时赔率")
 
-    # ── 5. Kelly 仓位 ──
+    # ── 4.1 BSD实时赔率 ──
+    bsd_odds = data.get("bsd_odds")
+    if bsd_odds:
+        with st.expander("💰 BSD实时赔率（17+博彩公司）"):
+            st.markdown(f"**{bsd_odds.get('summary', '')}**")
+            
+            # 显示最佳赔率
+            best_h = bsd_odds.get("best_home")
+            best_d = bsd_odds.get("best_draw")
+            best_a = bsd_odds.get("best_away")
+            
+            c1, c2, c3 = st.columns(3)
+            if best_h:
+                c1.metric(f"最佳主胜", f"{best_h.get('odds', 0):.2f}", f"{best_h.get('bookmaker', '?')}")
+            else:
+                c1.metric(f"平均主胜", f"{bsd_odds.get('average_home', 0):.2f}")
+            
+            if best_d:
+                c2.metric(f"最佳平局", f"{best_d.get('odds', 0):.2f}", f"{best_d.get('bookmaker', '?')}")
+            else:
+                c2.metric(f"平均平局", f"{bsd_odds.get('average_draw', 0):.2f}")
+            
+            if best_a:
+                c3.metric(f"最佳客胜", f"{best_a.get('odds', 0):.2f}", f"{best_a.get('bookmaker', '?')}")
+            else:
+                c3.metric(f"平均客胜", f"{bsd_odds.get('average_away', 0):.2f}")
+            
+            st.caption("数据来源: BSD API (Bet365, Pinnacle, Betfair, Kambi等)")
+
+    # ── 6. Kelly 仓位 ──
     kelly = data.get("kelly")
     if kelly:
         st.markdown("**💰 Kelly 仓位**")
@@ -1210,7 +1269,7 @@ def _render_analysis_card(data: dict):
         if _hn and _an:
             st.caption(f"{_hf} {_hn} vs {_af} {_an}")
 
-    # ── 6. 综合预测 ──
+    # ── 7. 综合预测 ──
     pred = data.get("prediction", "")
     if pred:
         st.info(f"**📌 综合预测**: {pred}")
@@ -1223,7 +1282,7 @@ def _render_analysis_card(data: dict):
                 if line.strip():
                     st.markdown(line.strip())
 
-    # ── 7. 环境因素 ──
+    # ── 8. 环境因素 ──
     env = data.get("environment", {})
     # 始终显示环境因素（即使都是默认值，也展示中性环境说明）
     with st.expander("🌍 环境因素"):
@@ -1276,7 +1335,7 @@ def _render_analysis_card(data: dict):
         for line in env_lines:
             st.markdown(f"  {line}")
 
-    # ── 8. 实时数据（BSD API）──
+    # ── 9. 实时数据（BSD API）──
     if bsd.is_bsd_available():
         with st.expander("📡 实时数据（BSD API）"):
             realtime_data = bsd.get_realtime_match_data(_hn, _an)
@@ -1310,7 +1369,7 @@ def _render_analysis_card(data: dict):
             st.divider()
             st.markdown(realtime_data.get("summary", ""))
 
-    # ── 9. 新闻动态（RSS + WorldCupWiki）──
+    # ── 10. 新闻动态（RSS + WorldCupWiki）──
     with st.expander("📰 新闻动态（免费数据源）"):
         match_news = news.get_match_news_summary(_hn, _an)
         
