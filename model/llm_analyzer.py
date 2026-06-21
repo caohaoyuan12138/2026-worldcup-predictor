@@ -4,7 +4,8 @@
 支持的LLM：
 1. OpenAI API (GPT-4)
 2. DeepSeek API (国产，便宜)
-3. 本地模型 (Ollama)
+3. Anthropic API (Claude)
+4. 本地模型 (Ollama)
 
 用途：
 - 分析战报内容，提取关键信息
@@ -18,12 +19,13 @@ from typing import Dict, List, Optional
 
 # LLM配置
 LLM_CONFIG = {
-    "provider": "deepseek",  # openai / deepseek / ollama
+    "provider": "deepseek",  # openai / deepseek / anthropic / ollama
     "api_key": None,  # 用户配置
-    "model": "deepseek-chat",  # gpt-4 / deepseek-chat / llama3
+    "model": "deepseek-chat",  # gpt-4 / deepseek-chat / claude-3-opus / llama3
     "base_url": {
         "openai": "https://api.openai.com/v1",
         "deepseek": "https://api.deepseek.com/v1",
+        "anthropic": "https://api.anthropic.com/v1",
         "ollama": "http://localhost:11434/v1",
     }
 }
@@ -39,7 +41,7 @@ def set_llm_config(provider: str, api_key: str, model: str = None):
 
 def call_llm(prompt: str, system_prompt: str = None) -> str:
     """
-    调用LLM API
+    调用LLM API（支持OpenAI/DeepSeek/Anthropic/Ollama）
     
     Args:
         prompt: 用户输入
@@ -52,6 +54,12 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
         return "⚠️ 未配置LLM API Key"
     
     provider = LLM_CONFIG["provider"]
+    
+    # Anthropic API格式不同
+    if provider == "anthropic":
+        return call_anthropic(prompt, system_prompt)
+    
+    # OpenAI/DeepSeek/Ollama格式相同
     base_url = LLM_CONFIG["base_url"].get(provider, "")
     
     headers = {
@@ -87,6 +95,63 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
     
     except Exception as e:
         return f"⚠️ LLM调用失败: {str(e)[:50]}"
+
+
+def call_anthropic(prompt: str, system_prompt: str = None) -> str:
+    """
+    调用Anthropic API (Claude)
+    
+    Anthropic API格式与OpenAI不同：
+    - 使用x-api-key而非Authorization
+    - system参数单独传递
+    - 使用messages数组
+    
+    Args:
+        prompt: 用户输入
+        system_prompt: 系统提示
+    
+    Returns:
+        Claude生成的文本
+    """
+    api_key = LLM_CONFIG["api_key"]
+    model = LLM_CONFIG["model"] or "claude-3-opus-20240229"
+    
+    headers = {
+        "x-api-key": api_key,
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",  # Anthropic API版本
+    }
+    
+    payload = {
+        "model": model,
+        "max_tokens": 1000,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    
+    # Anthropic的system参数单独传递
+    if system_prompt:
+        payload["system"] = system_prompt
+    
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=payload,
+            timeout=60
+        )
+        
+        if r.status_code == 200:
+            data = r.json()
+            # Anthropic返回格式: content[0].text
+            return data["content"][0]["text"]
+        else:
+            error_msg = r.json().get("error", {}).get("message", r.text[:100])
+            return f"⚠️ Anthropic API错误: {r.status_code} - {error_msg}"
+    
+    except requests.exceptions.Timeout:
+        return "⚠️ Anthropic API超时"
+    except Exception as e:
+        return f"⚠️ Anthropic调用失败: {str(e)[:50]}"
 
 
 def generate_match_analysis(

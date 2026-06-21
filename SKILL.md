@@ -22,7 +22,7 @@ metadata:
 | **贝叶斯融合** | 模型预测 + 市场赔率融合 |
 | **实时数据** | BSD API赔率、伤病、阵容 |
 | **新闻分析** | RSS新闻、WorldCupWiki伤病名单 |
-| **大模型推理** | DeepSeek/OpenAI/Ollama增强分析 |
+| **大模型推理** | DeepSeek/OpenAI/Anthropic/Ollama增强分析 |
 
 ## 命令
 
@@ -189,6 +189,13 @@ export LLM_API_KEY="your-deepseek-key"
 ```bash
 export LLM_PROVIDER="openai"
 export LLM_API_KEY="your-openai-key"
+```
+
+**Anthropic（Claude）：**
+```bash
+export LLM_PROVIDER="anthropic"
+export LLM_API_KEY="your-anthropic-key"
+export LLM_MODEL="claude-3-opus-20240229"
 ```
 
 **Ollama（本地免费）：**

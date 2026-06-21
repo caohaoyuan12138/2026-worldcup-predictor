@@ -60,6 +60,13 @@ export LLM_PROVIDER="openai"
 export LLM_API_KEY="your-openai-key"
 ```
 
+**Anthropic（Claude）：**
+```bash
+export LLM_PROVIDER="anthropic"
+export LLM_API_KEY="your-anthropic-key"
+export LLM_MODEL="claude-3-opus-20240229"
+```
+
 **Ollama（本地免费）：**
 ```bash
 ollama pull llama3

@@ -4,13 +4,17 @@ World Cup Predictor - 2026世界杯比分预测模型
 四层融合架构：Elo + Dixon-Coles泊松 + 蒙特卡洛 + 贝叶斯
 """
 
-from .model.elo_engine import EloEngine
-from .model.poisson import calc_expected_goals
-from .model.monte_carlo import Simulator, MatchEnvironment
-from .model.bayesian import calc_market_implied_prob, bayesian_fusion
-from .model.llm_analyzer import generate_match_analysis, set_llm_config
-from .data.bsd_api import set_bsd_api_key, get_best_odds, get_team_injuries
-from .data.news_api import get_team_news, get_team_injuries_from_wiki
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from model.elo_engine import EloEngine
+from model.poisson import calc_expected_goals
+from model.monte_carlo import Simulator, MatchEnvironment
+from model.bayesian import calc_market_implied_prob, bayesian_fusion
+from model.llm_analyzer import generate_match_analysis, set_llm_config, call_anthropic
+from data.bsd_api import set_bsd_api_key, get_best_odds, get_team_injuries
+from data.news_api import get_team_news, get_team_injuries_from_wiki
 
 
 class Predictor:
@@ -152,6 +156,7 @@ __all__ = [
     "bayesian_fusion",
     "generate_match_analysis",
     "set_llm_config",
+    "call_anthropic",
     "set_bsd_api_key",
     "get_best_odds",
     "get_team_injuries",

@@ -2103,16 +2103,28 @@ def main():
         # ── LLM API Key 配置（大模型推理）──
         st.divider()
         st.markdown("**🤖 LLM API Key（大模型推理）**")
-        st.caption("可选：DeepSeek/OpenAI/Ollama")
+        st.caption("可选：DeepSeek/OpenAI/Anthropic/Ollama")
         
         llm_provider = st.selectbox(
             "LLM提供商",
-            options=["deepseek", "openai", "ollama"],
+            options=["deepseek", "openai", "anthropic", "ollama"],
             key="llm_provider_select"
         )
         
+        # 根据提供商设置默认模型
+        default_models = {
+            "deepseek": "deepseek-chat",
+            "openai": "gpt-4",
+            "anthropic": "claude-3-opus-20240229",
+            "ollama": "llama3",
+        }
+        
         llm_key_input = st.text_input("LLM API Key", type="password", key="llm_api_key_input")
-        llm_model_input = st.text_input("模型名称", value="deepseek-chat", key="llm_model_input")
+        llm_model_input = st.text_input(
+            "模型名称", 
+            value=default_models.get(llm_provider, "deepseek-chat"), 
+            key="llm_model_input"
+        )
         
         if llm_key_input:
             llm.set_llm_config(llm_provider, llm_key_input, llm_model_input)
