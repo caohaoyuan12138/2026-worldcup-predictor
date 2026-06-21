@@ -682,24 +682,102 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     except Exception:
         pass
 
-    # ── 6. 综合预测 ──
+    # ── 6. 综合预测（融合所有维度）──
+    pred_parts = []
+
+    # 6.1 Elo 实力判断
     ew = exp["home_win"]
     ed = exp["draw"]
-    if ew > 0.6:
-        pred = f"🏠 {hn} 大概率胜出"
-    elif ew > 0.45 and ed < 0.25:
-        pred = f"🏠 {hn} 有望小胜"
-    elif ew + ed > 0.7:
-        pred = f"🏠 {hn} 不败"
-    elif ew < 0.3 and ed < 0.25:
-        pred = f"✈️ {an} 大概率胜出"
-    elif ew < 0.4 and ed > 0.3:
-        pred = "⚖️ 平局概率高"
+    ea = exp["away_win"]
+    elo_diff = eh - ea
+    if elo_diff > 80:
+        pred_parts.append(f"🏠 {hn} 实力明显占优（Elo差 {elo_diff:+.0f}）")
+    elif elo_diff > 40:
+        pred_parts.append(f"🏠 {hn} 实力占优（Elo差 {elo_diff:+.0f}）")
+    elif elo_diff < -80:
+        pred_parts.append(f"✈️ {an} 实力明显占优（Elo差 {elo_diff:+.0f}）")
+    elif elo_diff < -40:
+        pred_parts.append(f"✈️ {an} 实力占优（Elo差 {elo_diff:+.0f}）")
     else:
-        pred = "❓ 势均力敌"
-    if is_knockout and ed > 0.3:
-        pred += " → 可能进入加时赛"
-    result["prediction"] = pred
+        pred_parts.append("⚖️ 两队实力接近")
+
+    # 6.2 泊松期望进球判断
+    total_goals = lh + la
+    if total_goals > 2.8:
+        pred_parts.append(f"🔥 预计进球较多（{total_goals:.1f}球）")
+    elif total_goals < 1.8:
+        pred_parts.append(f"🛡️ 预计进球偏少（{total_goals:.1f}球）")
+    else:
+        pred_parts.append(f"⚽ 预计进球适中（{total_goals:.1f}球）")
+
+    # 6.3 蒙特卡洛最可能比分
+    if top:
+        best_score = top[0]
+        pred_parts.append(f"🎯 最可能比分 {best_score['score']}（{best_score['probability']}%）")
+
+    # 6.4 动机因子影响
+    if abs(motivation_home - 1.0) > 0.05 or abs(motivation_away - 1.0) > 0.05:
+        mot_lines = []
+        if motivation_home > 1.05:
+            mot_lines.append(f"{hn}战意高涨")
+        elif motivation_home < 0.95:
+            mot_lines.append(f"{hn}战意一般")
+        if motivation_away > 1.05:
+            mot_lines.append(f"{an}战意高涨")
+        elif motivation_away < 0.95:
+            mot_lines.append(f"{an}战意一般")
+        if mot_lines:
+            pred_parts.append(f"💪 {' / '.join(mot_lines)}")
+
+    # 6.5 市场赔率融合判断
+    if result.get("bayesian"):
+        bay = result["bayesian"]
+        bw = bay["home_win"]
+        bd = bay["draw"]
+        ba = bay["away_win"]
+        conf = bay["confidence"]
+        # 模型 vs 市场分歧
+        model_home = exp["home_win"]
+        market_home = bay["market_implied"]["home_win"]
+        diff_mm = model_home - market_home
+        if abs(diff_mm) > 0.08:
+            if diff_mm > 0:
+                pred_parts.append(f"📈 模型看好{hn}（模型{model_home:.1%} vs 市场{market_home:.1%}）")
+            else:
+                pred_parts.append(f"📉 市场看好{hn}（市场{market_home:.1%} vs 模型{model_home:.1%}）")
+        if conf > 0.7:
+            pred_parts.append(f"✅ 融合置信度高（{conf:.0%}）")
+        elif conf < 0.4:
+            pred_parts.append(f"⚠️ 融合置信度低（{conf:.0%}），建议谨慎")
+
+    # 6.6 Kelly 仓位建议
+    if result.get("kelly"):
+        kel = result["kelly"]
+        rec = kel["recommendation"]
+        edge = kel["edge"]
+        if rec in ("轻仓", "中仓", "重仓"):
+            pred_parts.append(f"💰 Kelly建议{rec}（edge {edge:+.1%}）")
+        elif rec == "观望":
+            pred_parts.append(f"👀 Kelly建议观望（edge {edge:+.1%}）")
+
+    # 6.7 淘汰赛加时提示
+    if is_knockout:
+        if ed > 0.25:
+            pred_parts.append(f"⏱️ 淘汰赛平局概率{ed:.1%}，可能进入加时")
+        if sim.get("extra_time") and sim["extra_time"].get("draw_pct", 0) > 30:
+            pred_parts.append("🎯 加时后仍可能点球决胜")
+
+    # 6.8 环境因素
+    if env.is_water_break:
+        pred_parts.append("💧 补水机制激活（高温）")
+    if env.venue_altitude > 1500:
+        pred_parts.append(f"⛰️ 高海拔场地（{env.venue_altitude}m）")
+    if env.is_rain:
+        pred_parts.append("🌧️ 雨天作战")
+    if abs(env.timezone_diff_hours) > 3:
+        pred_parts.append(f"🕐 时差影响（{env.timezone_diff_hours:.0f}h）")
+
+    result["prediction"] = "\n".join(pred_parts) if pred_parts else "❓ 数据不足，无法给出综合预测"
 
     # ── 7. 环境因素摘要 ──
     result["environment"] = {
