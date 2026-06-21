@@ -20,7 +20,7 @@ import time
 
 # BSD API配置
 BSD_API_BASE = "https://sports.bzzoiro.com/api"
-BSD_API_KEY = None  # 用户需要在侧边栏输入API Key
+BSD_API_KEY = "e26606d78375f28b58a121ba421d1682ebe27d0d"  # 已配置的API Key
 
 
 @st.cache_data(ttl=300, show_spinner=False)
