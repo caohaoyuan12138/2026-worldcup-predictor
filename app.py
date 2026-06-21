@@ -66,21 +66,58 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def search_team_news(team_name, query_type="status"):
-    q = {"status":f"{team_name} 世界杯 2026 最新状态 伤病 阵容","recent":f"{team_name} 最近比赛 2026年6月"}.get(query_type,"")
+    """搜索球队动态 — 使用 Wikipedia API（免费、稳定、无需代理）"""
+    q = {"status": f"{team_name} national football team 2026 World Cup",
+         "recent": f"{team_name} football recent matches 2026"}.get(query_type, "")
     res = []
     try:
-        r = requests.get("https://api.duckduckgo.com/",params={"q":q,"format":"json","no_html":1,"skip_disambig":1},timeout=8)
-        d = r.json()
-        a = d.get("AbstractText","")
-        if a: res.append(f"📰 摘要: {a[:300]}")
-        for t in d.get("RelatedTopics",[])[:5]:
-            if isinstance(t,dict) and t.get("Text") and len(t["Text"])>20:
-                res.append(f"🔗 {t['Text'][:200]}")
+        # 使用 Wikipedia API（更稳定）
+        wiki_api = "https://en.wikipedia.org/api/rest_v1/page/summary/"
+        team_page = f"{team_name}_national_football_team"
+        # 尝试英文队名
+        eng_names = {
+            "墨西哥": "Mexico", "捷克": "Czech_Republic", "南非": "South_Africa",
+            "韩国": "South_Korea", "加拿大": "Canada", "波黑": "Bosnia_and_Herzegovina",
+            "卡塔尔": "Qatar", "瑞士": "Switzerland", "巴西": "Brazil",
+            "摩洛哥": "Morocco", "海地": "Haiti", "苏格兰": "Scotland",
+            "美国": "United_States", "土耳其": "Turkey", "巴拉圭": "Paraguay",
+            "澳大利亚": "Australia", "德国": "Germany", "库拉索": "Curaçao",
+            "科特迪瓦": "Ivory_Coast", "厄瓜多尔": "Ecuador", "荷兰": "Netherlands",
+            "瑞典": "Sweden", "日本": "Japan", "突尼斯": "Tunisia",
+            "比利时": "Belgium", "埃及": "Egypt", "伊朗": "Iran",
+            "新西兰": "New_Zealand", "西班牙": "Spain", "佛得角": "Cape_Verde",
+            "沙特阿拉伯": "Saudi_Arabia", "乌拉圭": "Uruguay", "法国": "France",
+            "伊拉克": "Iraq", "塞内加尔": "Senegal", "挪威": "Norway",
+            "阿根廷": "Argentina", "阿尔及利亚": "Algeria", "奥地利": "Austria",
+            "约旦": "Jordan", "葡萄牙": "Portugal", "刚果民主共和国": "DR_Congo",
+            "乌兹别克斯坦": "Uzbekistan", "哥伦比亚": "Colombia", "英格兰": "England",
+            "克罗地亚": "Croatia", "加纳": "Ghana", "巴拿马": "Panama",
+        }
+        eng_name = eng_names.get(team_name, team_name.replace(" ", "_"))
+        r = requests.get(f"{wiki_api}{eng_name}", timeout=5)
+        if r.status_code == 200:
+            d = r.json()
+            extract = d.get("extract", "")
+            if extract:
+                res.append(f"📰 {team_name} 简介: {extract[:250]}...")
+            # 添加模拟动态（因为 Wikipedia 不提供实时新闻）
+            res.append(f"⚽ {team_name} 2026世界杯参赛球队")
+            res.append(f"🏆 查看最新动态请访问官方体育新闻网站")
+        else:
+            # 如果 Wikipedia 也没有，返回默认提示
+            res.append(f"⚽ {team_name} 是2026世界杯参赛球队")
+            res.append(f"💡 实时动态请手动查询体育新闻网站")
+    except requests.exceptions.Timeout:
+        res.append(f"⚠️ 搜索超时，请稍后重试")
+    except requests.exceptions.ConnectionError:
+        res.append(f"⚠️ 网络连接失败，实时搜索暂不可用")
+        res.append(f"💡 建议：手动查询 ESPN/BBC/Sky Sports 等体育网站")
     except Exception as e:
-        res.append(f"⚠️ 搜索暂不可用: {str(e)[:80]}")
-    return res
+        res.append(f"⚠️ 搜索服务暂不可用")
+        res.append(f"💡 {team_name} 是2026世界杯参赛球队")
+    return res if res else [f"⚽ {team_name} 2026世界杯参赛球队"]
 
 
 # ──────────────────────────────────────────────
@@ -709,8 +746,15 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
             "extra": str | None,
         }
     """
-    hid = int(hid) if hid else None
-    aid = int(aid) if aid else None
+    # 确保 hid/aid 是整数或 None
+    try:
+        hid = int(hid) if hid else None
+    except (ValueError, TypeError):
+        hid = None
+    try:
+        aid = int(aid) if aid else None
+    except (ValueError, TypeError):
+        aid = None
 
     result = {
         "_home_name": hn,
@@ -718,13 +762,41 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     }
 
     # ── 1. Elo 维度 ──
-    eh = engine.get_rating(hid) or 1500
-    ea = engine.get_rating(aid) or 1500
-    eh_adj = engine.teams[hid].get_adjusted_rating(engine.teams.get(aid), True) if hid in engine.teams else eh
-    ea_adj = engine.teams[aid].get_adjusted_rating(engine.teams.get(hid), False) if aid in engine.teams else ea
-    exp = engine.simulate_match(hid, aid)
+    # 如果球队ID无效，尝试通过球队名查找
+    if hid is None or hid not in engine.teams:
+        hid = gid(hn) if hn else None
+    if aid is None or aid not in engine.teams:
+        aid = gid(an) if an else None
+
+    # 获取评分，如果球队不在引擎中，使用默认值
+    eh = engine.get_rating(hid) if hid and hid in engine.teams else 1500
+    ea = engine.get_rating(aid) if aid and aid in engine.teams else 1500
+
+    # 获取调整后的评分
+    if hid and hid in engine.teams:
+        eh_adj = engine.teams[hid].get_adjusted_rating(engine.teams.get(aid), True)
+    else:
+        eh_adj = eh
+    if aid and aid in engine.teams:
+        ea_adj = engine.teams[aid].get_adjusted_rating(engine.teams.get(hid), False)
+    else:
+        ea_adj = ea
+
+    # 模拟比赛（如果球队ID有效）
+    if hid and aid and hid in engine.teams and aid in engine.teams:
+        exp = engine.simulate_match(hid, aid)
+    else:
+        # 默认概率
+        exp = {"home_win": 0.33, "draw": 0.34, "away_win": 0.33}
+
     diff = int(round(eh - ea))
     adv = "主队占优" if diff > 25 else ("客队占优" if diff < -25 else "势均力敌")
+
+    # 获取FIFA排名
+    hid_meta = ID2META.get(hid, (hn, None, None, None)) if hid else (hn, None, None, None)
+    aid_meta = ID2META.get(aid, (an, None, None, None)) if aid else (an, None, None, None)
+    hid_fifa = hid_meta[3] if hid_meta[3] else "?"
+    aid_fifa = aid_meta[3] if aid_meta[3] else "?"
 
     result["elo"] = {
         "home_rating": round(eh, 0),
@@ -736,6 +808,8 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         "home_win": exp["home_win"],
         "draw": exp["draw"],
         "away_win": exp["away_win"],
+        "home_fifa_rank": hid_fifa,
+        "away_fifa_rank": aid_fifa,
     }
 
     # ── 2. 泊松维度 ──
@@ -839,21 +913,26 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     ed = exp["draw"]
     ea = exp["away_win"]
     elo_diff = eh - ea
+    # 获取FIFA排名用于推理
+    hid_fifa = result["elo"].get("home_fifa_rank", "?")
+    aid_fifa = result["elo"].get("away_fifa_rank", "?")
+    fifa_info = f"FIFA排名：{hn} #{hid_fifa} vs {an} #{aid_fifa}"
+
     if elo_diff > 80:
         pred_parts.append(f"🏠 {hn} 实力明显占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}超过80分，实力差距显著。Elo模型预测{hn}胜率{ew:.1%}。")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}超过80分，实力差距显著。{fifa_info}。Elo模型预测{hn}胜率{ew:.1%}。")
     elif elo_diff > 40:
         pred_parts.append(f"🏠 {hn} 实力占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}，{hn}略占优势。Elo模型预测{hn}胜率{ew:.1%}。")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值{elo_diff:+.0f}，{hn}略占优势。{fifa_info}。Elo模型预测{hn}胜率{ew:.1%}。")
     elif elo_diff < -80:
         pred_parts.append(f"✈️ {an} 实力明显占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}超过80分，{an}实力明显更强。Elo模型预测{an}胜率{ea:.1%}。")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}超过80分，{an}实力明显更强。{fifa_info}。Elo模型预测{an}胜率{ea:.1%}。")
     elif elo_diff < -40:
         pred_parts.append(f"✈️ {an} 实力占优（Elo差 {elo_diff:+.0f}）")
-        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}，{an}略占优势。Elo模型预测{an}胜率{ea:.1%}。")
+        reasoning.append(f"• Elo评分：{an} {ea:.0f} vs {hn} {eh:.0f}，差值{abs(elo_diff):.0f}，{an}略占优势。{fifa_info}。Elo模型预测{an}胜率{ea:.1%}。")
     else:
         pred_parts.append("⚖️ 两队实力接近")
-        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值仅{abs(elo_diff):.0f}分，两队实力非常接近。Elo模型预测平局概率{ed:.1%}。")
+        reasoning.append(f"• Elo评分：{hn} {eh:.0f} vs {an} {ea:.0f}，差值仅{abs(elo_diff):.0f}分，两队实力非常接近。{fifa_info}。Elo模型预测平局概率{ed:.1%}。")
 
     # 6.2 泊松期望进球判断
     total_goals = lh + la
@@ -1041,11 +1120,15 @@ def _render_analysis_card(data: dict):
     elo = data.get("elo", {})
     if elo:
         st.markdown("**📊 Elo 实力对比**")
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric(f"{_hf} 主队评分", f"{elo.get('home_rating', '?'):.0f}")
         c2.metric(f"{_af} 客队评分", f"{elo.get('away_rating', '?'):.0f}")
         c3.metric("差值", f"{elo.get('diff', 0):+d}")
         c4.metric("优势方", elo.get("advantage", "势均力敌"))
+        # 显示FIFA排名
+        hf_rank = elo.get("home_fifa_rank", "?")
+        af_rank = elo.get("away_fifa_rank", "?")
+        c5.metric("FIFA排名", f"{hf_rank} vs {af_rank}")
 
         # Elo 预测概率条
         hw = elo.get("home_win", 0)
@@ -1892,10 +1975,14 @@ def main():
 
         eng = data.get("elo")
         if eng and eng.teams:
-            with st.expander("🏆 Elo 实力排行"):
-                for r,(tid,info) in enumerate(sorted(eng.export_ratings().items(),key=lambda x:-x[1]["rating"])[:20],1):
-                    flag_ = FLAG.get(ID2META.get(tid,(None,None,None,None))[1],"🏳️") if tid in ID2META else "🏳️"
-                    st.text(f"{r}. {flag_} {info['name']} — {info['rating']:.0f}")
+            with st.expander("🏆 Elo 实力排行（全部48支球队）"):
+                # 显示全部48支球队，按Elo评分排序
+                sorted_teams = sorted(eng.export_ratings().items(), key=lambda x: -x[1]["rating"])
+                for r, (tid, info) in enumerate(sorted_teams, 1):
+                    meta = ID2META.get(tid, (None, None, None, None))
+                    flag_ = FLAG.get(meta[1], "🏳️") if meta[1] else "🏳️"
+                    fifa_rank = meta[3] if meta[3] else "?"
+                    st.text(f"{r}. {flag_} {info['name']} — Elo:{info['rating']:.0f} | FIFA排名:{fifa_rank}")
         st.divider()
         if st.button("🔄 刷新"): st.cache_data.clear(); st.rerun()
 
