@@ -20,6 +20,12 @@ import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
 import model.llm_analyzer as llm  # 大模型推理增强
+
+# 确保LLM模块函数存在（fallback）
+if not hasattr(llm, 'set_llm_enabled'):
+    llm.set_llm_enabled = lambda x: None
+if not hasattr(llm, 'is_llm_enabled'):
+    llm.is_llm_enabled = lambda: True
 import model.explanation_layer as exp  # 解释层模块
 import model.score_matrix as sm  # 比分矩阵模块
 import model.review as review  # 复盘模块
