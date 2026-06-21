@@ -1,13 +1,8 @@
 """
 大模型推理增强模块
 
-支持的LLM：
-1. OpenAI API (GPT-4, GPT-3.5等)
-2. DeepSeek API (国产，便宜)
-3. Anthropic API (Claude)
-4. 本地模型 (Ollama)
-5. 自定义模型（任何兼容OpenAI格式的API）
-
+内置模型：LongCat-2.0-Preview
+API地址：https://api.longcat.chat/openai
 用途：
 - 分析战报内容，提取关键信息
 - 生成详细推理过程
@@ -18,80 +13,35 @@ import requests
 import json
 from typing import Dict, List, Optional
 
-# LLM配置
+# 内置LLM配置（LongCat）
 LLM_CONFIG = {
-    "provider": "deepseek",  # openai / deepseek / anthropic / ollama / custom
-    "api_key": None,  # 用户配置
-    "model": "deepseek-chat",  # 模型名称
-    "base_url": None,  # 自定义API地址（可选）
-    "api_type": "openai",  # openai格式 / anthropic格式
-    # 预设的API地址
-    "preset_urls": {
-        "openai": "https://api.openai.com/v1",
-        "deepseek": "https://api.deepseek.com/v1",
-        "anthropic": "https://api.anthropic.com/v1",
-        "ollama": "http://localhost:11434/v1",
-        # 其他常见模型
-        "moonshot": "https://api.moonshot.cn/v1",  # Kimi
-        "zhipu": "https://open.bigmodel.cn/api/paas/v4",  # 智谱GLM
-        "qwen": "https://dashscope.aliyuncs.com/api/v1",  # 通义千问
-        "baichuan": "https://api.baichuan-ai.com/v1",  # 百川
-        "minimax": "https://api.minimax.chat/v1",  # MiniMax
-        "siliconflow": "https://api.siliconflow.cn/v1",  # SiliconFlow
-        "deepinfra": "https://api.deepinfra.com/v1/openai",  # DeepInfra
-        "together": "https://api.together.xyz/v1",  # Together AI
-        "groq": "https://api.groq.com/openai/v1",  # Groq
-        "perplexity": "https://api.perplexity.ai",  # Perplexity
-    }
+    "provider": "longcat",
+    "api_key": "ak_2YJ80B0DR3SX6vL0F87nN2QC8jT0V",  # 内置API Key
+    "model": "LongCat-2.0-Preview",
+    "base_url": "https://api.longcat.chat/openai",
+    "api_type": "openai",
+    "enabled": True,  # 默认启用
 }
 
 
-def set_llm_config(provider: str, api_key: str, model: str = None, base_url: str = None, api_type: str = None):
-    """
-    设置LLM配置
-    
-    Args:
-        provider: 提供商名称（openai/deepseek/anthropic/ollama/custom）
-        api_key: API密钥
-        model: 模型名称（可选）
-        base_url: 自定义API地址（可选，用于custom或覆盖预设）
-        api_type: API格式（openai/anthropic，可选）
-    """
-    LLM_CONFIG["provider"] = provider
-    LLM_CONFIG["api_key"] = api_key
-    
-    if model:
-        LLM_CONFIG["model"] = model
-    
-    if base_url:
-        LLM_CONFIG["base_url"] = base_url
-    
-    if api_type:
-        LLM_CONFIG["api_type"] = api_type
-    
-    # 如果是预设provider，自动设置api_type
-    if provider == "anthropic":
-        LLM_CONFIG["api_type"] = "anthropic"
-    elif provider in ["openai", "deepseek", "ollama", "moonshot", "zhipu", "qwen", 
-                       "baichuan", "minimax", "siliconflow", "deepinfra", "together", 
-                       "groq", "perplexity", "custom"]:
-        LLM_CONFIG["api_type"] = "openai"
+def set_llm_enabled(enabled: bool):
+    """启用/禁用LLM功能"""
+    LLM_CONFIG["enabled"] = enabled
+
+
+def is_llm_enabled() -> bool:
+    """检查LLM是否启用"""
+    return LLM_CONFIG.get("enabled", True)
 
 
 def get_base_url() -> str:
     """获取API地址"""
-    # 优先使用自定义地址
-    if LLM_CONFIG["base_url"]:
-        return LLM_CONFIG["base_url"]
-    
-    # 使用预设地址
-    provider = LLM_CONFIG["provider"]
-    return LLM_CONFIG["preset_urls"].get(provider, "")
+    return LLM_CONFIG["base_url"]
 
 
 def call_llm(prompt: str, system_prompt: str = None) -> str:
     """
-    调用LLM API（支持所有兼容OpenAI格式的模型）
+    调用内置LLM API（LongCat）
     
     Args:
         prompt: 用户输入
@@ -100,45 +50,25 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
     Returns:
         LLM生成的文本
     """
-    if not LLM_CONFIG["api_key"]:
-        return "⚠️ 未配置LLM API Key"
+    if not is_llm_enabled():
+        return "⚠️ LLM功能已禁用"
     
-    api_type = LLM_CONFIG.get("api_type", "openai")
-    
-    # Anthropic API格式不同
-    if api_type == "anthropic":
-        return call_anthropic(prompt, system_prompt)
-    
-    # OpenAI兼容格式（支持所有兼容OpenAI的API）
-    return call_openai_compatible(prompt, system_prompt)
+    return call_longcat(prompt, system_prompt)
 
 
-def call_openai_compatible(prompt: str, system_prompt: str = None) -> str:
+def call_longcat(prompt: str, system_prompt: str = None) -> str:
     """
-    调用OpenAI兼容格式的API
+    调用LongCat API
     
-    支持所有兼容OpenAI格式的模型：
-    - OpenAI (GPT-4, GPT-3.5)
-    - DeepSeek
-    - Moonshot (Kimi)
-    - 智谱GLM
-    - 通义千问
-    - 百川
-    - MiniMax
-    - SiliconFlow
-    - DeepInfra
-    - Together AI
-    - Groq
-    - Perplexity
-    - Ollama (本地)
-    - 任何自定义OpenAI兼容API
+    内置模型：LongCat-2.0-Preview
+    API地址：https://api.longcat.chat/openai
     
     Args:
         prompt: 用户输入
         system_prompt: 系统提示
     
     Returns:
-        LLM生成的文本
+        LongCat生成的文本
     """
     api_key = LLM_CONFIG["api_key"]
     model = LLM_CONFIG["model"]
@@ -180,63 +110,6 @@ def call_openai_compatible(prompt: str, system_prompt: str = None) -> str:
         return "⚠️ API超时"
     except Exception as e:
         return f"⚠️ 调用失败: {str(e)[:50]}"
-
-
-def call_anthropic(prompt: str, system_prompt: str = None) -> str:
-    """
-    调用Anthropic API (Claude)
-    
-    Anthropic API格式与OpenAI不同：
-    - 使用x-api-key而非Authorization
-    - system参数单独传递
-    - 使用messages数组
-    
-    Args:
-        prompt: 用户输入
-        system_prompt: 系统提示
-    
-    Returns:
-        Claude生成的文本
-    """
-    api_key = LLM_CONFIG["api_key"]
-    model = LLM_CONFIG["model"] or "claude-3-opus-20240229"
-    
-    headers = {
-        "x-api-key": api_key,
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",  # Anthropic API版本
-    }
-    
-    payload = {
-        "model": model,
-        "max_tokens": 1000,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    
-    # Anthropic的system参数单独传递
-    if system_prompt:
-        payload["system"] = system_prompt
-    
-    try:
-        r = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers=headers,
-            json=payload,
-            timeout=60
-        )
-        
-        if r.status_code == 200:
-            data = r.json()
-            # Anthropic返回格式: content[0].text
-            return data["content"][0]["text"]
-        else:
-            error_msg = r.json().get("error", {}).get("message", r.text[:100])
-            return f"⚠️ Anthropic API错误: {r.status_code} - {error_msg}"
-    
-    except requests.exceptions.Timeout:
-        return "⚠️ Anthropic API超时"
-    except Exception as e:
-        return f"⚠️ Anthropic调用失败: {str(e)[:50]}"
 
 
 def generate_match_analysis(
@@ -360,12 +233,6 @@ def extract_key_info_from_report(report_text: str) -> Dict:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # 配置DeepSeek API（便宜，国产）
-    # set_llm_config("deepseek", "your-api-key", "deepseek-chat")
-    
-    # 配置OpenAI API
-    # set_llm_config("openai", "your-api-key", "gpt-4")
-    
     # 测试数据
     elo_data = {
         "home_rating": 1840,
@@ -401,14 +268,14 @@ if __name__ == "__main__":
         "away_report": "首轮1-1乌拉圭，顽强防守",
     }
     
-    # 生成分析（需要配置API Key）
+    # 生成分析（内置LongCat）
     print("=== 大模型推理增强示例 ===")
-    print("需要配置LLM API Key才能运行")
-    print("支持的LLM: OpenAI, DeepSeek, Ollama")
+    print("内置模型: LongCat-2.0-Preview")
+    print("API地址: https://api.longcat.chat/openai")
     
-    # 如果配置了API Key，可以这样调用：
-    # analysis = generate_match_analysis(
-    #     "西班牙", "沙特阿拉伯",
-    #     elo_data, odds_data, injury_data, news_data, report_data
-    # )
-    # print(analysis)
+    # 调用示例
+    analysis = generate_match_analysis(
+        "西班牙", "沙特阿拉伯",
+        elo_data, odds_data, injury_data, news_data, report_data
+    )
+    print(analysis)
