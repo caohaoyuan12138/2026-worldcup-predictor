@@ -1,0 +1,482 @@
+[
+  {
+    "id": 1,
+    "name": "墨西哥",
+    "team_group": "A",
+    "fifa_code": "MEX",
+    "country_code": "",
+    "fifa_ranking": 12,
+    "elo": 1680,
+    "continent": "CONCACAF"
+  },
+  {
+    "id": 2,
+    "name": "捷克",
+    "team_group": "A",
+    "fifa_code": "CZE",
+    "country_code": "",
+    "fifa_ranking": 35,
+    "elo": 1480,
+    "continent": "UEFA"
+  },
+  {
+    "id": 3,
+    "name": "南非",
+    "team_group": "A",
+    "fifa_code": "RSA",
+    "country_code": "",
+    "fifa_ranking": 60,
+    "elo": 1600,
+    "continent": "CAF"
+  },
+  {
+    "id": 4,
+    "name": "韩国",
+    "team_group": "A",
+    "fifa_code": "KOR",
+    "country_code": "",
+    "fifa_ranking": 28,
+    "elo": 1550,
+    "continent": "AFC"
+  },
+  {
+    "id": 5,
+    "name": "加拿大",
+    "team_group": "B",
+    "fifa_code": "CAN",
+    "country_code": "",
+    "fifa_ranking": 45,
+    "elo": 1520,
+    "continent": "CONCACAF"
+  },
+  {
+    "id": 6,
+    "name": "波黑",
+    "team_group": "B",
+    "fifa_code": "BIH",
+    "country_code": "",
+    "fifa_ranking": 70,
+    "elo": 1450,
+    "continent": "UEFA"
+  },
+  {
+    "id": 7,
+    "name": "卡塔尔",
+    "team_group": "B",
+    "fifa_code": "QAT",
+    "country_code": "",
+    "fifa_ranking": 55,
+    "elo": 1420,
+    "continent": "AFC"
+  },
+  {
+    "id": 8,
+    "name": "瑞士",
+    "team_group": "B",
+    "fifa_code": "SUI",
+    "country_code": "",
+    "fifa_ranking": 25,
+    "elo": 1620,
+    "continent": "UEFA"
+  },
+  {
+    "id": 9,
+    "name": "巴西",
+    "team_group": "C",
+    "fifa_code": "BRA",
+    "country_code": "",
+    "fifa_ranking": 3,
+    "elo": 1820,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 10,
+    "name": "摩洛哥",
+    "team_group": "C",
+    "fifa_code": "MAR",
+    "country_code": "",
+    "fifa_ranking": 18,
+    "elo": 1650,
+    "continent": "CAF"
+  },
+  {
+    "id": 11,
+    "name": "海地",
+    "team_group": "C",
+    "fifa_code": "HAI",
+    "country_code": "",
+    "fifa_ranking": 80,
+    "elo": 1400,
+    "continent": "CONCACAF"
+  },
+  {
+    "id": 12,
+    "name": "苏格兰",
+    "team_group": "C",
+    "fifa_code": "SCO",
+    "country_code": "",
+    "fifa_ranking": 30,
+    "elo": 1580,
+    "continent": "UEFA"
+  },
+  {
+    "id": 13,
+    "name": "美国",
+    "team_group": "D",
+    "fifa_code": "USA",
+    "country_code": "",
+    "fifa_ranking": 15,
+    "elo": 1700,
+    "continent": "CONCACAF"
+  },
+  {
+    "id": 14,
+    "name": "土耳其",
+    "team_group": "D",
+    "fifa_code": "TUR",
+    "country_code": "",
+    "fifa_ranking": 24,
+    "elo": 1630,
+    "continent": "UEFA"
+  },
+  {
+    "id": 15,
+    "name": "巴拉圭",
+    "team_group": "D",
+    "fifa_code": "PAR",
+    "country_code": "",
+    "fifa_ranking": 22,
+    "elo": 1560,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 16,
+    "name": "澳大利亚",
+    "team_group": "D",
+    "fifa_code": "AUS",
+    "country_code": "",
+    "fifa_ranking": 38,
+    "elo": 1590,
+    "continent": "AFC"
+  },
+  {
+    "id": 17,
+    "name": "德国",
+    "team_group": "E",
+    "fifa_code": "GER",
+    "country_code": "",
+    "fifa_ranking": 6,
+    "elo": 1780,
+    "continent": "UEFA"
+  },
+  {
+    "id": 18,
+    "name": "库拉索",
+    "team_group": "E",
+    "fifa_code": "CUW",
+    "country_code": "",
+    "fifa_ranking": 99,
+    "elo": 1430,
+    "continent": "CONCACAF"
+  },
+  {
+    "id": 19,
+    "name": "科特迪瓦",
+    "team_group": "E",
+    "fifa_code": "CIV",
+    "country_code": "",
+    "fifa_ranking": 42,
+    "elo": 1510,
+    "continent": "CAF"
+  },
+  {
+    "id": 20,
+    "name": "厄瓜多尔",
+    "team_group": "E",
+    "fifa_code": "ECU",
+    "country_code": "",
+    "fifa_ranking": 44,
+    "elo": 1530,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 21,
+    "name": "荷兰",
+    "team_group": "F",
+    "fifa_code": "NED",
+    "country_code": "",
+    "fifa_ranking": 7,
+    "elo": 1760,
+    "continent": "UEFA"
+  },
+  {
+    "id": 22,
+    "name": "瑞典",
+    "team_group": "F",
+    "fifa_code": "SWE",
+    "country_code": "",
+    "fifa_ranking": 27,
+    "elo": 1640,
+    "continent": "UEFA"
+  },
+  {
+    "id": 23,
+    "name": "日本",
+    "team_group": "F",
+    "fifa_code": "JPN",
+    "country_code": "",
+    "fifa_ranking": 20,
+    "elo": 1610,
+    "continent": "AFC"
+  },
+  {
+    "id": 24,
+    "name": "突尼斯",
+    "team_group": "F",
+    "fifa_code": "TUN",
+    "country_code": "",
+    "fifa_ranking": 75,
+    "elo": 1460,
+    "continent": "CAF"
+  },
+  {
+    "id": 25,
+    "name": "比利时",
+    "team_group": "G",
+    "fifa_code": "BEL",
+    "country_code": "",
+    "fifa_ranking": 14,
+    "elo": 1800,
+    "continent": "UEFA"
+  },
+  {
+    "id": 26,
+    "name": "埃及",
+    "team_group": "G",
+    "fifa_code": "EGY",
+    "country_code": "",
+    "fifa_ranking": 36,
+    "elo": 1790,
+    "continent": "CAF"
+  },
+  {
+    "id": 27,
+    "name": "伊朗",
+    "team_group": "G",
+    "fifa_code": "IRN",
+    "country_code": "",
+    "fifa_ranking": 23,
+    "elo": 1720,
+    "continent": "AFC"
+  },
+  {
+    "id": 28,
+    "name": "新西兰",
+    "team_group": "G",
+    "fifa_code": "NZL",
+    "country_code": "",
+    "fifa_ranking": 56,
+    "elo": 1540,
+    "continent": "OFC"
+  },
+  {
+    "id": 29,
+    "name": "西班牙",
+    "team_group": "H",
+    "fifa_code": "ESP",
+    "country_code": "",
+    "fifa_ranking": 4,
+    "elo": 1840,
+    "continent": "UEFA"
+  },
+  {
+    "id": 30,
+    "name": "佛得角",
+    "team_group": "H",
+    "fifa_code": "CPV",
+    "country_code": "",
+    "fifa_ranking": 64,
+    "elo": 1770,
+    "continent": "CAF"
+  },
+  {
+    "id": 31,
+    "name": "沙特阿拉伯",
+    "team_group": "H",
+    "fifa_code": "KSA",
+    "country_code": "",
+    "fifa_ranking": 48,
+    "elo": 1550,
+    "continent": "AFC"
+  },
+  {
+    "id": 32,
+    "name": "乌拉圭",
+    "team_group": "H",
+    "fifa_code": "URU",
+    "country_code": "",
+    "fifa_ranking": 8,
+    "elo": 1660,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 33,
+    "name": "法国",
+    "team_group": "I",
+    "fifa_code": "FRA",
+    "country_code": "",
+    "fifa_ranking": 2,
+    "elo": 1850,
+    "continent": "UEFA"
+  },
+  {
+    "id": 34,
+    "name": "伊拉克",
+    "team_group": "I",
+    "fifa_code": "IRQ",
+    "country_code": "",
+    "fifa_ranking": 72,
+    "elo": 1690,
+    "continent": "AFC"
+  },
+  {
+    "id": 35,
+    "name": "塞内加尔",
+    "team_group": "I",
+    "fifa_code": "SEN",
+    "country_code": "",
+    "fifa_ranking": 16,
+    "elo": 1490,
+    "continent": "CAF"
+  },
+  {
+    "id": 36,
+    "name": "挪威",
+    "team_group": "I",
+    "fifa_code": "NOR",
+    "country_code": "",
+    "fifa_ranking": 41,
+    "elo": 1570,
+    "continent": "UEFA"
+  },
+  {
+    "id": 37,
+    "name": "阿根廷",
+    "team_group": "J",
+    "fifa_code": "ARG",
+    "country_code": "",
+    "fifa_ranking": 1,
+    "elo": 1510,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 38,
+    "name": "阿尔及利亚",
+    "team_group": "J",
+    "fifa_code": "ALG",
+    "country_code": "",
+    "fifa_ranking": 58,
+    "elo": 1470,
+    "continent": "CAF"
+  },
+  {
+    "id": 39,
+    "name": "奥地利",
+    "team_group": "J",
+    "fifa_code": "AUT",
+    "country_code": "",
+    "fifa_ranking": 29,
+    "elo": 1590,
+    "continent": "UEFA"
+  },
+  {
+    "id": 40,
+    "name": "约旦",
+    "team_group": "J",
+    "fifa_code": "JOR",
+    "country_code": "",
+    "fifa_ranking": 68,
+    "elo": 1600,
+    "continent": "AFC"
+  },
+  {
+    "id": 41,
+    "name": "葡萄牙",
+    "team_group": "K",
+    "fifa_code": "POR",
+    "country_code": "",
+    "fifa_ranking": 5,
+    "elo": 1670,
+    "continent": "UEFA"
+  },
+  {
+    "id": 42,
+    "name": "刚果民主共和国",
+    "team_group": "K",
+    "fifa_code": "COD",
+    "country_code": "",
+    "fifa_ranking": 67,
+    "elo": 1750,
+    "continent": "CAF"
+  },
+  {
+    "id": 43,
+    "name": "乌兹别克斯坦",
+    "team_group": "K",
+    "fifa_code": "UZB",
+    "country_code": "",
+    "fifa_ranking": 88,
+    "elo": 1620,
+    "continent": "AFC"
+  },
+  {
+    "id": 44,
+    "name": "哥伦比亚",
+    "team_group": "K",
+    "fifa_code": "COL",
+    "country_code": "",
+    "fifa_ranking": 21,
+    "elo": 1440,
+    "continent": "CONMEBOL"
+  },
+  {
+    "id": 45,
+    "name": "英格兰",
+    "team_group": "L",
+    "fifa_code": "ENG",
+    "country_code": "",
+    "fifa_ranking": 9,
+    "elo": 1770,
+    "continent": "UEFA"
+  },
+  {
+    "id": 46,
+    "name": "克罗地亚",
+    "team_group": "L",
+    "fifa_code": "CRO",
+    "country_code": "",
+    "fifa_ranking": 10,
+    "elo": 1720,
+    "continent": "UEFA"
+  },
+  {
+    "id": 47,
+    "name": "加纳",
+    "team_group": "L",
+    "fifa_code": "GHA",
+    "country_code": "",
+    "fifa_ranking": 65,
+    "elo": 1490,
+    "continent": "CAF"
+  },
+  {
+    "id": 48,
+    "name": "巴拿马",
+    "team_group": "L",
+    "fifa_code": "PAN",
+    "country_code": "",
+    "fifa_ranking": 49,
+    "elo": 1500,
+    "continent": "CONCACAF"
+  }
+]
