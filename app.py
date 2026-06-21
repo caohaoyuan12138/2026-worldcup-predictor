@@ -505,41 +505,187 @@ def render_knockout(data):
             f = sum(1 for x in ms if x.get("match_des")=="完赛")
             st.caption(f"{stage}: {len(ms)}场 (已赛{f})")
 
-    r16 = stages["1/16决赛"]
-    def _col(c,title,ms):
-        with c:
-            st.markdown(f"**{title}**")
-            for m in ms: _badge(m)
-    def _badge(m):
-        h,a = m.get("host_team_name","?"),m.get("guest_team_name","?")
-        hs,gs = m.get("host_team_score",""),m.get("guest_team_score","")
-        if m.get("match_des")=="完赛" and hs is not None and gs is not None:
-            st.markdown(f'{flag(h)} **{h} {hs}:{gs} {a}** {flag(a)}')
-        else:
-            st.markdown(f'{flag(h)} {h} vs {a} {flag(a)}')
+    # ── 动画树状图 CSS ──
+    st.markdown("""
+    <style>
+    .knockout-tree { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: sans-serif; }
+    .ko-round { display: flex; justify-content: center; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+    .ko-match {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px 14px;
+        min-width: 180px;
+        text-align: center;
+        color: #e2e8f0;
+        position: relative;
+        transition: all 0.3s ease;
+        animation: koFadeIn 0.6s ease-out both;
+    }
+    .ko-match:hover { transform: translateY(-3px); border-color: #f97316; box-shadow: 0 4px 12px rgba(249,115,22,0.25); }
+    .ko-match.finished { border-color: #22c55e; }
+    .ko-match.upcoming { border-color: #64748b; opacity: 0.85; }
+    .ko-match.unresolved { border-color: #ef4444; border-style: dashed; }
+    .ko-team { font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .ko-score { font-size: 1.1rem; color: #f97316; font-weight: bold; margin: 4px 0; }
+    .ko-vs { font-size: 0.75rem; color: #94a3b8; margin: 2px 0; }
+    .ko-stage-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .ko-connector { width: 2px; height: 16px; background: #475569; margin: 0 auto; }
+    .ko-connector-h { width: 40px; height: 2px; background: #475569; }
+    @keyframes koFadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .group-qualify-panel { background: #0f172a; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #1e293b; }
+    .group-qualify-panel h4 { color: #f97316; margin: 0 0 10px 0; font-size: 1rem; }
+    .qualify-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .qualify-chip {
+        background: #1e293b; border-radius: 20px; padding: 4px 12px;
+        font-size: 0.85rem; color: #e2e8f0; border: 1px solid #334155;
+        display: flex; align-items: center; gap: 4px;
+    }
+    .qualify-chip.champion { border-color: #fbbf24; color: #fbbf24; }
+    .qualify-chip.runner { border-color: #94a3b8; color: #94a3b8; }
+    .qualify-chip.third { border-color: #b45309; color: #b45309; }
+    .qualify-chip.eliminated { opacity: 0.4; text-decoration: line-through; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    st.markdown("### 🌳 上半区")
-    c1,c2,c3,c4 = st.columns(4)
-    _col(c1,"1/16 决赛",r16[:8])
-    _col(c2,"1/8 决赛",stages["1/8决赛"][:4])
-    _col(c3,"1/4 决赛",stages["1/4决赛"][:2])
-    _col(c4,"半决赛",stages["半决赛"][:1])
-    st.divider()
-    st.markdown("### 🌳 下半区")
-    c1,c2,c3,c4 = st.columns(4)
-    _col(c1,"1/16 决赛",r16[8:])
-    _col(c2,"1/8 决赛",stages["1/8决赛"][4:])
-    _col(c3,"1/4 决赛",stages["1/4决赛"][2:])
-    _col(c4,"半决赛",stages["半决赛"][1:])
-    st.divider()
-    st.markdown("### 🏅 三四名 & 决赛")
-    c1,c2 = st.columns(2)
-    with c1:
-        st.markdown("**季军战**")
-        for m in stages["季军战"]: _badge(m)
-    with c2:
-        st.markdown("**决赛**")
-        for m in stages["决赛"]: _badge(m)
+    # ── 小组出线情况面板 ──
+    group_rankings = {}
+    for s in standings:
+        g = s.get("team_group", "")
+        if g:
+            group_rankings.setdefault(g, []).append(s)
+    for g in group_rankings:
+        group_rankings[g].sort(key=lambda x: int(x.get("rank", "99") or "99"))
+
+    with st.expander("📊 小组出线情况（点击展开）", expanded=True):
+        # 12个小组，每行4个
+        groups = sorted(group_rankings.keys())
+        for i in range(0, len(groups), 4):
+            cols = st.columns(4)
+            for j, g in enumerate(groups[i:i+4]):
+                with cols[j]:
+                    teams = group_rankings[g]
+                    st.markdown(f"**组 {g}**")
+                    for rank, t in enumerate(teams, 1):
+                        name = t.get("team_name", "?")
+                        fl = flag(name)
+                        score = t.get("score", "0")
+                        gd = int(t.get("goal", 0)) - int(t.get("miss_goal", 0))
+                        cls = ""
+                        label = ""
+                        if rank == 1:
+                            cls = "champion"
+                            label = "🥇"
+                        elif rank == 2:
+                            cls = "runner"
+                            label = "🥈"
+                        elif rank == 3:
+                            cls = "third"
+                            label = "🥉"
+                        else:
+                            cls = "eliminated"
+                            label = "❌"
+                        st.markdown(
+                            f'<div class="qualify-chip {cls}">{label} {fl} {name} ({score}分 净{gd:+d})</div>',
+                            unsafe_allow_html=True
+                        )
+
+    # ── 最佳小组第3名 ──
+    all_third = []
+    for g, teams in group_rankings.items():
+        if len(teams) >= 3:
+            t = teams[2]
+            all_third.append({
+                "group": g,
+                "name": t.get("team_name", ""),
+                "score": int(t.get("score", "0") or "0"),
+                "gd": int(t.get("goal", "0") or "0") - int(t.get("miss_goal", "0") or "0"),
+                "goals": int(t.get("goal", "0") or "0"),
+            })
+    if all_third:
+        all_third.sort(key=lambda x: (-x["score"], -x["gd"], -x["goals"]))
+        with st.expander(f"🏅 最佳小组第3名排名（前4晋级）", expanded=True):
+            c = st.columns(4)
+            for i, t in enumerate(all_third[:8]):
+                with c[i % 4]:
+                    fl = flag(t["name"])
+                    badge = "✅ 晋级" if i < 4 else "❌ 淘汰"
+                    color = "#22c55e" if i < 4 else "#ef4444"
+                    st.markdown(
+                        f'<div style="background:#1e293b;border-radius:8px;padding:8px 12px;'
+                        f'border:1px solid {color};text-align:center;">'
+                        f'<div style="font-size:1.2rem">{fl} {t["name"]}</div>'
+                        f'<div style="font-size:0.8rem;color:#94a3b8">组{t["group"]} | {t["score"]}分 净{t["gd"]:+d}</div>'
+                        f'<div style="font-size:0.75rem;color:{color};font-weight:bold">{badge}</div></div>',
+                        unsafe_allow_html=True
+                    )
+
+    # ── 淘汰赛树状图 ──
+    def _ko_match_card(m, stage_label=""):
+        h = m.get("host_team_name", "?")
+        a = m.get("guest_team_name", "?")
+        hs = m.get("host_team_score", "")
+        gs = m.get("guest_team_score", "")
+        is_finished = m.get("match_des") == "完赛" and hs is not None and gs is not None
+        is_unresolved = not h or (len(h) <= 3 and h[0] in "ABCDEFGHIJKL" and h[-1] in "123")
+        cls = "finished" if is_finished else ("unresolved" if is_unresolved else "upcoming")
+        hf, af = flag(h), flag(a)
+        score_html = f'<div class="ko-score">{hs} : {gs}</div>' if is_finished else '<div class="ko-vs">VS</div>'
+        anim_delay = f"animation-delay: {hash(h+a) % 10 * 0.1}s;"
+        return (
+            f'<div class="ko-match {cls}" style="{anim_delay}">'
+            f'<div class="ko-stage-label">{stage_label}</div>'
+            f'<div class="ko-team">{hf} {h}</div>'
+            f'{score_html}'
+            f'<div class="ko-team">{af} {a}</div>'
+            f'</div>'
+        )
+
+    def _ko_round(matches, stage_label, per_row=4):
+        if not matches:
+            return ""
+        cards = ""
+        for i, m in enumerate(matches):
+            cards += _ko_match_card(m, stage_label if i == 0 else "")
+        return f'<div class="ko-round">{cards}</div>'
+
+    st.markdown("---")
+    st.subheader("🌳 淘汰赛晋级之路")
+
+    # 上半区
+    st.markdown("**⬆️ 上半区**")
+    r16 = stages["1/16决赛"]
+    html = '<div class="knockout-tree">'
+    html += _ko_round(r16[:8], "1/16决赛", 4)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["1/8决赛"][:4], "1/8决赛", 4)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["1/4决赛"][:2], "1/4决赛", 2)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["半决赛"][:1], "半决赛", 1)
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+    # 下半区
+    st.markdown("**⬇️ 下半区**")
+    html = '<div class="knockout-tree">'
+    html += _ko_round(r16[8:], "1/16决赛", 4)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["1/8决赛"][4:], "1/8决赛", 4)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["1/4决赛"][2:], "1/4决赛", 2)
+    html += '<div class="ko-connector"></div>'
+    html += _ko_round(stages["半决赛"][1:], "半决赛", 1)
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+    # 决赛 & 季军战
+    st.markdown("**🏆 决赛 & 季军战**")
+    html = '<div class="knockout-tree">'
+    html += _ko_round(stages["季军战"], "季军战", 2)
+    html += _ko_round(stages["决赛"], "决赛", 1)
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
 
 
 # ──────────────────────────────────────────────
@@ -566,7 +712,10 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
     hid = int(hid) if hid else None
     aid = int(aid) if aid else None
 
-    result = {}
+    result = {
+        "_home_name": hn,
+        "_away_name": an,
+    }
 
     # ── 1. Elo 维度 ──
     eh = engine.get_rating(hid) or 1500
@@ -841,13 +990,19 @@ def _render_analysis_card(data: dict):
     if not data:
         return
 
+    # 获取球队名用于显示国旗
+    _hn = data.get("_home_name", "")
+    _an = data.get("_away_name", "")
+    _hf = flag(_hn) if _hn else "🏳️"
+    _af = flag(_an) if _an else "🏳️"
+
     # ── 1. Elo 实力对比 ──
     elo = data.get("elo", {})
     if elo:
         st.markdown("**📊 Elo 实力对比**")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric(f"主队评分", f"{elo.get('home_rating', '?'):.0f}")
-        c2.metric(f"客队评分", f"{elo.get('away_rating', '?'):.0f}")
+        c1.metric(f"{_hf} 主队评分", f"{elo.get('home_rating', '?'):.0f}")
+        c2.metric(f"{_af} 客队评分", f"{elo.get('away_rating', '?'):.0f}")
         c3.metric("差值", f"{elo.get('diff', 0):+d}")
         c4.metric("优势方", elo.get("advantage", "势均力敌"))
 
@@ -865,8 +1020,8 @@ def _render_analysis_card(data: dict):
     if pois:
         st.markdown("**⚽ Dixon-Coles 泊松模型**")
         c1, c2, c3 = st.columns(3)
-        c1.metric(f"主队 λ", f"{pois.get('lambda_home', '?'):.3f}")
-        c2.metric(f"客队 λ", f"{pois.get('lambda_away', '?'):.3f}")
+        c1.metric(f"{_hf} 主队 λ", f"{pois.get('lambda_home', '?'):.3f}")
+        c2.metric(f"{_af} 客队 λ", f"{pois.get('lambda_away', '?'):.3f}")
         c3.metric("总期望进球", f"{pois.get('expected_total', '?'):.2f}")
         mh = pois.get("motivation_home", 1.0)
         ma = pois.get("motivation_away", 1.0)
@@ -933,6 +1088,9 @@ def _render_analysis_card(data: dict):
         edge = kelly.get("edge", 0)
         if abs(edge) > 0.01:
             st.caption(f"Edge: {edge:+.1%}")
+        # 显示对应球队的仓位建议
+        if _hn and _an:
+            st.caption(f"{_hf} {_hn} vs {_af} {_an}")
 
     # ── 6. 综合预测 ──
     pred = data.get("prediction", "")
