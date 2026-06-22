@@ -2542,16 +2542,12 @@ def main():
         stnc = data.get("standings") or []
         if stnc: st.metric("球队",f"{len(stnc)} 支")
 
-        # ── BSD API Key 配置（实时数据）──
+        # ── BSD API Key（内置）──
         st.divider()
         st.markdown("**🔑 BSD API Key（实时数据）**")
-        st.caption("免费获取: https://sports.bzzoiro.com/register/")
-        bsd_key_input = st.text_input("API Key", type="password", key="bsd_api_key_input")
-        if bsd_key_input:
-            bsd.set_bsd_api_key(bsd_key_input)
-            st.success("✅ BSD API已配置")
-        else:
-            st.info("💡 配置后可获取：伤病/阵容/赔率等实时数据")
+        st.caption("内置API Key已配置")
+        st.success("✅ BSD API已启用")
+        st.caption("可获取：伤病/阵容/赔率等实时数据")
 
         # ── 大模型推理（内置LongCat）──
         st.divider()
