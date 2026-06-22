@@ -1932,11 +1932,11 @@ def render_predictions(data):
     matches = data.get("matches") or []
     engine = data.get("elo")
     standings = data.get("standings") or []
-    # 如果 data 中没有 matches/standings，直接从本地加载
     if not matches:
         matches = ld.load_schedule()
     if not standings:
         standings = ld.load_standings()
+
     done = [m for m in matches if m.get("match_des") == "完赛"]
     todo = [m for m in matches if m.get("match_des") != "完赛"]
 
@@ -1950,33 +1950,47 @@ def render_predictions(data):
     with t1:
         if not done:
             st.info("暂无已完成比赛")
+        else:
+            # 使用 selectbox 选择比赛，避免一次性分析所有比赛
+            done_options = []
+            for m in done:
+                h = m.get("host_team_name", "?")
+                a = m.get("guest_team_name", "?")
+                hs = m.get("host_team_score", "")
+                gs = m.get("guest_team_score", "")
+                dt = (m.get("date", "") or "")[:10]
+                grp = m.get("group_name", "")
+                label = f"{dt} | {h} {hs}:{gs} {a} | {grp}"
+                done_options.append(label)
 
-        # 模型复盘统计
-        review_stats = {"total": 0, "correct_direction": 0, "correct_result": 0,
-                        "elo_correct": 0, "poisson_correct": 0, "mc_correct": 0}
+            selected_done = st.selectbox(
+                "选择已完赛比赛进行分析",
+                options=done_options,
+                index=0,
+                key="review_match_select"
+            )
 
-        for m in sorted(done, key=lambda x: x.get("date", ""), reverse=True)[:30]:
+            selected_idx = done_options.index(selected_done)
+            m = done[selected_idx]
+
             h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
-            hf, af = flag(h), flag(a)
-            hs, gs = m.get("host_team_score", ""), m.get("guest_team_score", "")
+            hs = m.get("host_team_score", "")
+            gs = m.get("guest_team_score", "")
             dt = (m.get("date", "") or "")[:10]
             grp = m.get("group_name", "")
-            ttl = (f"{dt}|{hf}**{h} {hs}:{gs} {a}**{af}|{grp}"
-                   if hs is not None and gs is not None
-                   else f"{dt}|{hf} {h} vs {a} {af}|{grp}")
-            with st.expander(ttl):
-                hid = m.get("host_team_id") or gid(h)
-                aid = m.get("guest_team_id") or gid(a)
-                if not (hid and aid):
-                    st.warning("无法识别球队 ID")
-                    continue
 
-                # 缓存分析结果
+            st.markdown(f"### 📺 {dt} | {h} {hs}:{gs} {a} | {grp}")
+
+            hid = m.get("host_team_id") or gid(h)
+            aid = m.get("guest_team_id") or gid(a)
+            if not (hid and aid):
+                st.warning("无法识别球队 ID")
+            else:
                 analysis_key = f"_analysis_{h}_{a}"
                 if analysis_key not in st.session_state:
-                    stage, is_knockout = _detect_stage_and_knockout(m)
-                    mh, ma = _estimate_motivation(m, standings, hid, aid)
-                    with st.spinner("🔍 正在分析..."):
+                    with st.spinner("🔍 正在分析（蒙特卡洛模拟 50000 次）..."):
+                        stage, is_knockout = _detect_stage_and_knockout(m)
+                        mh, ma = _estimate_motivation(m, standings, hid, aid)
                         st.session_state[analysis_key] = _do_analysis(
                             hid, aid, engine, h, a,
                             m.get("odds_home"), m.get("odds_draw"), m.get("odds_away"),
@@ -1988,179 +2002,105 @@ def render_predictions(data):
                 analysis = st.session_state[analysis_key]
                 _render_analysis_card(analysis)
 
-                # 保存预测数据到session_state（用于复盘）
                 prediction_key = f"_prediction_{h}_{a}"
                 st.session_state[prediction_key] = analysis
 
-                # ── 模型复盘 ──
+                # 模型复盘
                 if hs is not None and gs is not None:
                     actual_h = int(hs)
                     actual_a = int(gs)
                     actual_result = "home" if actual_h > actual_a else ("away" if actual_a > actual_h else "draw")
 
-                    # Elo复盘
                     elo_pred = analysis.get("elo", {})
+                    pois_pred = analysis.get("poisson", {})
+                    mc_pred = analysis.get("monte_carlo", {})
+
+                    st.divider()
+                    st.subheader("📊 模型复盘")
+                    c1, c2, c3 = st.columns(3)
                     if elo_pred:
                         elo_home = elo_pred.get("home_win", 0)
                         elo_draw = elo_pred.get("draw", 0)
                         elo_away = elo_pred.get("away_win", 0)
-                        elo_pred_result = "home" if elo_home > max(elo_draw, elo_away) else ("away" if elo_away > max(elo_home, elo_draw) else "draw")
-                        elo_correct = (elo_pred_result == actual_result)
-                        review_stats["elo_correct"] += int(elo_correct)
-
-                    # 泊松复盘
-                    pois_pred = analysis.get("poisson", {})
+                        elo_result = "home" if elo_home > max(elo_draw, elo_away) else ("away" if elo_away > max(elo_home, elo_draw) else "draw")
+                        elo_correct = (elo_result == actual_result)
+                        c1.metric("Elo预测", f"{'✅' if elo_correct else '❌'} {elo_result}")
                     if pois_pred:
                         lh_p = pois_pred.get("lambda_home", 0)
                         la_p = pois_pred.get("lambda_away", 0)
-                        pois_pred_result = "home" if lh_p > la_p else ("away" if la_p > lh_p else "draw")
-                        pois_correct = (pois_pred_result == actual_result)
-                        review_stats["poisson_correct"] += int(pois_correct)
-
-                    # 蒙特卡洛复盘
-                    mc_pred = analysis.get("monte_carlo", {})
+                        pois_result = "home" if lh_p > la_p else ("away" if la_p > lh_p else "draw")
+                        pois_correct = (pois_result == actual_result)
+                        c2.metric("泊松预测", f"{'✅' if pois_correct else '❌'} {pois_result}")
                     if mc_pred:
                         mc_home = mc_pred.get("home_win", 0)
                         mc_draw = mc_pred.get("draw", 0)
                         mc_away = mc_pred.get("away_win", 0)
-                        mc_pred_result = "home" if mc_home > max(mc_draw, mc_away) else ("away" if mc_away > max(mc_home, mc_draw) else "draw")
-                        mc_correct = (mc_pred_result == actual_result)
-                        review_stats["mc_correct"] += int(mc_correct)
+                        mc_result = "home" if mc_home > max(mc_draw, mc_away) else ("away" if mc_away > max(mc_home, mc_draw) else "draw")
+                        mc_correct = (mc_result == actual_result)
+                        c3.metric("MC预测", f"{'✅' if mc_correct else '❌'} {mc_result}")
 
-                    # 综合方向判断（Elo+泊松+MC多数投票）
                     votes = []
-                    if elo_pred: votes.append(elo_pred_result)
-                    if pois_pred: votes.append(pois_pred_result)
-                    if mc_pred: votes.append(mc_pred_result)
+                    if elo_pred: votes.append(elo_result)
+                    if pois_pred: votes.append(pois_result)
+                    if mc_pred: votes.append(mc_result)
                     if votes:
                         from collections import Counter
                         majority = Counter(votes).most_common(1)[0][0]
                         direction_correct = (majority == actual_result)
-                        review_stats["correct_direction"] += int(direction_correct)
-                        review_stats["total"] += 1
-
-                    # 显示单场复盘
-                    with st.expander("📊 模型复盘"):
-                        c1, c2, c3 = st.columns(3)
-                        if elo_pred:
-                            c1.metric("Elo预测", f"{'✅' if elo_correct else '❌'} {elo_pred_result}")
-                        if pois_pred:
-                            c2.metric("泊松预测", f"{'✅' if pois_correct else '❌'} {pois_pred_result}")
-                        if mc_pred:
-                            c3.metric("MC预测", f"{'✅' if mc_correct else '❌'} {mc_pred_result}")
                         st.caption(f"实际结果: {actual_h}:{actual_a} ({actual_result}) | 多数投票: {'✅' if direction_correct else '❌'}")
-
-        # 显示整体复盘统计
-        if review_stats["total"] > 0:
-            st.divider()
-            st.subheader("📈 模型复盘统计")
-            total = review_stats["total"]
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("总场次", total)
-            c2.metric("方向正确率", f"{review_stats['correct_direction']/total:.1%}")
-            if review_stats["elo_correct"] > 0:
-                c3.metric("Elo准确率", f"{review_stats['elo_correct']/total:.1%}")
-            if review_stats["mc_correct"] > 0:
-                c4.metric("MC准确率", f"{review_stats['mc_correct']/total:.1%}")
-            st.caption("方向正确率 = Elo+泊松+MC 多数投票与实际结果一致的比率")
 
     # ── Tab 2: 未赛预测 ──
     with t2:
-        # 检查是否有已导入的赔率
-        imported_odds = st.session_state.get("_imported_odds", {})
-
-        from datetime import datetime, timedelta
-        today = datetime.now().date()
-        tomorrow = today + timedelta(days=1)
-
-        # 按日期分组未赛比赛
-        matches_by_date = {}
-        for m in todo:
-            d = m.get("date", "")[:10]
-            if d:
-                matches_by_date.setdefault(d, []).append(m)
-
-        # 找出有比赛的所有日期（排序）
-        all_dates = sorted(matches_by_date.keys())
-
-        # 默认只展示"后一天"的比赛（即明天，如果明天有比赛；否则找下一个有比赛的日期）
-        default_show_date = None
-        for d in all_dates:
-            d_obj = datetime.strptime(d, "%Y-%m-%d").date()
-            if d_obj >= today:
-                default_show_date = d
-                break
-
-        c1, c2, c3 = st.columns([2, 2, 3])
-        with c1:
-            sa = st.checkbox("显示全部比赛", value=False)
-        with c2:
-            sg = st.selectbox("按小组筛选",
-                              ["全部"] + sorted({m.get("group_name", "") for m in todo if m.get("group_name")}))
-        with c3:
-            if sa:
-                date_options = ["全部日期"] + all_dates
-                sd = st.selectbox("按日期筛选", date_options, index=0)
-            else:
-                # 非全部模式：显示当前默认日期信息
-                if default_show_date:
-                    dd = datetime.strptime(default_show_date, "%Y-%m-%d").date()
-                    day_label = "今天" if dd == today else ("明天" if dd == tomorrow else f"{dd.month}月{dd.day}日")
-                    st.info(f"📅 展示 {day_label} ({default_show_date}) 的 {len(matches_by_date.get(default_show_date, []))} 场比赛")
-                else:
-                    st.info("📅 暂无 upcoming 比赛")
-
-        filt = todo
-        if not sa:
-            # 只展示后一天（默认日期）的比赛
-            if default_show_date:
-                filt = matches_by_date.get(default_show_date, [])
-            else:
-                filt = []
+        if not todo:
+            st.info("暂无未赛比赛")
         else:
-            # 全部模式但按日期筛选
-            if sa and 'sd' in dir() and sd != "全部日期":
-                filt = matches_by_date.get(sd, [])
+            # 使用 selectbox 选择比赛，避免创建大量 expander
+            todo_options = []
+            for m in todo:
+                h = m.get("host_team_name", "?")
+                a = m.get("guest_team_name", "?")
+                dt = (m.get("date", "") or "")[:16]
+                grp = m.get("group_name", "")
+                mtype = m.get("match_type_name", "小组赛")
+                label = f"{dt} | {h} vs {a} | {mtype} {grp}"
+                todo_options.append(label)
 
-        if sg != "全部":
-            filt = [m for m in filt if m.get("group_name") == sg]
+            selected_todo = st.selectbox(
+                "选择未赛比赛进行预测",
+                options=todo_options,
+                index=0,
+                key="predict_match_select"
+            )
 
-        if not filt:
-            if not sa and default_show_date:
-                st.info(f"⏳ {default_show_date} 暂无符合条件的比赛")
-            else:
-                st.info("暂无符合条件的比赛")
+            selected_idx = todo_options.index(selected_todo)
+            m = todo[selected_idx]
 
-        for m in filt:
             h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
             mid = m.get("id", "")
-            with st.expander(
-                f"📅{(m.get('date', '') or '')[:16]}|{flag(h)} {h} vs {a} {flag(a)}|{m.get('match_type_name', '小组赛')} {m.get('group_name', '')}"
-            ):
-                # 显示已导入的赔率（如果有）
-                if mid in imported_odds:
-                    oi = imported_odds[mid]
-                    st.success(f"📥 已导入赔率: 主胜{oi.get('oh', '-')} / 平{oi.get('od', '-')} / 客胜{oi.get('oa', '-')}")
-                    if oi.get("intel"):
-                        st.markdown(f'<div class="search-result">📰 {oi["intel"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
+            dt = (m.get("date", "") or "")[:16]
+            grp = m.get("group_name", "")
+            mtype = m.get("match_type_name", "小组赛")
 
-                # 缓存分析结果，避免每次 rerun 都重新计算
-                analysis_key = f"_analysis_{mid}"
-                if analysis_key in st.session_state:
-                    # 使用缓存的分析结果
-                    _render_analysis_card(st.session_state[analysis_key])
-                elif st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
-                    hid = m.get("host_team_id") or gid(h)
-                    aid = m.get("guest_team_id") or gid(a)
-                    if not (hid and aid):
-                        st.warning("无法识别球队 ID")
-                        continue
+            st.markdown(f"### 🔮 {dt} | {h} vs {a} | {mtype} {grp}")
+
+            imported_odds = st.session_state.get("_imported_odds", {})
+            if mid in imported_odds:
+                oi = imported_odds[mid]
+                st.success(f"📥 已导入赔率: 主胜{oi.get('oh', '-')} / 平{oi.get('od', '-')} / 客胜{oi.get('oa', '-')}")
+                if oi.get("intel"):
+                    st.markdown(f'<div class="search-result">{oi["intel"]}</div>', unsafe_allow_html=True)
+            else:
+                st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
+
+            if st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
+                hid = m.get("host_team_id") or gid(h)
+                aid = m.get("guest_team_id") or gid(a)
+                if not (hid and aid):
+                    st.warning("无法识别球队 ID")
+                else:
                     stage, is_knockout = _detect_stage_and_knockout(m)
                     mh, ma = _estimate_motivation(m, standings, hid, aid)
 
-                    # 使用导入的赔率（如有），否则 None
                     oi = imported_odds.get(mid, {})
                     oh = oi.get("oh") if oi else None
                     od = oi.get("od") if oi else None
@@ -2175,8 +2115,7 @@ def render_predictions(data):
                             motivation_home=mh, motivation_away=ma,
                             use_market_odds=bool(oh),
                         )
-                    # 缓存到 session_state
-                    st.session_state[analysis_key] = analysis
+                    st.session_state[f"_analysis_{mid}"] = analysis
                     _render_analysis_card(analysis)
 
     # ── Tab 3: 赔率导入 ──
