@@ -1985,16 +1985,17 @@ def render_predictions(data):
                     st.subheader(f"📅 {dt}")
                     prev_date = dt
 
-                # 比赛卡片：小组标签 + 对阵 + 比分
+                # 比赛卡片：使用表格对齐
                 hf = flag(h)
                 af = flag(a)
                 st.markdown(
-                    f'<div style="background:#1e293b;border-radius:8px;padding:8px 16px;margin:4px 0;display:flex;align-items:center;justify-content:space-between;">'
-                    f'<span style="background:#f97316;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600;">{grp}组</span>'
-                    f'<span style="color:#e2e8f0;font-weight:600;">{hf} {h}</span>'
-                    f'<span style="color:#f97316;font-size:1.2rem;font-weight:bold;">{hs} : {gs}</span>'
-                    f'<span style="color:#e2e8f0;font-weight:600;">{a} {af}</span>'
-                    f'</div>',
+                    f'<table style="width:100%;background:#1e293b;border-radius:8px;margin:3px 0;">'
+                    f'<tr>'
+                    f'<td style="width:60px;text-align:center;background:#f97316;color:#fff;border-radius:6px 0 0 6px;padding:6px 4px;font-size:0.75rem;font-weight:600;">{grp}组</td>'
+                    f'<td style="text-align:right;padding:6px 8px;color:#e2e8f0;font-weight:600;">{hf} {h}</td>'
+                    f'<td style="width:70px;text-align:center;color:#f97316;font-size:1.3rem;font-weight:bold;padding:6px 4px;">{hs}:{gs}</td>'
+                    f'<td style="text-align:left;padding:6px 8px;color:#e2e8f0;font-weight:600;">{a} {af}</td>'
+                    f'</tr></table>',
                     unsafe_allow_html=True
                 )
 
