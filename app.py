@@ -1369,10 +1369,6 @@ def _render_analysis_card(data: dict):
             st.divider()
             st.markdown("**📝 观点摘要**")
             st.markdown(explanation.summary)
-                )
-            
-            st.markdown(llm_analysis)
-            st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')} | API: {llm.LLM_CONFIG.get('base_url', 'https://api.longcat.chat/openai')}")
 
     # ── 8. 环境因素 ──
     env = data.get("environment", {})
