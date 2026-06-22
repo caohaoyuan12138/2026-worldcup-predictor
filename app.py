@@ -224,11 +224,16 @@ def load_all_data():
         juhe_data = juhe.sync_all_data()
         if juhe_data.get("schedule") and len(juhe_data["schedule"]) > 0:
             # 聚合API有数据，使用聚合数据
+            schedule = juhe_data["schedule"]
+            
+            # 计算积分榜（基于聚合API的赛程数据）
+            standings = ld.recalculate_standings(schedule)
+            
             raw = {
-                "schedule": juhe_data["schedule"],
-                "matches": juhe_data["schedule"],
+                "schedule": schedule,
+                "matches": schedule,
                 "teams": juhe_data["teams"],
-                "standings": juhe_data["standings"],
+                "standings": standings,
                 "source": "聚合API",
                 "sync_time": juhe_data["sync_time"],
             }
@@ -244,7 +249,7 @@ def load_all_data():
     # 兼容两种 key 名：schedule 或 matches
     matches = raw.get("schedule") or raw.get("matches") or []
 
-    # 确保 standings 是最新的：根据赛程重算
+    # 确保 standings 存在
     if not raw.get("standings") or len(raw.get("standings", [])) == 0:
         standings = ld.recalculate_standings(matches)
         raw["standings"] = standings

@@ -75,9 +75,14 @@ def get_schedule() -> List[Dict]:
                             "guest_team_score": str(item.get("guest_team_score", "")) if item.get("guest_team_score") else "",
                             "match_status": str(item.get("match_status", "1")),
                             "match_des": item.get("match_des", _get_match_status_desc(item.get("match_status", 1))),
-                            "stage": item.get("stage", "小组赛"),
+                            "stage": item.get("match_type_name", "小组赛"),
+                            "match_type_name": item.get("match_type_name", "小组赛"),
+                            "match_type_des": item.get("match_type_des", ""),
                             "venue": item.get("venue", ""),
                             "group": item.get("group", ""),
+                            "group_name": item.get("group_name", ""),  # 关键字段！
+                            "host_team_logo": item.get("host_team_logo_url", ""),
+                            "guest_team_logo": item.get("guest_team_logo_url", ""),
                         }
                         matches.append(match)
                 
