@@ -26,6 +26,7 @@ import model.review as review  # 复盘模块
 import data.bsd_api as bsd  # BSD实时数据API
 import data.news_api as news  # 新闻数据API
 import data.weather_api as weather  # 天气API（实时环境信息）
+import data.juhe_api as juhe  # 聚合数据API（赛程/球队/积分榜）
 
 # 确保LLM模块函数存在（fallback）
 if not hasattr(llm, 'set_llm_enabled'):
@@ -217,14 +218,36 @@ def _auto_sync_if_needed():
 
 @st.cache_data(ttl=300, show_spinner=False)  # 缓存5分钟
 def load_all_data():
-    """加载所有数据（带缓存）"""
-    raw = ld.load_all()                       # {"standings":[...],"schedule":[...],"teams":[...]}
+    """加载所有数据（带缓存）- 优先从聚合API获取"""
+    # 优先从聚合API获取实时数据
+    try:
+        juhe_data = juhe.sync_all_data()
+        if juhe_data.get("schedule") and len(juhe_data["schedule"]) > 0:
+            # 聚合API有数据，使用聚合数据
+            raw = {
+                "schedule": juhe_data["schedule"],
+                "matches": juhe_data["schedule"],
+                "teams": juhe_data["teams"],
+                "standings": juhe_data["standings"],
+                "source": "聚合API",
+                "sync_time": juhe_data["sync_time"],
+            }
+        else:
+            # 聚合API返回空数据，使用本地数据
+            raw = ld.load_all()
+            raw["source"] = "本地数据"
+    except Exception as e:
+        # 聚合API异常，使用本地数据
+        raw = ld.load_all()
+        raw["source"] = "本地数据（API异常）"
+    
     # 兼容两种 key 名：schedule 或 matches
     matches = raw.get("schedule") or raw.get("matches") or []
 
     # 确保 standings 是最新的：根据赛程重算
-    standings = ld.recalculate_standings(matches)   # 直接从比赛列表算积分
-    raw["standings"] = standings
+    if not raw.get("standings") or len(raw.get("standings", [])) == 0:
+        standings = ld.recalculate_standings(matches)
+        raw["standings"] = standings
 
     # Elo — 内置元数据初始化
     engine = elo.EloEngine()
@@ -2398,41 +2421,59 @@ def render_portfolio(data):
 #  Tab 5 — 数据管理
 # ──────────────────────────────────────────────
 def render_data_manager():
-    st.header("🛠️ 本地数据管理")
-    st.caption("你告诉我比赛结果 → 我更新本地文件 → 刷新页面即生效")
+    st.header("🛠️ 数据管理")
+    st.caption("数据来源：聚合API（内置） + 本地数据")
 
-    # 数据源切换
-    col_title, col_btn1, col_btn2 = st.columns([3, 1, 1])
-    with col_title:
-        st.write("")
-    with col_btn2:
-        if st.button("🔄 从API拉取最新数据"):
-            try:
-                import data.api_client as api
-                with st.spinner("⏳ 正在拉取 juhe API 最新积分榜和赛程..."):
-                    rank_data = api.get_standings()
-                    sched_data = api.get_matches()
-                if rank_data:
-                    ld.save_standings(rank_data)
-                    st.success(f"✅ 积分榜已更新: {len(rank_data)} 条")
-                if sched_data:
-                    ld.save_schedule(sched_data)
-                    st.success(f"✅ 赛程已更新: {len(sched_data)} 场")
-                if rank_data or sched_data:
-                    st.cache_data.clear()
-                    st.rerun()
-                else:
-                    st.warning("API 返回空数据，请检查网络连接")
-            except Exception as e:
-                st.error(f"⚠️ API 拉取失败: {str(e)[:200]}")
-
-    c1,c2,c3 = st.columns(3)
+    # 数据源显示
     loc = ld.load_all()
-    c1.metric("积分榜条目",f"{len(loc.get('standings',[]))} 条")
-    sc = loc.get("schedule",[])
+    source = loc.get("source", "本地数据")
+    sync_time = loc.get("sync_time", "未知")
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("数据来源", source)
+    c2.metric("积分榜条目", f"{len(loc.get('standings',[]))} 条")
+    sc = loc.get("schedule", [])
     fin = sum(1 for m in sc if m.get("match_des")=="完赛")
-    c2.metric("赛程",f"{len(sc)} 场 (已赛{fin})")
-    c3.metric("最后更新",time.strftime("%H:%M:%S"))
+    c3.metric("赛程", f"{len(sc)} 场 (已赛{fin})")
+    c4.metric("同步时间", sync_time[:19] if sync_time else time.strftime("%H:%M:%S"))
+
+    st.divider()
+
+    # API同步按钮
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 从聚合API拉取最新数据", type="primary"):
+            try:
+                with st.spinner("⏳ 正在从聚合API拉取赛程/球队/积分榜..."):
+                    juhe_data = juhe.sync_all_data()
+                    
+                    if juhe_data.get("schedule"):
+                        # 保存到本地
+                        ld.save_schedule(juhe_data["schedule"])
+                        st.success(f"✅ 赛程已更新: {len(juhe_data['schedule'])} 场")
+                    
+                    if juhe_data.get("teams"):
+                        ld.save_teams(juhe_data["teams"])
+                        st.success(f"✅ 球队已更新: {len(juhe_data['teams'])} 支")
+                    
+                    if juhe_data.get("standings"):
+                        ld.save_standings(juhe_data["standings"])
+                        st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
+                    
+                    if juhe_data.get("schedule") or juhe_data.get("standings"):
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ 聚合API返回空数据")
+            except Exception as e:
+                st.error(f"❌ 聚合API拉取失败: {str(e)[:200]}")
+    
+    with col2:
+        if st.button("📊 查看聚合API状态"):
+            st.info(f"**聚合API配置**")
+            st.caption(f"API地址: https://apis.juhe.cn/fapigw/worldcup2026/schedule")
+            st.caption(f"API Key: cacdf03f36ed28cd9c61785656c30dfb（内置）")
+            st.caption(f"MCP服务: https://mcp.juhe.cn/sse?token=...（内置）")
 
     st.divider()
     st.subheader("📝 单场更新")

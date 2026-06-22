@@ -45,6 +45,12 @@ def save_schedule(schedule):
         json.dump(schedule, f, ensure_ascii=False, indent=2)
 
 
+def save_teams(teams):
+    """保存球队列表到本地文件"""
+    with open(TEAMS_FILE, "w", encoding="utf-8") as f:
+        json.dump(teams, f, ensure_ascii=False, indent=2)
+
+
 def load_teams():
     """加载球队列表"""
     if not os.path.exists(TEAMS_FILE):
