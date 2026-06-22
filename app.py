@@ -1955,14 +1955,14 @@ def render_predictions(data):
             st.info("暂无已完成比赛")
         else:
             # 统计概览
-            c1, c2, c3 = st.columns(3)
-            c1.total = len(done)
-            c2.total = len(set(m.get("group_name", "") for m in done))
+            n_done = len(done)
+            n_groups = len(set(m.get("group_name", "") for m in done))
             total_goals = sum(int(m.get("host_team_score", 0) or 0) + int(m.get("guest_team_score", 0) or 0) for m in done)
-            c3.total = total_goals
-            c.metric("已赛场次", c1.total)
-            c.metric("涉及小组", c2.total)
-            c.metric("总进球数", c3.total)
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("已赛场次", n_done)
+            c2.metric("涉及小组", n_groups)
+            c3.metric("总进球数", total_goals)
 
             st.divider()
 
