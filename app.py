@@ -1966,35 +1966,37 @@ def render_predictions(data):
 
             st.divider()
 
-            # 按小组分组显示
-            done_by_group = {}
-            for m in done:
-                g = m.get("group_name", "?")
-                done_by_group.setdefault(g, []).append(m)
+            # 按日期排序，每场比赛前标明小组
+            done_sorted = sorted(done, key=lambda x: (x.get("date", ""), x.get("group_name", "")))
 
-            for g in sorted(done_by_group.keys()):
-                st.subheader(f"组 {g}")
-                for m in sorted(done_by_group[g], key=lambda x: x.get("date", "")):
-                    h = m.get("host_team_name", "?")
-                    a = m.get("guest_team_name", "?")
-                    hs = m.get("host_team_score", "")
-                    gs = m.get("guest_team_score", "")
-                    dt = (m.get("date", "") or "")[:10]
+            prev_date = None
+            for m in done_sorted:
+                h = m.get("host_team_name", "?")
+                a = m.get("guest_team_name", "?")
+                hs = m.get("host_team_score", "")
+                gs = m.get("guest_team_score", "")
+                dt = (m.get("date", "") or "")[:10]
+                grp = m.get("group_name", "?")
 
-                    col1, col2, col3 = st.columns([2, 1, 2])
-                    with col1:
-                        st.markdown(f"**{dt}**")
-                    with col2:
-                        if hs and gs:
-                            st.markdown(f"<div style='text-align:center;font-size:1.2rem;font-weight:bold;'>{hs} : {gs}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown("<div style='text-align:center;'>- : -</div>", unsafe_allow_html=True)
-                    with col3:
-                        hf = flag(h)
-                        af = flag(a)
-                        st.markdown(f"{hf} {h} &nbsp;&nbsp; vs &nbsp;&nbsp; {af} {a}")
+                # 日期变化时分隔
+                if dt != prev_date:
+                    if prev_date is not None:
+                        st.markdown("---")
+                    st.subheader(f"📅 {dt}")
+                    prev_date = dt
 
-                st.markdown("---")
+                # 比赛卡片：小组标签 + 对阵 + 比分
+                hf = flag(h)
+                af = flag(a)
+                st.markdown(
+                    f'<div style="background:#1e293b;border-radius:8px;padding:8px 16px;margin:4px 0;display:flex;align-items:center;justify-content:space-between;">'
+                    f'<span style="background:#f97316;color:#fff;padding:2px 10px;border-radius:12px;font-size:0.8rem;font-weight:600;">{grp}组</span>'
+                    f'<span style="color:#e2e8f0;font-weight:600;">{hf} {h}</span>'
+                    f'<span style="color:#f97316;font-size:1.2rem;font-weight:bold;">{hs} : {gs}</span>'
+                    f'<span style="color:#e2e8f0;font-weight:600;">{a} {af}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
     # ── Tab 2: 未赛预测 ──
     with t2:
