@@ -97,14 +97,18 @@ class ReviewEngine:
         # 实际结果
         actual_score = f"{actual_home_goals}-{actual_away_goals}"
         actual_total_goals = actual_home_goals + actual_away_goals
-        
+
         if actual_home_goals > actual_away_goals:
             actual_result = "home_win"
         elif actual_home_goals < actual_away_goals:
             actual_result = "away_win"
         else:
             actual_result = "draw"
-        
+
+        # 安全检查：prediction_data 必须是 dict
+        if not isinstance(prediction_data, dict):
+            prediction_data = {}
+
         # 获取预测数据
         explanation = prediction_data.get("explanation")
         
@@ -204,7 +208,11 @@ class ReviewEngine:
         }
         
         # 贝叶斯融合预测
+        if not isinstance(prediction_data, dict):
+            prediction_data = {}
         bayesian_data = prediction_data.get("bayesian", {})
+        if not isinstance(bayesian_data, dict):
+            bayesian_data = {}
         bayesian_hw = bayesian_data.get("home_win", 0.33)
         bayesian_aw = bayesian_data.get("away_win", 0.33)
         bayesian_pred = "home_win" if bayesian_hw > bayesian_aw + 0.10 else "away_win" if bayesian_aw > bayesian_hw + 0.10 else "draw"

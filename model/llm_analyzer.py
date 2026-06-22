@@ -96,20 +96,21 @@ def call_longcat(prompt: str, system_prompt: str = None) -> str:
             f"{base_url}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=60
+            timeout=15
         )
-        
+
         if r.status_code == 200:
             data = r.json()
             return data["choices"][0]["message"]["content"]
         else:
             error_msg = r.json().get("error", {}).get("message", r.text[:100])
             return f"⚠️ API错误: {r.status_code} - {error_msg}"
-    
     except requests.exceptions.Timeout:
-        return "⚠️ API超时"
+        return "⚠️ LLM分析超时（15秒），请稍后重试"
+    except requests.exceptions.ConnectionError:
+        return "⚠️ 无法连接LongCat API，请检查网络"
     except Exception as e:
-        return f"⚠️ 调用失败: {str(e)[:50]}"
+        return f"⚠️ LLM分析失败: {str(e)[:100]}"
 
 
 def generate_match_analysis(

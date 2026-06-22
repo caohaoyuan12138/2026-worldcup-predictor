@@ -90,10 +90,18 @@ def _check_api_for_updates():
       - 只更新 API 中 "完赛" 或 "进行中"（有真实赛果）的比赛
       - 保留本地已手动录入的比赛（本地状态 != "未开赛" 的优先）
       - 同步新增的场次（API 中有但本地没有）
+
+    注意：遵守速率限制，如果超过限制返回 (0, "API 调用次数已用完")
     返回 (updated_count, message)
     """
     try:
         import data.api_client as api
+        import data.api_rate_limiter as rate_limiter
+
+        # 检查速率限制
+        if not rate_limiter.can_call_api():
+            return 0, "API 今日调用次数已用完（50/50），明天再试"
+
         remote_matches = api.get_matches() or []
         if not remote_matches:
             return 0, "API 返回空数据"
@@ -197,94 +205,109 @@ def _check_api_for_updates():
 
 def _auto_sync_if_needed():
     """
-    检查距离上次自动同步是否超过阈值，若是则后台拉 API。
-    结果写入 st.session_state["_api_last_check"] 供 UI 显示。
+    检查是否需要自动同步 API 数据。
+
+    策略：
+    - 遵守速率限制（每天 50 次）
+    - 默认每 2 小时检查一次（而非 30 分钟）
+    - 如果剩余次数 < 10，延长间隔到 6 小时
+    - 如果剩余次数 = 0，不同步
     """
     import time as _time
+    import data.api_rate_limiter as rate_limiter
+
+    # 检查速率限制
+    remaining = rate_limiter.get_remaining_calls()
+    if remaining <= 0:
+        return  # 没有剩余次数，跳过
+
     now = _time.time()
     last = st.session_state.get("_last_auto_sync", 0)
-    interval = st.session_state.get("_auto_sync_interval", 1800)  # 默认 30 分钟
+
+    # 根据剩余次数动态调整间隔
+    if remaining < 10:
+        interval = 3600 * 6  # 剩余 < 10，每 6 小时
+    elif remaining < 30:
+        interval = 3600 * 2  # 剩余 < 30，每 2 小时
+    else:
+        interval = 3600      # 剩余充足，每小时
+
     if now - last < interval:
         return  # 还没到间隔，跳过
+
     st.session_state["_last_auto_sync"] = now
     cnt, msg = _check_api_for_updates()
     ts = pd.Timestamp.now().strftime("%H:%M")
     if cnt > 0:
         st.session_state["_api_last_check"] = f"{ts}（+{cnt}场）"
-        st.session_state["_api_new_data"] = True  # 标记有新数据，下次 rerun 刷新
+        st.session_state["_api_new_data"] = True
     else:
         st.session_state["_api_last_check"] = ts
 
 
-@st.cache_data(ttl=300, show_spinner=False)  # 缓存5分钟
-def load_all_data():
-    """加载所有数据（带缓存）- 优先从聚合API获取"""
-    # 优先从聚合API获取实时数据
-    try:
-        juhe_data = juhe.sync_all_data()
-        if juhe_data.get("schedule") and len(juhe_data["schedule"]) > 0:
-            # 聚合API有数据，使用聚合数据
-            schedule = juhe_data["schedule"]
-            
-            # 计算积分榜（基于聚合API的赛程数据）
-            standings = ld.recalculate_standings(schedule)
-            
-            raw = {
-                "schedule": schedule,
-                "matches": schedule,
-                "teams": juhe_data["teams"],
-                "standings": standings,
-                "source": "聚合API",
-                "sync_time": juhe_data["sync_time"],
-            }
-        else:
-            # 聚合API返回空数据，使用本地数据
-            raw = ld.load_all()
-            raw["source"] = "本地数据"
-    except Exception as e:
-        # 聚合API异常，使用本地数据
-        raw = ld.load_all()
-        raw["source"] = "本地数据（API异常）"
-    
-    # 兼容两种 key 名：schedule 或 matches
-    matches = raw.get("schedule") or raw.get("matches") or []
+# Data loaded via session_state - no cache_data needed
+def _build_elo_engine(matches):
+    """
+    根据赛程构建 Elo 引擎
 
-    # 确保 standings 存在
-    if not raw.get("standings") or len(raw.get("standings", [])) == 0:
-        standings = ld.recalculate_standings(matches)
-        raw["standings"] = standings
+    Args:
+        matches: 赛程列表
 
-    # Elo — 内置元数据初始化
+    Returns:
+        EloEngine 实例
+    """
     engine = elo.EloEngine()
     for cn_, (tid, code, cont, rank) in TEAM.items():
-        # 检测东道主身份
         is_host = tid in config.HOST_TEAM_IDS if hasattr(config, 'HOST_TEAM_IDS') else False
         engine.set_team(tid, cn_, "", fifa_rank=rank, continent=cont,
                         is_defending_champion=(code == "FRA"),
                         is_host_nation=is_host)
-    name2id = {cn_: tid for cn_, (tid, *_) in TEAM.items()}
-    
-    # 只处理已完赛的比赛
+
     for m in matches:
         if m.get("match_des") != "完赛":
             continue
         hg, ag = m.get("host_team_score"), m.get("guest_team_score")
         if hg is None or ag is None:
             continue
-        hid = m.get("host_team_id") or name2id.get(m.get("host_team_name", ""))
-        aid = m.get("guest_team_id") or name2id.get(m.get("guest_team_name", ""))
+        hid = m.get("host_team_id") or CN2ID.get(m.get("host_team_name", ""))
+        aid = m.get("guest_team_id") or CN2ID.get(m.get("guest_team_name", ""))
         if hid and aid:
             try:
                 stage, is_ko = _detect_stage_and_knockout(m)
                 engine.update_after_match(int(hid), int(aid), int(hg), int(ag), stage=stage)
             except Exception:
                 pass
-    raw["elo"] = engine
-    raw["matches"] = matches   # 保证下游 render_xxx(data) 能拿到数据
-    return raw
+
+    return engine
 
 
-@st.cache_resource  # Elo引擎作为资源缓存，不重复初始化
+def load_all_data():
+    """
+    加载所有数据 - 使用 session_state 双重缓存
+
+    这是公共 API，供所有 render 函数调用。
+    数据只在首次加载或显式刷新时重新加载。
+    """
+    if "_session_data" not in st.session_state:
+        raw = ld.load_all()
+        raw["source"] = "本地数据"
+
+        matches = raw.get("schedule") or raw.get("matches") or []
+
+        if not raw.get("standings") or len(raw.get("standings", [])) == 0:
+            standings = ld.recalculate_standings(matches)
+            raw["standings"] = standings
+
+        engine = _build_elo_engine(matches)
+        raw["elo"] = engine
+        raw["matches"] = matches
+
+        st.session_state["_session_data"] = raw
+
+    return st.session_state["_session_data"]
+
+
+@st.cache_resource(show_spinner=False)
 def get_elo_engine():
     """获取Elo引擎（资源缓存）"""
     data = load_all_data()
@@ -328,6 +351,9 @@ def gid(name):
 def render_standings(data):
     st.header("📊 小组赛积分榜")
     stnc = data.get("standings") or []
+    # 如果 data 中没有 standings，直接从本地文件加载
+    if not stnc:
+        stnc = ld.load_standings()
     if not stnc:
         st.warning("⚠️ 暂无积分榜数据，请在「数据管理」中录入比赛结果")
         return
@@ -503,10 +529,91 @@ def _pick_best_third(all_third_place, exclude_group, best_third_names):
     return ""
 
 
+def _render_expected_knockout_bracket(group_rankings):
+    """
+    基于当前积分榜显示预期淘汰赛对阵（小组赛尚未结束时的预览）
+    2026世界杯赛制：12组，每组4队，前2名+4个最佳第3名晋级1/16决赛
+    """
+    def get_team(group, rank):
+        teams = group_rankings.get(group, [])
+        idx = rank - 1
+        if 0 <= idx < len(teams):
+            return teams[idx].get("team_name", f"{group}?")
+        return f"{group}?"
+
+    def flag_html(name):
+        meta = TEAM.get(name)
+        fl = FLAG.get(meta[1], "🏳️") if meta else "🏳️"
+        return f"{fl} {name}"
+
+    # 1/16决赛对阵（基于2026世界杯赛制）
+    r16_matchups = [
+        ("A1", "B2"),   # 1
+        ("C1", "D2"),   # 2
+        ("E1", "F2"),   # 3
+        ("G1", "H2"),   # 4
+        ("I1", "J2"),   # 5
+        ("K1", "L2"),   # 6
+        ("B1", "A2"),   # 7
+        ("D1", "C2"),   # 8
+        ("F1", "E2"),   # 9
+        ("H1", "G2"),   # 10
+        ("J1", "I2"),   # 11
+        ("L1", "K2"),   # 12
+        # 4个最佳第3名对阵（简化显示）
+        ("A3", "C3"),   # 13 (示例，实际按积分排序)
+        ("E3", "G3"),   # 14
+        ("I3", "K3"),   # 15
+        ("B3/D3", "F3/H3"),  # 16 (复合)
+    ]
+
+    st.markdown("**🏟️ 预期 1/16 决赛对阵（基于当前积分榜）**")
+
+    # 显示1/16决赛对阵表
+    html = '<div class="knockout-tree">'
+    html += '<div class="ko-round">'
+    for i, (h, a) in enumerate(r16_matchups[:8]):
+        h_name = get_team(h[0], int(h[1]))
+        a_name = get_team(a[0], int(a[1]))
+        html += (
+            f'<div class="ko-match unresolved" style="animation-delay:{i*0.05}s">'
+            f'<div class="ko-stage-label">1/16决赛</div>'
+            f'<div class="ko-team">{flag_html(h_name)}</div>'
+            f'<div class="ko-vs">VS</div>'
+            f'<div class="ko-team">{flag_html(a_name)}</div>'
+            f'</div>'
+        )
+    html += '</div>'
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+    # 小组出线情况摘要
+    st.markdown("**📊 各组出线情况**")
+    groups = sorted(group_rankings.keys())
+    for i in range(0, len(groups), 4):
+        cols = st.columns(4)
+        for j, g in enumerate(groups[i:i+4]):
+            with cols[j]:
+                teams = group_rankings[g]
+                if teams:
+                    first = teams[0].get("team_name", "?")
+                    second = teams[1].get("team_name", "?") if len(teams) > 1 else "?"
+                    fl1 = flag_html(first)
+                    fl2 = flag_html(second)
+                    st.caption(f"**{g}组**: {fl1} / {fl2}")
+
+
 def render_knockout(data):
     st.header("🏆 淘汰赛对阵图")
     matches = data.get("matches") or []
     standings = data.get("standings") or []
+    # 如果 data 中没有 standings，直接从本地加载
+    if not standings:
+        standings = ld.load_standings()
+    # 如果 data 中没有 matches，直接从本地加载
+    if not matches:
+        matches = ld.load_schedule()
+
     stages = {"1/16决赛":[],"1/8决赛":[],"1/4决赛":[],"半决赛":[],"季军战":[],"决赛":[]}
     for m in matches:
         name = m.get("match_type_name","")
@@ -518,7 +625,21 @@ def render_knockout(data):
         elif "决赛" in name: stages["决赛"].append(m)
 
     has_r16 = bool(stages["1/16决赛"])
+
+    # 如果没有淘汰赛数据，显示基于当前积分榜的预期对阵
     if not has_r16:
+        if standings:
+            group_rankings = {}
+            for s in standings:
+                g = s.get("team_group", "")
+                if g:
+                    group_rankings.setdefault(g, []).append(s)
+            for g in group_rankings:
+                group_rankings[g].sort(key=lambda x: int(x.get("rank", "99") or "99"))
+
+            if len(group_rankings) >= 12:
+                _render_expected_knockout_bracket(group_rankings)
+                return
         st.info("淘汰赛数据暂未开放（需小组赛结束后更新）")
         return
 
@@ -1371,39 +1492,48 @@ def _render_analysis_card(data: dict):
                 st.markdown("**比分矩阵**")
                 st.caption(f"主胜{matrix_analysis['home_win_prob']}% | 平{matrix_analysis['draw_prob']}% | 客胜{matrix_analysis['away_win_prob']}% | 大2.5球{matrix_analysis['over_2_5_prob']}%")
         
-        # LLM深度分析
+        # LLM深度分析 - 点击按钮才触发，避免自动调用
         if llm.is_llm_enabled():
             with st.expander("🤖 LongCat深度分析"):
-                elo_data_for_llm = {
-                    "home_rating": elo.get("home_rating", 1500),
-                    "away_rating": elo.get("away_rating", 1500),
-                    "diff": elo.get("diff", 0),
-                    "home_fifa_rank": elo.get("home_fifa_rank", "?"),
-                    "away_fifa_rank": elo.get("away_fifa_rank", "?"),
-                }
-                
-                bsd_odds_data = data.get("bsd_odds", {})
-                odds_data_for_llm = {
-                    "average_home": bsd_odds_data.get("average_home", "?"),
-                    "average_draw": bsd_odds_data.get("average_draw", "?"),
-                    "average_away": bsd_odds_data.get("average_away", "?"),
-                    "implied_home": bsd_odds_data.get("implied_home", "?"),
-                    "implied_draw": bsd_odds_data.get("implied_draw", "?"),
-                    "implied_away": bsd_odds_data.get("implied_away", "?"),
-                }
-                
-                injury_data_for_llm = {"home_summary": "", "away_summary": ""}
-                news_data_for_llm = []
-                report_data_for_llm = {"home_report": "", "away_report": ""}
-                
-                with st.spinner("分析中..."):
-                    llm_analysis = llm.generate_match_analysis(
-                        _hn, _an, elo_data_for_llm, odds_data_for_llm,
-                        injury_data_for_llm, news_data_for_llm, report_data_for_llm
-                    )
-                
-                st.markdown(llm_analysis)
-                st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                if st.button("🤖 生成LongCat深度分析", key=f"llm_btn_{_hn}_{_an}"):
+                    elo_data_for_llm = {
+                        "home_rating": elo.get("home_rating", 1500),
+                        "away_rating": elo.get("away_rating", 1500),
+                        "diff": elo.get("diff", 0),
+                        "home_fifa_rank": elo.get("home_fifa_rank", "?"),
+                        "away_fifa_rank": elo.get("away_fifa_rank", "?"),
+                    }
+
+                    bsd_odds_data = data.get("bsd_odds", {})
+                    odds_data_for_llm = {
+                        "average_home": bsd_odds_data.get("average_home", "?"),
+                        "average_draw": bsd_odds_data.get("average_draw", "?"),
+                        "average_away": bsd_odds_data.get("average_away", "?"),
+                        "implied_home": bsd_odds_data.get("implied_home", "?"),
+                        "implied_draw": bsd_odds_data.get("implied_draw", "?"),
+                        "implied_away": bsd_odds_data.get("implied_away", "?"),
+                    }
+
+                    injury_data_for_llm = {"home_summary": "", "away_summary": ""}
+                    news_data_for_llm = []
+                    report_data_for_llm = {"home_report": "", "away_report": ""}
+
+                    with st.spinner("🤖 LongCat 正在分析（最多15秒）..."):
+                        try:
+                            llm_analysis = llm.generate_match_analysis(
+                                _hn, _an, elo_data_for_llm, odds_data_for_llm,
+                                injury_data_for_llm, news_data_for_llm, report_data_for_llm
+                            )
+                        except Exception as e:
+                            llm_analysis = f"⚠️ LongCat 分析失败: {str(e)[:100]}"
+
+                    if llm_analysis and not llm_analysis.startswith("⚠️"):
+                        st.markdown(llm_analysis)
+                        st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                    else:
+                        st.warning(llm_analysis or "⚠️ LongCat 分析返回空结果")
+                else:
+                    st.info("点击按钮生成 LongCat 深度分析")
         
         # 观点摘要
         if explanation:
@@ -1814,6 +1944,11 @@ def render_predictions(data):
     matches = data.get("matches") or []
     engine = data.get("elo")
     standings = data.get("standings") or []
+    if not matches:
+        matches = ld.load_schedule()
+    if not standings:
+        standings = ld.load_standings()
+
     done = [m for m in matches if m.get("match_des") == "完赛"]
     todo = [m for m in matches if m.get("match_des") != "完赛"]
 
@@ -1823,223 +1958,136 @@ def render_predictions(data):
         f"📥 赔率导入"
     ])
 
-    # ── Tab 1: 已完赛 ──
+    # ── Tab 1: 已完赛看板 ──
     with t1:
         if not done:
             st.info("暂无已完成比赛")
+        else:
+            # 统计概览
+            n_done = len(done)
+            n_groups = len(set(m.get("group_name", "") for m in done))
+            total_goals = sum(int(m.get("host_team_score", 0) or 0) + int(m.get("guest_team_score", 0) or 0) for m in done)
 
-        # 模型复盘统计
-        review_stats = {"total": 0, "correct_direction": 0, "correct_result": 0,
-                        "elo_correct": 0, "poisson_correct": 0, "mc_correct": 0}
+            c1, c2, c3 = st.columns(3)
+            c1.metric("已赛场次", n_done)
+            c2.metric("涉及小组", n_groups)
+            c3.metric("总进球数", total_goals)
 
-        for m in sorted(done, key=lambda x: x.get("date", ""), reverse=True)[:30]:
+            st.divider()
+
+            # 按日期排序，每场比赛前标明小组
+            done_sorted = sorted(done, key=lambda x: (x.get("date", ""), x.get("group_name", "")))
+
+            prev_date = None
+            for m in done_sorted:
+                h = m.get("host_team_name", "?")
+                a = m.get("guest_team_name", "?")
+                hs = m.get("host_team_score", "")
+                gs = m.get("guest_team_score", "")
+                dt = (m.get("date", "") or "")[:10]
+                grp = m.get("group_name", "?")
+
+                # 日期变化时分隔
+                if dt != prev_date:
+                    if prev_date is not None:
+                        st.markdown("---")
+                    st.subheader(f"📅 {dt}")
+                    prev_date = dt
+
+                # 比赛卡片：使用固定宽度表格确保对齐
+                hf = flag(h)
+                af = flag(a)
+                st.markdown(
+                    f'''<table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:10px;margin:4px 0;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+                        <tr style="background:#f97316;">
+                            <th colspan="3" style="padding:6px 16px;color:#fff;font-size:0.85rem;text-align:left;font-weight:700;">
+                                {grp}组 · {m.get('match_type_des', '')}
+                            </th>
+                        </tr>
+                        <tr>
+                            <td style="width:40%;text-align:right;padding:10px 16px;">
+                                <div style="font-size:1.6rem;">{hf}</div>
+                                <div style="color:#e2e8f0;font-weight:600;font-size:0.9rem;">{h}</div>
+                            </td>
+                            <td style="width:20%;text-align:center;padding:10px 8px;">
+                                <div style="color:#f97316;font-size:1.8rem;font-weight:800;letter-spacing:1px;">{hs}:{gs}</div>
+                            </td>
+                            <td style="width:40%;text-align:left;padding:10px 16px;">
+                                <div style="font-size:1.6rem;">{af}</div>
+                                <div style="color:#e2e8f0;font-weight:600;font-size:0.9rem;">{a}</div>
+                            </td>
+                        </tr>
+                    </table>''',
+                    unsafe_allow_html=True
+                )
+
+    # ── Tab 2: 未赛预测 ──
+    with t2:
+        if not todo:
+            st.info("暂无未赛比赛")
+        else:
+            # 使用 selectbox 选择比赛，避免创建大量 expander
+            todo_options = []
+            for m in todo:
+                h = m.get("host_team_name", "?")
+                a = m.get("guest_team_name", "?")
+                dt = (m.get("date", "") or "")[:16]
+                grp = m.get("group_name", "")
+                mtype = m.get("match_type_name", "小组赛")
+                label = f"{dt} | {h} vs {a} | {mtype} {grp}"
+                todo_options.append(label)
+
+            selected_todo = st.selectbox(
+                "选择未赛比赛进行预测",
+                options=todo_options,
+                index=0,
+                key="predict_match_select"
+            )
+
+            selected_idx = todo_options.index(selected_todo)
+            m = todo[selected_idx]
+
             h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
-            hf, af = flag(h), flag(a)
-            hs, gs = m.get("host_team_score", ""), m.get("guest_team_score", "")
-            dt = (m.get("date", "") or "")[:10]
+            mid = m.get("id", "")
+            dt = (m.get("date", "") or "")[:16]
             grp = m.get("group_name", "")
-            ttl = (f"{dt}|{hf}**{h} {hs}:{gs} {a}**{af}|{grp}"
-                   if hs is not None and gs is not None
-                   else f"{dt}|{hf} {h} vs {a} {af}|{grp}")
-            with st.expander(ttl):
+            mtype = m.get("match_type_name", "小组赛")
+
+            st.markdown(f"### 🔮 {dt} | {h} vs {a} | {mtype} {grp}")
+
+            imported_odds = st.session_state.get("_imported_odds", {})
+            if mid in imported_odds:
+                oi = imported_odds[mid]
+                st.success(f"📥 已导入赔率: 主胜{oi.get('oh', '-')} / 平{oi.get('od', '-')} / 客胜{oi.get('oa', '-')}")
+                if oi.get("intel"):
+                    st.markdown(f'<div class="search-result">{oi["intel"]}</div>', unsafe_allow_html=True)
+            else:
+                st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
+
+            if st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
                 hid = m.get("host_team_id") or gid(h)
                 aid = m.get("guest_team_id") or gid(a)
                 if not (hid and aid):
                     st.warning("无法识别球队 ID")
-                    continue
-                stage, is_knockout = _detect_stage_and_knockout(m)
-                mh, ma = _estimate_motivation(m, standings, hid, aid)
-                analysis = _do_analysis(
-                    hid, aid, engine, h, a,
-                    m.get("odds_home"), m.get("odds_draw"), m.get("odds_away"),
-                    stage, None,  # xtra 已移除
-                    is_knockout=is_knockout,
-                    motivation_home=mh, motivation_away=ma,
-                    use_market_odds=bool(m.get("odds_home")),
-                )
-                _render_analysis_card(analysis)
-                
-                # 保存预测数据到session_state（用于复盘）
-                prediction_key = f"_prediction_{h}_{a}"
-                st.session_state[prediction_key] = analysis
-
-                # ── 模型复盘 ──
-                if hs is not None and gs is not None:
-                    actual_h = int(hs)
-                    actual_a = int(gs)
-                    actual_result = "home" if actual_h > actual_a else ("away" if actual_a > actual_h else "draw")
-
-                    # Elo复盘
-                    elo_pred = analysis.get("elo", {})
-                    if elo_pred:
-                        elo_home = elo_pred.get("home_win", 0)
-                        elo_draw = elo_pred.get("draw", 0)
-                        elo_away = elo_pred.get("away_win", 0)
-                        elo_pred_result = "home" if elo_home > max(elo_draw, elo_away) else ("away" if elo_away > max(elo_home, elo_draw) else "draw")
-                        elo_correct = (elo_pred_result == actual_result)
-                        review_stats["elo_correct"] += int(elo_correct)
-
-                    # 泊松复盘
-                    pois_pred = analysis.get("poisson", {})
-                    if pois_pred:
-                        lh_p = pois_pred.get("lambda_home", 0)
-                        la_p = pois_pred.get("lambda_away", 0)
-                        pois_pred_result = "home" if lh_p > la_p else ("away" if la_p > lh_p else "draw")
-                        pois_correct = (pois_pred_result == actual_result)
-                        review_stats["poisson_correct"] += int(pois_correct)
-
-                    # 蒙特卡洛复盘
-                    mc_pred = analysis.get("monte_carlo", {})
-                    if mc_pred:
-                        mc_home = mc_pred.get("home_win", 0)
-                        mc_draw = mc_pred.get("draw", 0)
-                        mc_away = mc_pred.get("away_win", 0)
-                        mc_pred_result = "home" if mc_home > max(mc_draw, mc_away) else ("away" if mc_away > max(mc_home, mc_draw) else "draw")
-                        mc_correct = (mc_pred_result == actual_result)
-                        review_stats["mc_correct"] += int(mc_correct)
-
-                    # 综合方向判断（Elo+泊松+MC多数投票）
-                    votes = []
-                    if elo_pred: votes.append(elo_pred_result)
-                    if pois_pred: votes.append(pois_pred_result)
-                    if mc_pred: votes.append(mc_pred_result)
-                    if votes:
-                        from collections import Counter
-                        majority = Counter(votes).most_common(1)[0][0]
-                        direction_correct = (majority == actual_result)
-                        review_stats["correct_direction"] += int(direction_correct)
-                        review_stats["total"] += 1
-
-                    # 显示单场复盘
-                    with st.expander("📊 模型复盘"):
-                        c1, c2, c3 = st.columns(3)
-                        if elo_pred:
-                            c1.metric("Elo预测", f"{'✅' if elo_correct else '❌'} {elo_pred_result}")
-                        if pois_pred:
-                            c2.metric("泊松预测", f"{'✅' if pois_correct else '❌'} {pois_pred_result}")
-                        if mc_pred:
-                            c3.metric("MC预测", f"{'✅' if mc_correct else '❌'} {mc_pred_result}")
-                        st.caption(f"实际结果: {actual_h}:{actual_a} ({actual_result}) | 多数投票: {'✅' if direction_correct else '❌'}")
-
-        # 显示整体复盘统计
-        if review_stats["total"] > 0:
-            st.divider()
-            st.subheader("📈 模型复盘统计")
-            total = review_stats["total"]
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("总场次", total)
-            c2.metric("方向正确率", f"{review_stats['correct_direction']/total:.1%}")
-            if review_stats["elo_correct"] > 0:
-                c3.metric("Elo准确率", f"{review_stats['elo_correct']/total:.1%}")
-            if review_stats["mc_correct"] > 0:
-                c4.metric("MC准确率", f"{review_stats['mc_correct']/total:.1%}")
-            st.caption("方向正确率 = Elo+泊松+MC 多数投票与实际结果一致的比率")
-
-    # ── Tab 2: 未赛预测 ──
-    with t2:
-        # 检查是否有已导入的赔率
-        imported_odds = st.session_state.get("_imported_odds", {})
-
-        from datetime import datetime, timedelta
-        today = datetime.now().date()
-        tomorrow = today + timedelta(days=1)
-
-        # 按日期分组未赛比赛
-        matches_by_date = {}
-        for m in todo:
-            d = m.get("date", "")[:10]
-            if d:
-                matches_by_date.setdefault(d, []).append(m)
-
-        # 找出有比赛的所有日期（排序）
-        all_dates = sorted(matches_by_date.keys())
-
-        # 默认只展示"后一天"的比赛（即明天，如果明天有比赛；否则找下一个有比赛的日期）
-        default_show_date = None
-        for d in all_dates:
-            d_obj = datetime.strptime(d, "%Y-%m-%d").date()
-            if d_obj >= today:
-                default_show_date = d
-                break
-
-        c1, c2, c3 = st.columns([2, 2, 3])
-        with c1:
-            sa = st.checkbox("显示全部比赛", value=False)
-        with c2:
-            sg = st.selectbox("按小组筛选",
-                              ["全部"] + sorted({m.get("group_name", "") for m in todo if m.get("group_name")}))
-        with c3:
-            if sa:
-                date_options = ["全部日期"] + all_dates
-                sd = st.selectbox("按日期筛选", date_options, index=0)
-            else:
-                # 非全部模式：显示当前默认日期信息
-                if default_show_date:
-                    dd = datetime.strptime(default_show_date, "%Y-%m-%d").date()
-                    day_label = "今天" if dd == today else ("明天" if dd == tomorrow else f"{dd.month}月{dd.day}日")
-                    st.info(f"📅 展示 {day_label} ({default_show_date}) 的 {len(matches_by_date.get(default_show_date, []))} 场比赛")
                 else:
-                    st.info("📅 暂无 upcoming 比赛")
-
-        filt = todo
-        if not sa:
-            # 只展示后一天（默认日期）的比赛
-            if default_show_date:
-                filt = matches_by_date.get(default_show_date, [])
-            else:
-                filt = []
-        else:
-            # 全部模式但按日期筛选
-            if sa and 'sd' in dir() and sd != "全部日期":
-                filt = matches_by_date.get(sd, [])
-
-        if sg != "全部":
-            filt = [m for m in filt if m.get("group_name") == sg]
-
-        if not filt:
-            if not sa and default_show_date:
-                st.info(f"⏳ {default_show_date} 暂无符合条件的比赛")
-            else:
-                st.info("暂无符合条件的比赛")
-
-        for m in filt:
-            h, a = m.get("host_team_name", "?"), m.get("guest_team_name", "?")
-            mid = m.get("id", "")
-            with st.expander(
-                f"📅{(m.get('date', '') or '')[:16]}|{flag(h)} {h} vs {a} {flag(a)}|{m.get('match_type_name', '小组赛')} {m.get('group_name', '')}"
-            ):
-                # 显示已导入的赔率（如果有）
-                if mid in imported_odds:
-                    oi = imported_odds[mid]
-                    st.success(f"📥 已导入赔率: 主胜{oi.get('oh', '-')} / 平{oi.get('od', '-')} / 客胜{oi.get('oa', '-')}")
-                    if oi.get("intel"):
-                        st.markdown(f'<div class="search-result">📰 {oi["intel"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
-
-                if st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
-                    hid = m.get("host_team_id") or gid(h)
-                    aid = m.get("guest_team_id") or gid(a)
-                    if not (hid and aid):
-                        st.warning("无法识别球队 ID")
-                        continue
                     stage, is_knockout = _detect_stage_and_knockout(m)
                     mh, ma = _estimate_motivation(m, standings, hid, aid)
 
-                    # 使用导入的赔率（如有），否则 None
                     oi = imported_odds.get(mid, {})
                     oh = oi.get("oh") if oi else None
                     od = oi.get("od") if oi else None
                     oa = oi.get("oa") if oi else None
 
-                    analysis = _do_analysis(
-                        hid, aid, engine, h, a,
-                        oh, od, oa,
-                        stage, None,  # xtra 已移除
-                        is_knockout=is_knockout,
-                        motivation_home=mh, motivation_away=ma,
-                        use_market_odds=bool(oh),
-                    )
+                    with st.spinner("🔍 正在分析（蒙特卡洛模拟 50000 次）..."):
+                        analysis = _do_analysis(
+                            hid, aid, engine, h, a,
+                            oh, od, oa,
+                            stage, None,
+                            is_knockout=is_knockout,
+                            motivation_home=mh, motivation_away=ma,
+                            use_market_odds=bool(oh),
+                        )
+                    st.session_state[f"_analysis_{mid}"] = analysis
                     _render_analysis_card(analysis)
 
     # ── Tab 3: 赔率导入 ──
@@ -2127,7 +2175,7 @@ def render_review(data):
     match_options = [f"{m.get('host_team_name','?')} vs {m.get('guest_team_name','?')} ({m.get('host_team_score','?')}-{m.get('guest_team_score','?')})" 
                      for m in finished_matches]
     
-    selected_match = st.selectbox("选择已完赛比赛", match_options, key="review_match_select")
+    selected_match = st.selectbox("选择已完赛比赛", match_options, key="review_select_unique")
     
     if selected_match:
         # 获取比赛数据
@@ -2150,7 +2198,7 @@ def render_review(data):
         col1, col2 = st.columns(2)
         
         with col1:
-            if prediction_data:
+            if prediction_data and isinstance(prediction_data, dict):
                 # 已有预测数据，直接复盘
                 if st.button("📊 开始复盘", key="start_review_btn", type="primary"):
                     result = engine.review_match(
@@ -2376,14 +2424,16 @@ def render_portfolio(data):
 
         # 用户输入赔率 — 确保 prob_h / oh_ 在两种模式下都已定义
         prob_h = exp["home_win"]
+        # 使用唯一key：match_id + 队伍名
+        key_prefix = f"pf_{m.get('id','')}_{hn}_{an}"
         if odds_source == "手动输入":
             c1, c2, c3 = st.columns(3)
             with c1:
-                oh_ = st.number_input(f"{hn}胜赔率", key=f"pf_oh_{m.get('id','')}", value=2.50, min_value=1.01, step=0.1, format="%.2f")
+                oh_ = st.number_input(f"{hn}胜赔率", key=f"{key_prefix}_oh", value=2.50, min_value=1.01, step=0.1, format="%.2f")
             with c2:
-                od_ = st.number_input("平局赔率", key=f"pf_od_{m.get('id','')}", value=3.40, min_value=1.01, step=0.1, format="%.2f")
+                od_ = st.number_input("平局赔率", key=f"{key_prefix}_od", value=3.40, min_value=1.01, step=0.1, format="%.2f")
             with c3:
-                oa_ = st.number_input(f"{an}胜赔率", key=f"pf_oa_{m.get('id','')}", value=2.80, min_value=1.01, step=0.1, format="%.2f")
+                oa_ = st.number_input(f"{an}胜赔率", key=f"{key_prefix}_oa", value=2.80, min_value=1.01, step=0.1, format="%.2f")
         else:
             # 预设赔率（基于 Elo 估算）
             prob_d = exp["draw"]
@@ -2476,7 +2526,7 @@ def render_data_manager():
     loc = ld.load_all()
     source = loc.get("source", "本地数据")
     sync_time = loc.get("sync_time", "未知")
-    
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("数据来源", source)
     c2.metric("积分榜条目", f"{len(loc.get('standings',[]))} 条")
@@ -2485,43 +2535,68 @@ def render_data_manager():
     c3.metric("赛程", f"{len(sc)} 场 (已赛{fin})")
     c4.metric("同步时间", sync_time[:19] if sync_time else time.strftime("%H:%M:%S"))
 
+    # 显示 API 配额状态
+    import data.api_rate_limiter as _rl
+    rate_status = _rl.get_rate_limit_status()
+    st.divider()
+    st.subheader("📊 API 配额状态")
+    rc1, rc2, rc3 = st.columns(3)
+    rc1.metric("今日已调用", f"{rate_status['calls_today']}/50")
+    rc2.metric("剩余", f"{rate_status['remaining']}/50")
+    if rate_status["last_call"]:
+        rc3.metric("上次调用", rate_status["last_call"]["endpoint"])
+    else:
+        rc3.metric("上次调用", "无")
+
     st.divider()
 
-    # API同步按钮
+    # API同步按钮（遵守速率限制）
+    import data.api_rate_limiter as _rl
+    remaining_api = _rl.get_remaining_calls()
+
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 从聚合API拉取最新数据", type="primary"):
-            try:
-                with st.spinner("⏳ 正在从聚合API拉取赛程/球队/积分榜..."):
-                    juhe_data = juhe.sync_all_data()
-                    
-                    if juhe_data.get("schedule"):
-                        # 保存到本地
-                        ld.save_schedule(juhe_data["schedule"])
-                        st.success(f"✅ 赛程已更新: {len(juhe_data['schedule'])} 场")
-                    
-                    if juhe_data.get("teams"):
-                        ld.save_teams(juhe_data["teams"])
-                        st.success(f"✅ 球队已更新: {len(juhe_data['teams'])} 支")
-                    
-                    if juhe_data.get("standings"):
-                        ld.save_standings(juhe_data["standings"])
-                        st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
-                    
-                    if juhe_data.get("schedule") or juhe_data.get("standings"):
-                        st.cache_data.clear()
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ 聚合API返回空数据")
-            except Exception as e:
-                st.error(f"❌ 聚合API拉取失败: {str(e)[:200]}")
-    
+        if remaining_api <= 0:
+            st.error("🔴 API 今日调用次数已用完（50/50），请明天再试")
+        else:
+            if remaining_api < 10:
+                st.warning(f"⚠️ 剩余 {remaining_api}/50 次，建议节省使用")
+            if st.button("🔄 从聚合API拉取最新数据", type="primary"):
+                try:
+                    with st.spinner("⏳ 正在从聚合API拉取赛程/球队/积分榜..."):
+                        # 记录 3 次 API 调用
+                        _rl.record_call("schedule")
+                        _rl.record_call("teams")
+                        _rl.record_call("standings")
+                        juhe_data = juhe.sync_all_data()
+
+                        if juhe_data.get("schedule"):
+                            ld.save_schedule(juhe_data["schedule"])
+                            st.success(f"✅ 赛程已更新: {len(juhe_data['schedule'])} 场")
+
+                        if juhe_data.get("teams"):
+                            ld.save_teams(juhe_data["teams"])
+                            st.success(f"✅ 球队已更新: {len(juhe_data['teams'])} 支")
+
+                        if juhe_data.get("standings"):
+                            ld.save_standings(juhe_data["standings"])
+                            st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
+
+                        if juhe_data.get("schedule") or juhe_data.get("standings"):
+                            if '_session_data' in st.session_state: del st.session_state['_session_data']
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ 聚合API返回空数据")
+                except Exception as e:
+                    st.error(f"❌ 聚合API拉取失败: {str(e)[:200]}")
+
     with col2:
         if st.button("📊 查看聚合API状态"):
             st.info(f"**聚合API配置**")
             st.caption(f"API地址: https://apis.juhe.cn/fapigw/worldcup2026/schedule")
+            st.caption(f"今日已调用: {_rl.get_rate_limit_status()['calls_today']}/50")
+            st.caption(f"剩余: {_rl.get_rate_limit_status()['remaining']}/50")
             st.caption(f"API Key: cacdf03f36ed28cd9c61785656c30dfb（内置）")
-            st.caption(f"MCP服务: https://mcp.juhe.cn/sse?token=...（内置）")
 
     st.divider()
     st.subheader("📝 单场更新")
@@ -2535,9 +2610,16 @@ def render_data_manager():
         if st.button("✅ 更新比分") and mid and hg and ag:
             try:
                 ok = ld.update_match_result(mid,int(hg),int(ag))
-                if ok: ld.recalculate_standings(); st.success(f"✅ {mid}: {hg}-{ag}"); st.cache_data.clear(); st.rerun()
-                else: st.error(f"❌ 未找到 {mid}")
-            except ValueError: st.error("比分必须是整数")
+                if ok:
+                    ld.recalculate_standings()
+                    st.success(f"✅ {mid}: {hg}-{ag}")
+                    if "_session_data" in st.session_state:
+                        del st.session_state["_session_data"]
+                    st.rerun()
+                else:
+                    st.error(f"❌ 未找到 {mid}")
+            except ValueError:
+                st.error("比分必须是整数")
     else:
         cd,cht,cat,chg2,cag2 = st.columns(5)
         with cd: ds = st.text_input("日期")
@@ -2554,7 +2636,10 @@ def render_data_manager():
             if fid: ld.update_match_result(fid,int(hg2),int(ag2))
             else: ld.add_finished_match(f"manual_{ds}_{ht}_{at}",ds,ht,at,int(hg2),int(ag2))
             ld.recalculate_standings()
-            st.success(f"✅ {ds} {ht} {hg2}:{ag2} {at}"); st.cache_data.clear(); st.rerun()
+            st.success(f"✅ {ds} {ht} {hg2}:{ag2} {at}")
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            st.rerun()
 
     st.divider()
     st.subheader("📋 批量粘贴")
@@ -2581,7 +2666,12 @@ def render_data_manager():
                             ld.update_match_result(m["id"],ag,hg); up+=1; fd=True; break
                 if not fd: errs.append(f"未找到:{line}")
             except Exception as e: errs.append(f"解析失败:{line}")
-        if up>0: ld.recalculate_standings(); st.success(f"✅ 已更新 {up} 场"); st.cache_data.clear(); st.rerun()
+        if up>0:
+            ld.recalculate_standings()
+            st.success(f"✅ 已更新 {up} 场")
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            st.rerun()
         if errs: st.warning(f"⚠️ {len(errs)} 条失败:{'; '.join(errs[:5])}")
 
     st.divider()
@@ -2597,19 +2687,21 @@ def main():
     st.markdown('<div class="main-title">⚽ 2026 美加墨世界杯比分预测</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="subtitle">四层融合|Elo+泊松+蒙特卡洛+贝叶斯|本地+API混合|{pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")}</div>',unsafe_allow_html=True)
 
-    # ── 自动同步（每 30 分钟检测一次） ──
+    # ── 自动同步（遵守速率限制，动态间隔） ──
     _auto_sync_if_needed()
 
     # 如果有新数据提醒
     if st.session_state.get("_api_new_data"):
         st.toast("🎉 API 发现新比赛数据，已自动同步到本地！", icon="✅")
         st.session_state["_api_new_data"] = False
-        # 延迟 rerun 让最新数据生效
         import time as _time; _time.sleep(1)
-        st.cache_data.clear()
+        if "_session_data" in st.session_state:
+            del st.session_state["_session_data"]
         st.rerun()
 
-    data = load_all_data()
+    # 加载数据（load_all_data 内部使用 session_state 缓存）
+    with st.spinner("⏳ 正在加载数据..."):
+        data = load_all_data()
 
     with st.sidebar:
         st.title("🎮 控制面板")
@@ -2654,24 +2746,53 @@ def main():
 
         # ── 自动同步间隔 ──
         st.divider()
-        st.session_state.setdefault("_auto_sync_interval", 1800)
+        import data.api_rate_limiter as _rate_limiter
+        rate_status = _rate_limiter.get_rate_limit_status()
+        remaining = rate_status["remaining"]
+
+        # 显示 API 配额状态
+        st.markdown(f"**📊 API 配额**")
+        if remaining > 20:
+            st.success(f"✅ 剩余 {remaining}/{rate_status['max_daily']} 次")
+        elif remaining > 5:
+            st.warning(f"⚠️ 剩余 {remaining}/{rate_status['max_daily']} 次")
+        else:
+            st.error(f"🔴 剩余 {remaining}/{rate_status['max_daily']} 次")
+
+        if rate_status["last_call"]:
+            last_ep = rate_status["last_call"].get("endpoint", "")
+            last_ts = rate_status["last_call"].get("timestamp", "")[:19]
+            st.caption(f"上次: {last_ep} @ {last_ts}")
+
+        # 自动同步间隔（根据剩余次数动态调整）
+        default_interval = 3600  # 默认每小时
+        if remaining < 10:
+            default_interval = 3600 * 6
+        elif remaining < 30:
+            default_interval = 3600 * 2
+
+        st.session_state.setdefault("_auto_sync_interval", default_interval)
         interval_min = st.selectbox(
             "⏱️ 自动同步间隔",
-            options=[("关闭自动同步", 0), ("每 10 分钟", 600), ("每 30 分钟", 1800), ("每 1 小时", 3600)],
-            index=2,
+            options=[("关闭自动同步", 0), ("每 30 分钟", 1800), ("每 1 小时", 3600), ("每 2 小时", 7200)],
+            index=2 if remaining > 10 else 3,
             format_func=lambda x: x[0])
         st.session_state["_auto_sync_interval"] = interval_min[1]
 
         # ── 手动立即同步 ──
-        if st.button("🔄 立即同步 API 数据"):
-            st.session_state["_last_auto_sync"] = 0  # 重置计时器触发同步
-            cnt, msg = _check_api_for_updates()
-            if cnt > 0:
-                st.cache_data.clear()
-                st.toast(f"✅ {msg}", icon="🎉")
-                st.rerun()
+        if st.button("🔄 立即同步 API 数据", disabled=(remaining <= 0)):
+            if remaining <= 0:
+                st.error("API 今日调用次数已用完")
             else:
-                st.info(msg)
+                st.session_state["_last_auto_sync"] = 0
+                cnt, msg = _check_api_for_updates()
+                if cnt > 0:
+                    if "_session_data" in st.session_state:
+                        del st.session_state["_session_data"]
+                    st.toast(f"✅ {msg}", icon="🎉")
+                    st.rerun()
+                else:
+                    st.info(msg)
 
         eng = data.get("elo")
         if eng and eng.teams:
@@ -2684,7 +2805,12 @@ def main():
                     fifa_rank = meta[3] if meta[3] else "?"
                     st.text(f"{r}. {flag_} {info['name']} — Elo:{info['rating']:.0f} | FIFA排名:{fifa_rank}")
         st.divider()
-        if st.button("🔄 刷新"): st.cache_data.clear(); st.rerun()
+        if st.button("🔄 刷新"):
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            if "_analysis_cache" in st.session_state:
+                del st.session_state["_analysis_cache"]
+            st.rerun()
 
     tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理"])
     with tabs[0]: render_standings(data)
