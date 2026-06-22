@@ -1492,36 +1492,39 @@ def _render_analysis_card(data: dict):
                 st.markdown("**比分矩阵**")
                 st.caption(f"主胜{matrix_analysis['home_win_prob']}% | 平{matrix_analysis['draw_prob']}% | 客胜{matrix_analysis['away_win_prob']}% | 大2.5球{matrix_analysis['over_2_5_prob']}%")
         
-        # LLM深度分析
+        # LLM深度分析 - 点击按钮才触发，避免自动调用
         if llm.is_llm_enabled():
             with st.expander("🤖 LongCat深度分析"):
-                elo_data_for_llm = {
-                    "home_rating": elo.get("home_rating", 1500),
-                    "away_rating": elo.get("away_rating", 1500),
-                    "diff": elo.get("diff", 0),
-                    "home_fifa_rank": elo.get("home_fifa_rank", "?"),
-                    "away_fifa_rank": elo.get("away_fifa_rank", "?"),
-                }
-                
-                bsd_odds_data = data.get("bsd_odds", {})
-                odds_data_for_llm = {
-                    "average_home": bsd_odds_data.get("average_home", "?"),
-                    "average_draw": bsd_odds_data.get("average_draw", "?"),
-                    "average_away": bsd_odds_data.get("average_away", "?"),
-                }
-                
-                injury_data_for_llm = {"home_summary": "", "away_summary": ""}
-                news_data_for_llm = []
-                report_data_for_llm = {"home_report": "", "away_report": ""}
-                
-                with st.spinner("分析中..."):
-                    llm_analysis = llm.generate_match_analysis(
-                        _hn, _an, elo_data_for_llm, odds_data_for_llm,
-                        injury_data_for_llm, news_data_for_llm, report_data_for_llm
-                    )
-                
-                st.markdown(llm_analysis)
-                st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                if st.button("🤖 生成LongCat深度分析", key=f"llm_btn_{_hn}_{_an}"):
+                    elo_data_for_llm = {
+                        "home_rating": elo.get("home_rating", 1500),
+                        "away_rating": elo.get("away_rating", 1500),
+                        "diff": elo.get("diff", 0),
+                        "home_fifa_rank": elo.get("home_fifa_rank", "?"),
+                        "away_fifa_rank": elo.get("away_fifa_rank", "?"),
+                    }
+
+                    bsd_odds_data = data.get("bsd_odds", {})
+                    odds_data_for_llm = {
+                        "average_home": bsd_odds_data.get("average_home", "?"),
+                        "average_draw": bsd_odds_data.get("average_draw", "?"),
+                        "average_away": bsd_odds_data.get("average_away", "?"),
+                    }
+
+                    injury_data_for_llm = {"home_summary": "", "away_summary": ""}
+                    news_data_for_llm = []
+                    report_data_for_llm = {"home_report": "", "away_report": ""}
+
+                    with st.spinner("🤖 LongCat 正在分析..."):
+                        llm_analysis = llm.generate_match_analysis(
+                            _hn, _an, elo_data_for_llm, odds_data_for_llm,
+                            injury_data_for_llm, news_data_for_llm, report_data_for_llm
+                        )
+
+                    st.markdown(llm_analysis)
+                    st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                else:
+                    st.info("点击按钮生成 LongCat 深度分析")
         
         # 观点摘要
         if explanation:
