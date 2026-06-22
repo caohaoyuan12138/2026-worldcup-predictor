@@ -20,17 +20,18 @@ import model.poisson as poisson
 import model.monte_carlo as mc
 import model.bayesian as bayesian
 import model.llm_analyzer as llm  # 大模型推理增强
+import model.explanation_layer as exp  # 解释层模块
+import model.score_matrix as sm  # 比分矩阵模块
+import model.review as review  # 复盘模块
+import data.bsd_api as bsd  # BSD实时数据API
+import data.news_api as news  # 新闻数据API
+import data.weather_api as weather  # 天气API（实时环境信息）
 
 # 确保LLM模块函数存在（fallback）
 if not hasattr(llm, 'set_llm_enabled'):
     llm.set_llm_enabled = lambda x: None
 if not hasattr(llm, 'is_llm_enabled'):
     llm.is_llm_enabled = lambda: True
-import model.explanation_layer as exp  # 解释层模块
-import model.score_matrix as sm  # 比分矩阵模块
-import model.review as review  # 复盘模块
-import data.bsd_api as bsd  # BSD实时数据API
-import data.news_api as news  # 新闻数据API
 
 # ──────────────────────────────────────────────
 #  球队元数据（中文名 → 完整信息）
@@ -1172,34 +1173,35 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
 
 def _build_match_environment(hid, aid, hn, an) -> mc.MatchEnvironment:
     """
-    构建比赛环境 — 从球队信息推断环境参数。
-    默认返回中性环境，可由外部调用覆盖。
+    构建比赛环境 — 使用天气API获取真实环境信息。
+    根据比赛场地获取实时气温、海拔、时差等数据。
     """
-    # 检测东道主球队（根据球队名中的关键词）
-    host_keywords_home = {
-        "Mex": "Mexico", "USA": "USA", "United States": "USA", "US": "USA",
-        "Canada": "Canada", "CAN": "Canada",
-    }
-    host_nation_home = ""
-    host_nation_away = ""
-    for kw, nation in host_keywords_home.items():
-        if kw in hn:
-            host_nation_home = nation
-        if kw in an:
-            host_nation_away = nation
+    # 使用天气API获取比赛场地的真实环境信息
+    try:
+        match_env = weather.get_match_environment(hn, an)
+        venue_altitude = match_env.get("altitude", 0)
+        temperature = match_env.get("temperature", 22)
+        is_rain = match_env.get("is_rain", False)
+        timezone_diff = match_env.get("timezone_diff", 0)
+        venue_city = match_env.get("venue_city", "未知")
+        env_source = match_env.get("source", "预设数据")
+    except:
+        venue_altitude = 0
+        temperature = 22
+        is_rain = False
+        timezone_diff = 0
+        venue_city = "未知"
+        env_source = "预设数据（API未连接）"
 
-    # 2026 世界杯举办国：美国/墨西哥/加拿大 → 无需额外旅行
-    is_host_match = bool(host_nation_home or host_nation_away)
-
-    # 补水机制：高温天气
-    is_water_break = False  # 默认关闭，可由外部设置
+    # 补水机制：气温>25°C触发补水
+    is_water_break = temperature > 25
 
     return mc.MatchEnvironment(
         home_team_id=hid or 0,
         away_team_id=aid or 0,
-        venue_altitude=0,
-        temperature=22,
-        is_rain=False,
+        venue_altitude=venue_altitude,
+        temperature=temperature,
+        is_rain=is_rain,
         home_travel_distance_km=0,
         home_rest_days=7,
         home_days_since_last=7,
@@ -2105,46 +2107,112 @@ def render_review(data):
         prediction_key = f"_prediction_{home_name}_{away_name}"
         prediction_data = st.session_state.get(prediction_key)
         
-        if prediction_data:
-            # 执行复盘
-            if st.button("📊 开始复盘", key="start_review_btn"):
-                result = engine.review_match(
-                    f"{home_name} vs {away_name}",
-                    actual_home_goals,
-                    actual_away_goals,
-                    prediction_data
-                )
+        # 复盘按钮（始终显示）
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if prediction_data:
+                # 已有预测数据，直接复盘
+                if st.button("📊 开始复盘", key="start_review_btn", type="primary"):
+                    result = engine.review_match(
+                        f"{home_name} vs {away_name}",
+                        actual_home_goals,
+                        actual_away_goals,
+                        prediction_data
+                    )
+                    st.session_state["_last_review_result"] = result
+            else:
+                # 无预测数据，先自动预测再复盘
+                if st.button("🤖 自动预测并复盘", key="auto_predict_review_btn", type="primary"):
+                    with st.spinner("正在预测并复盘..."):
+                        # 自动预测
+                        analysis = _do_analysis(data, home_name, away_name)
+                        st.session_state[prediction_key] = analysis
+                        
+                        # 复盘
+                        result = engine.review_match(
+                            f"{home_name} vs {away_name}",
+                            actual_home_goals,
+                            actual_away_goals,
+                            analysis
+                        )
+                        st.session_state["_last_review_result"] = result
+        
+        with col2:
+            if prediction_data:
+                st.success("✅ 已有预测数据，可直接复盘")
+            else:
+                st.info("💡 点击按钮自动预测并复盘")
+        
+        # 显示复盘结果
+        if "_last_review_result" in st.session_state:
+            result = st.session_state["_last_review_result"]
+            
+            # 显示命中情况
+            st.subheader("命中情况")
+            c1, c2, c3, c4, c5 = st.columns(5)
+            c1.metric("一选命中", "✅" if result.first_choice_hit else "❌")
+            c2.metric("二选命中", "✅" if result.second_choice_hit else "❌")
+            c3.metric("胜平负命中", "✅" if result.result_hit else "❌")
+            c4.metric("大小球命中", "✅" if result.over_under_hit else "❌")
+            c5.metric("总进球区间", "✅" if result.total_range_hit else "❌")
+            
+            # ── 各模型预测准确性（新增）──
+            st.subheader("📊 各模型预测准确性")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Elo模型", "✅" if result.elo_hit else "❌", result.elo_prediction.get("predicted", "?"))
+            c2.metric("泊松模型", "✅" if result.poisson_hit else "❌", result.poisson_prediction.get("predicted", "?"))
+            c3.metric("蒙特卡洛", "✅" if result.mc_hit else "❌", result.mc_prediction.get("predicted", "?"))
+            c4.metric("贝叶斯融合", "✅" if result.bayesian_hit else "❌", result.bayesian_prediction.get("predicted", "?"))
+            
+            # 各模型预测详情
+            with st.expander("📋 各模型预测详情"):
+                st.markdown(f"**Elo模型**: {result.elo_prediction.get('home_win_prob', 0):.1%} 主胜 / {result.elo_prediction.get('draw_prob', 0):.1%} 平 / {result.elo_prediction.get('away_win_prob', 0):.1%} 客胜")
+                st.markdown(f"**泊松模型**: λ主{result.poisson_prediction.get('lambda_home', 0):.2f} / λ客{result.poisson_prediction.get('lambda_away', 0):.2f} / 预期{result.poisson_prediction.get('expected_total', 0):.1f}球")
+                st.markdown(f"**蒙特卡洛**: {result.mc_prediction.get('home_win_prob', 0):.1%} 主胜 / {result.mc_prediction.get('draw_prob', 0):.1%} 平 / {result.mc_prediction.get('away_win_prob', 0):.1%} 客胜")
+                st.markdown(f"**贝叶斯融合**: {result.bayesian_prediction.get('home_win_prob', 0):.1%} 主胜 / {result.bayesian_prediction.get('draw_prob', 0):.1%} 平 / {result.bayesian_prediction.get('away_win_prob', 0):.1%} 客胜 / 置信度{result.bayesian_prediction.get('confidence', 0):.0%}")
+            
+            # ── 深度复盘分析（新增）──
+            if result.model_analysis:
+                st.subheader("🔍 深度复盘分析")
                 
-                # 显示命中情况
-                st.subheader("命中情况")
-                c1, c2, c3, c4, c5 = st.columns(5)
-                c1.metric("一选命中", "✅" if result.first_choice_hit else "❌")
-                c2.metric("二选命中", "✅" if result.second_choice_hit else "❌")
-                c3.metric("胜平负命中", "✅" if result.result_hit else "❌")
-                c4.metric("大小球命中", "✅" if result.over_under_hit else "❌")
-                c5.metric("总进球区间", "✅" if result.total_range_hit else "❌")
+                # 综合分析
+                st.markdown(f"**综合评价**: {result.model_analysis.get('overall', '无')}")
                 
-                # 显示偏差分析
-                st.subheader("偏差分析")
-                st.markdown(f"**比分偏差**: {result.score_deviation}球")
-                st.markdown(f"**结果偏差**: {result.result_deviation}")
-                st.markdown(f"**总进球偏差**: {result.total_goals_deviation}球")
+                # 异常检测
+                anomalies = result.model_analysis.get("anomalies", [])
+                if anomalies:
+                    st.warning("检测到以下异常：")
+                    for anomaly in anomalies:
+                        st.markdown(anomaly)
                 
-                # 偏差原因
-                st.subheader("偏差原因")
-                for reason in result.deviation_reasons:
-                    st.markdown(f"- {reason}")
-                
-                # 显示完整报告
-                st.divider()
-                st.subheader("复盘报告")
-                st.markdown(result.report)
-                
-                # 保存复盘历史
-                st.success("复盘完成！数据已保存到历史记录")
-        else:
-            st.warning("⚠️ 该比赛尚未进行预测分析，请先在'比赛分析'页面进行分析")
-            st.info("提示：点击'比赛分析'，选择该比赛，点击'分析这场比赛'按钮进行预测")
+                # 各模型分析
+                with st.expander("📊 各模型偏差分析"):
+                    for model_name in ["elo", "poisson", "mc", "bayesian"]:
+                        model_data = result.model_analysis.get(model_name, {})
+                        st.markdown(f"**{model_name.upper()}模型**:")
+                        st.markdown(f"  • {model_data.get('summary', '无')}")
+                        st.markdown(f"  • 偏差: {model_data.get('deviation', '无')}")
+                        st.markdown(f"  • 建议: {model_data.get('suggestion', '无')}")
+            
+            # 显示偏差分析
+            st.subheader("偏差分析")
+            st.markdown(f"**比分偏差**: {result.score_deviation}球")
+            st.markdown(f"**结果偏差**: {result.result_deviation}")
+            st.markdown(f"**总进球偏差**: {result.total_goals_deviation}球")
+            
+            # 偏差原因
+            st.subheader("偏差原因")
+            for reason in result.deviation_reasons:
+                st.markdown(f"- {reason}")
+            
+            # 显示完整报告
+            st.divider()
+            st.subheader("复盘报告")
+            st.markdown(result.report)
+            
+            # 保存复盘历史
+            st.success("复盘完成！数据已保存到历史记录")
     
     st.divider()
     

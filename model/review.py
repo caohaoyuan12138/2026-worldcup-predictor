@@ -45,11 +45,26 @@ class ReviewResult:
     total_range_hit: bool
     upset_hit: bool
     
+    # 各模型预测准确性（新增）
+    elo_hit: bool  # Elo模型预测是否命中
+    poisson_hit: bool  # 泊松模型预测是否命中
+    mc_hit: bool  # 蒙特卡洛预测是否命中
+    bayesian_hit: bool  # 贝叶斯融合预测是否命中
+    
+    # 各模型预测详情（新增）
+    elo_prediction: Dict  # Elo模型预测详情
+    poisson_prediction: Dict  # 泊松模型预测详情
+    mc_prediction: Dict  # 蒙特卡洛预测详情
+    bayesian_prediction: Dict  # 贝叶斯融合预测详情
+    
     # 偏差分析
     score_deviation: int
     result_deviation: str
     total_goals_deviation: int
     deviation_reasons: List[str]
+    
+    # 深度复盘分析（新增）
+    model_analysis: Dict  # 各模型偏差深度分析
     
     # 报告
     report: str
@@ -140,6 +155,75 @@ class ReviewEngine:
         second_choice_hit = predicted_second_score == actual_score
         result_hit = predicted_result == actual_result
         
+        # ── 各模型预测准确性检查（新增）──
+        # Elo模型预测
+        elo_data = prediction_data.get("elo", {})
+        elo_hw = elo_data.get("home_win", 0.33)
+        elo_aw = elo_data.get("away_win", 0.33)
+        elo_pred = "home_win" if elo_hw > elo_aw + 0.10 else "away_win" if elo_aw > elo_hw + 0.10 else "draw"
+        elo_hit = elo_pred == actual_result
+        elo_prediction = {
+            "predicted": elo_pred,
+            "home_win_prob": elo_hw,
+            "draw_prob": elo_data.get("draw", 0.34),
+            "away_win_prob": elo_aw,
+            "elo_diff": elo_data.get("diff", 0),
+            "hit": elo_hit,
+        }
+        
+        # 泊松模型预测
+        poisson_data = prediction_data.get("poisson", {})
+        poisson_lambda_home = poisson_data.get("lambda_home", 1.4)
+        poisson_lambda_away = poisson_data.get("lambda_away", 1.4)
+        # 泊松预测：期望进球差值判断
+        poisson_pred = "home_win" if poisson_lambda_home > poisson_lambda_away + 0.3 else "away_win" if poisson_lambda_away > poisson_lambda_home + 0.3 else "draw"
+        poisson_hit = poisson_pred == actual_result
+        poisson_prediction = {
+            "predicted": poisson_pred,
+            "lambda_home": poisson_lambda_home,
+            "lambda_away": poisson_lambda_away,
+            "expected_total": poisson_lambda_home + poisson_lambda_away,
+            "actual_total": actual_total_goals,
+            "hit": poisson_hit,
+        }
+        
+        # 蒙特卡洛预测
+        mc_data = prediction_data.get("monte_carlo", {})
+        mc_hw = mc_data.get("home_win", 0.33)
+        mc_aw = mc_data.get("away_win", 0.33)
+        mc_pred = "home_win" if mc_hw > mc_aw + 0.10 else "away_win" if mc_aw > mc_hw + 0.10 else "draw"
+        mc_hit = mc_pred == actual_result
+        mc_top_scores = mc_data.get("top_scorelines", [])
+        mc_prediction = {
+            "predicted": mc_pred,
+            "home_win_prob": mc_hw,
+            "draw_prob": mc_data.get("draw", 0.34),
+            "away_win_prob": mc_aw,
+            "top_score": mc_top_scores[0]["score"] if mc_top_scores else "未知",
+            "hit": mc_hit,
+        }
+        
+        # 贝叶斯融合预测
+        bayesian_data = prediction_data.get("bayesian", {})
+        bayesian_hw = bayesian_data.get("home_win", 0.33)
+        bayesian_aw = bayesian_data.get("away_win", 0.33)
+        bayesian_pred = "home_win" if bayesian_hw > bayesian_aw + 0.10 else "away_win" if bayesian_aw > bayesian_hw + 0.10 else "draw"
+        bayesian_hit = bayesian_pred == actual_result
+        bayesian_prediction = {
+            "predicted": bayesian_pred,
+            "home_win_prob": bayesian_hw,
+            "draw_prob": bayesian_data.get("draw", 0.34),
+            "away_win_prob": bayesian_aw,
+            "confidence": bayesian_data.get("confidence", 0),
+            "hit": bayesian_hit,
+        }
+        
+        # ── 深度复盘分析（新增）──
+        model_analysis = self._analyze_model_deviation(
+            elo_prediction, poisson_prediction, mc_prediction, bayesian_prediction,
+            actual_result, actual_home_goals, actual_away_goals, prediction_data
+        )
+        
         # 大小球命中
         if "大球" in predicted_over_under and actual_total_goals > 2.5:
             over_under_hit = True
@@ -195,10 +279,19 @@ class ReviewEngine:
             over_under_hit=over_under_hit,
             total_range_hit=total_range_hit,
             upset_hit=upset_hit,
+            elo_hit=elo_hit,
+            poisson_hit=poisson_hit,
+            mc_hit=mc_hit,
+            bayesian_hit=bayesian_hit,
+            elo_prediction=elo_prediction,
+            poisson_prediction=poisson_prediction,
+            mc_prediction=mc_prediction,
+            bayesian_prediction=bayesian_prediction,
             score_deviation=score_deviation,
             result_deviation=result_deviation,
             total_goals_deviation=total_goals_deviation,
             deviation_reasons=deviation_reasons,
+            model_analysis=model_analysis,
             report=report
         )
         
@@ -286,6 +379,97 @@ class ReviewEngine:
             reasons.append("无明显偏差因素，预测偏差可能来自随机性")
         
         return reasons
+    
+    def _analyze_model_deviation(self,
+                                  elo_pred: Dict,
+                                  poisson_pred: Dict,
+                                  mc_pred: Dict,
+                                  bayesian_pred: Dict,
+                                  actual_result: str,
+                                  actual_home: int,
+                                  actual_away: int,
+                                  prediction_data: Dict) -> Dict:
+        """
+        深度复盘分析 - 各模型偏差分析
+        
+        分析每个模型的预测准确性，找出偏差原因
+        """
+        analysis = {}
+        
+        # Elo模型分析
+        analysis["elo"] = {
+            "summary": f"Elo预测: {elo_pred['predicted']} (主胜{elo_pred['home_win_prob']:.1%} 平{elo_pred['draw_prob']:.1%} 客胜{elo_pred['away_win_prob']:.1%})",
+            "hit": elo_pred["hit"],
+            "deviation": "命中" if elo_pred["hit"] else f"预测{elo_pred['predicted']}，实际{actual_result}",
+            "suggestion": "Elo模型表现正常" if elo_pred["hit"] else "建议检查Elo评分更新频率和K值参数",
+        }
+        
+        # 泊松模型分析
+        expected_total = poisson_pred["expected_total"]
+        actual_total = actual_home + actual_away
+        total_deviation = abs(expected_total - actual_total)
+        analysis["poisson"] = {
+            "summary": f"泊松预测: λ主{poisson_pred['lambda_home']:.2f} λ客{poisson_pred['lambda_away']:.2f} (预期{expected_total:.1f}球)",
+            "hit": poisson_pred["hit"],
+            "deviation": "命中" if poisson_pred["hit"] else f"预测{poisson_pred['predicted']}，实际{actual_result}",
+            "total_deviation": f"预期总进球{expected_total:.1f}，实际{actual_total}，偏差{total_deviation:.1f}球",
+            "suggestion": "泊松模型表现正常" if poisson_pred["hit"] and total_deviation < 1 else "建议检查Dixon-Coles参数和动机因子",
+        }
+        
+        # 蒙特卡洛分析
+        analysis["mc"] = {
+            "summary": f"MC预测: {mc_pred['predicted']} (主胜{mc_pred['home_win_prob']:.1%} 平{mc_pred['draw_prob']:.1%} 客胜{mc_pred['away_win_prob']:.1%})",
+            "hit": mc_pred["hit"],
+            "deviation": "命中" if mc_pred["hit"] else f"预测{mc_pred['predicted']}，实际{actual_result}",
+            "top_score": mc_pred["top_score"],
+            "suggestion": "MC模型表现正常" if mc_pred["hit"] else "建议检查模拟次数和泊松参数",
+        }
+        
+        # 贝叶斯融合分析
+        analysis["bayesian"] = {
+            "summary": f"贝叶斯预测: {bayesian_pred['predicted']} (主胜{bayesian_pred['home_win_prob']:.1%} 平{bayesian_pred['draw_prob']:.1%} 客胜{bayesian_pred['away_win_prob']:.1%})",
+            "hit": bayesian_pred["hit"],
+            "deviation": "命中" if bayesian_pred["hit"] else f"预测{bayesian_pred['predicted']}，实际{actual_result}",
+            "confidence": f"置信度{bayesian_pred['confidence']:.0%}",
+            "suggestion": "贝叶斯融合表现正常" if bayesian_pred["hit"] else "建议检查市场赔率权重和模型权重配置",
+        }
+        
+        # 综合分析
+        hits = [elo_pred["hit"], poisson_pred["hit"], mc_pred["hit"], bayesian_pred["hit"]]
+        hit_count = sum(hits)
+        
+        if hit_count == 4:
+            analysis["overall"] = "所有模型预测一致且命中，模型表现优秀"
+        elif hit_count >= 2:
+            analysis["overall"] = f"{hit_count}/4模型命中，部分模型预测准确"
+        elif hit_count == 1:
+            analysis["overall"] = "仅1个模型命中，模型预测存在分歧"
+        else:
+            analysis["overall"] = "所有模型均未命中，可能存在系统性偏差"
+        
+        # 异常检测
+        anomalies = []
+        
+        # 检查模型分歧
+        predictions = [elo_pred["predicted"], poisson_pred["predicted"], mc_pred["predicted"], bayesian_pred["predicted"]]
+        if len(set(predictions)) > 2:
+            anomalies.append(f"⚠️ 模型预测分歧：Elo预测{elo_pred['predicted']}，泊松预测{poisson_pred['predicted']}，MC预测{mc_pred['predicted']}，贝叶斯预测{bayesian_pred['predicted']}")
+        
+        # 检查概率异常
+        if abs(elo_pred["home_win_prob"] - mc_pred["home_win_prob"]) > 0.15:
+            anomalies.append(f"⚠️ Elo与MC概率差异大：Elo主胜{elo_pred['home_win_prob']:.1%}，MC主胜{mc_pred['home_win_prob']:.1%}")
+        
+        # 检查置信度异常
+        if bayesian_pred["confidence"] < 0.4:
+            anomalies.append(f"⚠️ 贝叶斯置信度低（{bayesian_pred['confidence']:.0%}），模型与市场分歧大")
+        
+        # 检查总进球偏差
+        if total_deviation > 1.5:
+            anomalies.append(f"⚠️ 总进球偏差大：预期{expected_total:.1f}球，实际{actual_total}球，偏差{total_deviation:.1f}")
+        
+        analysis["anomalies"] = anomalies
+        
+        return analysis
     
     def _generate_report(self,
                          match_name: str,
