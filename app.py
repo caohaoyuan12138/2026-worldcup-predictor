@@ -1210,7 +1210,7 @@ def _build_match_environment(hid, aid, hn, an) -> mc.MatchEnvironment:
 
 def _render_analysis_card(data: dict):
     """
-    渲染多维度分析卡片 — 每个维度一个独立区块
+    渲染多维度分析卡片 — 整合到单个输出卡片
     """
     if not data:
         return
@@ -1221,209 +1221,154 @@ def _render_analysis_card(data: dict):
     _hf = flag(_hn) if _hn else "🏳️"
     _af = flag(_an) if _an else "🏳️"
 
-    # ── 1. Elo 实力对比 ──
-    elo = data.get("elo", {})
-    if elo:
-        st.markdown("**📊 Elo 实力对比**")
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric(f"{_hf} 主队评分", f"{elo.get('home_rating', '?'):.0f}")
-        c2.metric(f"{_af} 客队评分", f"{elo.get('away_rating', '?'):.0f}")
-        c3.metric("差值", f"{elo.get('diff', 0):+d}")
-        c4.metric("优势方", elo.get("advantage", "势均力敌"))
-        # 显示FIFA排名
-        hf_rank = elo.get("home_fifa_rank", "?")
-        af_rank = elo.get("away_fifa_rank", "?")
-        c5.metric("FIFA排名", f"{hf_rank} vs {af_rank}")
-
-        # Elo 预测概率条
-        hw = elo.get("home_win", 0)
-        dr = elo.get("draw", 0)
-        aw = elo.get("away_win", 0)
-        st.progress(hw, text=f"主胜 {hw:.1%}")
-        st.progress(dr, text=f"平   {dr:.1%}")
-        st.progress(aw, text=f"客胜 {aw:.1%}")
-        st.caption("")
-    
-    # ── 2. 泊松期望进球 ──
-    pois = data.get("poisson", {})
-    if pois:
-        st.markdown("**⚽ Dixon-Coles 泊松模型**")
-        c1, c2, c3 = st.columns(3)
-        c1.metric(f"{_hf} 主队 λ", f"{pois.get('lambda_home', '?'):.3f}")
-        c2.metric(f"{_af} 客队 λ", f"{pois.get('lambda_away', '?'):.3f}")
-        c3.metric("总期望进球", f"{pois.get('expected_total', '?'):.2f}")
-        mh = pois.get("motivation_home", 1.0)
-        ma = pois.get("motivation_away", 1.0)
-        if abs(mh - 1.0) > 0.01 or abs(ma - 1.0) > 0.01:
-            st.caption(f"动机因子: 主队×{mh:.2f} / 客队×{ma:.2f}")
-        # BSD实时数据调整说明
-        bsd_adj = pois.get("bsd_adjustment", "")
-        if bsd_adj:
-            st.info(f"📡 {bsd_adj}")
-
-    # ── 3. 蒙特卡洛模拟 ──
-    mc = data.get("monte_carlo", {})
-    if mc:
-        st.markdown(f"**🎲 蒙特卡洛模拟 ({config.MC_SIMULATIONS}次)**")
-        hw = mc.get("home_win", 0)
-        dr = mc.get("draw", 0)
-        aw = mc.get("away_win", 0)
-        st.progress(hw, text=f"主胜 {hw:.1%}")
-        if mc.get("is_knockout"):
-            st.progress(dr, text=f"平(进加时) {dr:.1%}")
-        else:
-            st.progress(dr, text=f"平   {dr:.1%}")
-        st.progress(aw, text=f"客胜 {aw:.1%}")
-
-        top = mc.get("top_scorelines", [])
-        if top:
-            top_str = " | ".join(f'{s["score"]} ({s["probability"]}%)' for s in top[:5])
-            st.caption(f"最可能比分: {top_str}")
-
-        # 加时赛信息
-        if mc.get("extra_time"):
-            et = mc["extra_time"]
-            with st.expander("⏱️ 加时赛模拟"):
-                c1, c2 = st.columns(2)
-                c1.metric("加时主胜", f"{et.get('home_win_pct', 0):.1f}%")
-                c2.metric("加时平局→点球", f"{et.get('draw_pct', 0):.1f}%")
-                st.caption(f"加时平均进球: 主{et.get('avg_goals_home',0)} 客{et.get('avg_goals_away',0)}")
-
-        # 点球大战信息
-        if mc.get("penalty_shootout"):
-            ps = mc["penalty_shootout"]
-            with st.expander("🎯 点球大战模拟"):
-                c1, c2 = st.columns(2)
-                c1.metric("点球主胜", f"{ps.get('home_win_pct', 0):.1f}%")
-                c2.metric("点球客胜", f"{ps.get('away_win_pct', 0):.1f}%")
-                st.caption(f"平均进球: 主{ps.get('avg_home_pen',0)} 客{ps.get('avg_away_pen',0)}")
-
-    # ── 4. 贝叶斯融合 ──
-    bayes = data.get("bayesian")
-    if bayes:
-        st.markdown("**🔗 贝叶斯融合**")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("融合主胜", f"{bayes.get('home_win', 0):.1%}")
-        c2.metric("融合平局", f"{bayes.get('draw', 0):.1%}")
-        c3.metric("融合客胜", f"{bayes.get('away_win', 0):.1%}")
-        st.caption(f"模型权重 {bayes.get('weight_model',0):.0%} / 市场权重 {bayes.get('weight_market',0):.0%} | 置信度 {bayes.get('confidence',0):.1%}")
-        # 显示赔率来源
-        source = bayes.get("source", "手动导入")
-        if source == "BSD API":
-            st.caption("📡 赔率来源: BSD API 实时赔率")
-
-    # ── 4.1 BSD实时赔率 ──
-    bsd_odds = data.get("bsd_odds")
-    if bsd_odds:
-        with st.expander("💰 BSD实时赔率（17+博彩公司）"):
-            st.markdown(f"**{bsd_odds.get('summary', '')}**")
+    # ── 整合到单个卡片 ──
+    with st.container():
+        st.markdown(f"### {_hf} {_hn} vs {_af} {_an} 比赛分析")
+        
+        # 核心预测输出（最重要）
+        explanation = data.get("explanation")
+        if explanation:
+            st.markdown("**🎯 核心预测输出**")
             
-            # 显示最佳赔率
-            best_h = bsd_odds.get("best_home")
-            best_d = bsd_odds.get("best_draw")
-            best_a = bsd_odds.get("best_away")
-            
+            # 胜平负概率
+            probs = explanation.win_draw_lose_probs
             c1, c2, c3 = st.columns(3)
-            if best_h:
-                c1.metric(f"最佳主胜", f"{best_h.get('odds', 0):.2f}", f"{best_h.get('bookmaker', '?')}")
-            else:
-                c1.metric(f"平均主胜", f"{bsd_odds.get('average_home', 0):.2f}")
+            c1.metric("主胜概率", f"{probs['home_win']:.1%}")
+            c2.metric("平局概率", f"{probs['draw']:.1%}")
+            c3.metric("客胜概率", f"{probs['away_win']:.1%}")
             
-            if best_d:
-                c2.metric(f"最佳平局", f"{best_d.get('odds', 0):.2f}", f"{best_d.get('bookmaker', '?')}")
-            else:
-                c2.metric(f"平均平局", f"{bsd_odds.get('average_draw', 0):.2f}")
+            # 权重说明
+            weights = probs.get("weights", {})
+            if weights:
+                st.caption(f"权重配置: 市场赔率{weights.get('market', 0)*100:.0f}% | Elo{weights.get('elo', 0)*100:.0f}% | 伤病{weights.get('injury', 0)*100:.0f}% | 战术{weights.get('tactical', 0)*100:.0f}%")
             
-            if best_a:
-                c3.metric(f"最佳客胜", f"{best_a.get('odds', 0):.2f}", f"{best_a.get('bookmaker', '?')}")
-            else:
-                c3.metric(f"平均客胜", f"{bsd_odds.get('average_away', 0):.2f}")
+            # 预期进球
+            goals = explanation.expected_goals
+            c1, c2, c3 = st.columns(3)
+            c1.metric(f"{_hn}预期进球", f"{goals['lambda_home']:.2f}")
+            c2.metric(f"{_an}预期进球", f"{goals['lambda_away']:.2f}")
+            c3.metric("总预期进球", f"{goals['total_expected']:.2f}")
             
-            st.caption("数据来源: BSD API (Bet365, Pinnacle, Betfair, Kambi等)")
-
-    # ── 6. Kelly 仓位 ──
-    kelly = data.get("kelly")
-    if kelly:
-        st.markdown("**💰 Kelly 仓位**")
-        k1, k2 = st.columns(2)
-        rec = kelly.get("recommendation", "跳过")
-        stake = kelly.get("stake_pct", 0)
-        color = "🟢" if rec in ("中仓", "重仓") else ("🟡" if rec == "轻仓" else "🔴")
-        k1.metric("建议", f"{color} {rec}")
-        k2.metric("仓位", f"{stake:.2f}%")
-        edge = kelly.get("edge", 0)
-        if abs(edge) > 0.01:
-            st.caption(f"Edge: {edge:+.1%}")
-        # 显示对应球队的仓位建议
-        if _hn and _an:
-            st.caption(f"{_hf} {_hn} vs {_af} {_an}")
-
-    # ── 7. 综合预测 ──
-    pred = data.get("prediction", "")
-    if pred:
-        st.info(f"**📌 综合预测**: {pred}")
-
-    # 显示详细推理过程
-    reasoning = data.get("prediction_reasoning", "")
-    if reasoning:
-        with st.expander("🔍 预测推理过程（点击查看详细分析）"):
-            for line in reasoning.split("\n"):
-                if line.strip():
-                    st.markdown(line.strip())
-    
-    # ── LLM大模型推理增强 ──
-    if llm.is_llm_enabled():
-        with st.expander("🤖 大模型深度分析"):
-            st.caption("基于所有数据，LongCat生成深度分析...")
+            # 大小球和首选比分
+            over_under = explanation.total_goals_prediction
+            st.markdown(f"**大小球**: {over_under['recommendation']} (置信度{over_under['confidence']}) | **首选比分**: {explanation.top_score}")
             
-            # 收集数据
-            elo_data_for_llm = {
-                "home_rating": elo.get("home_rating", 1500),
-                "away_rating": elo.get("away_rating", 1500),
-                "diff": elo.get("diff", 0),
-                "home_fifa_rank": elo.get("home_fifa_rank", "?"),
-                "away_fifa_rank": elo.get("away_fifa_rank", "?"),
-            }
+            # 比分概率列表
+            score_probs = explanation.score_probs[:5]
+            score_str = " | ".join([f"{s['score']}({s['probability']}%)".format(s) for s in score_probs])
+            st.caption(f"比分池: {score_str}")
             
-            bsd_odds_data = data.get("bsd_odds", {})
-            odds_data_for_llm = {
-                "average_home": bsd_odds_data.get("average_home", "?"),
-                "average_draw": bsd_odds_data.get("average_draw", "?"),
-                "average_away": bsd_odds_data.get("average_away", "?"),
-                "implied_home": f"{bsd_odds_data.get('market_probs', {}).get('home_win', 0):.1%}",
-                "implied_draw": f"{bsd_odds_data.get('market_probs', {}).get('draw', 0):.1%}",
-                "implied_away": f"{bsd_odds_data.get('market_probs', {}).get('away_win', 0):.1%}",
-            }
+            st.divider()
+        
+        # 详细分析（折叠）
+        with st.expander("📊 详细分析（点击展开）"):
+            # Elo实力对比
+            elo = data.get("elo", {})
+            if elo:
+                st.markdown("**Elo实力对比**")
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric(f"{_hn}评分", f"{elo.get('home_rating', '?'):.0f}")
+                c2.metric(f"{_an}评分", f"{elo.get('away_rating', '?'):.0f}")
+                c3.metric("差值", f"{elo.get('diff', 0):+d}")
+                c4.metric("FIFA排名", f"{elo.get('home_fifa_rank', '?')} vs {elo.get('away_fifa_rank', '?')}")
             
-            # 获取新闻数据
-            try:
-                match_news = news.get_match_news_summary(_hn, _an)
-                injury_data_for_llm = {
-                    "home_summary": match_news.get("home_injuries", {}).get("summary", ""),
-                    "away_summary": match_news.get("away_injuries", {}).get("summary", ""),
-                    "home_impact": match_news.get("home_injuries", {}).get("impact_score", 0),
-                    "away_impact": match_news.get("away_injuries", {}).get("impact_score", 0),
+            # 泊松模型
+            pois = data.get("poisson", {})
+            if pois:
+                st.markdown("**Dixon-Coles泊松模型**")
+                c1, c2, c3 = st.columns(3)
+                c1.metric(f"{_hn}λ", f"{pois.get('lambda_home', '?'):.3f}")
+                c2.metric(f"{_an}λ", f"{pois.get('lambda_away', '?'):.3f}")
+                c3.metric("总期望", f"{pois.get('expected_total', '?'):.2f}")
+            
+            # 蒙特卡洛模拟
+            mc = data.get("monte_carlo", {})
+            if mc:
+                st.markdown(f"**蒙特卡洛模拟({config.MC_SIMULATIONS}次)**")
+                hw = mc.get("home_win", 0)
+                dr = mc.get("draw", 0)
+                aw = mc.get("away_win", 0)
+                st.caption(f"主胜{hw:.1%} | 平{dr:.1%} | 客胜{aw:.1%}")
+                top = mc.get("top_scorelines", [])
+                if top:
+                    st.caption(f"最可能比分: {top[0]['score']}({top[0]['probability']}%)")
+            
+            # 贝叶斯融合
+            bayes = data.get("bayesian")
+            if bayes:
+                st.markdown("**贝叶斯融合**")
+                st.caption(f"融合: 主胜{bayes.get('home_win', 0):.1%} | 平{bayes.get('draw', 0):.1%} | 客胜{bayes.get('away_win', 0):.1%}")
+            
+            # BSD赔率
+            bsd_odds = data.get("bsd_odds")
+            if bsd_odds and bsd_odds.get("average_home", 0) > 0:
+                st.markdown("**BSD实时赔率**")
+                st.caption(f"主胜{bsd_odds.get('average_home', 0):.2f} | 平{bsd_odds.get('average_draw', 0):.2f} | 客胜{bsd_odds.get('average_away', 0):.2f}")
+            
+            # Kelly仓位
+            kelly = data.get("kelly")
+            if kelly:
+                st.markdown("**Kelly仓位**")
+                rec = kelly.get("recommendation", "跳过")
+                stake = kelly.get("stake_pct", 0)
+                st.caption(f"建议: {rec} | 仓位: {stake:.2f}%")
+            
+            # 解释层维度
+            if explanation:
+                st.markdown("**解释层维度**")
+                elo_a = explanation.elo_analysis
+                injury_a = explanation.injury_fitness
+                tactical_a = explanation.tactical_matchup
+                
+                st.caption(f"Elo: {elo_a['level']} | 伤病影响: 主{injury_a['total_home_impact']*100:+.1f}% 客{injury_a['total_away_impact']*100:+.1f}% | 战术: {tactical_a['summary'][:30]}")
+                
+                # 风险分析摘要
+                risk = explanation.risk_analysis
+                st.markdown("**风险分析**")
+                st.caption(f"冷门{risk['upset']['level']} | 角球预期{risk['corner']['total_corners_expected']} | 黄牌预期{risk['card']['total_cards_expected']} | 双方进球{risk['btts']['probability']:.1%}")
+            
+            # 比分矩阵摘要
+            if explanation:
+                matrix_analysis = sm.analyze_matrix(explanation.score_matrix)
+                st.markdown("**比分矩阵**")
+                st.caption(f"主胜{matrix_analysis['home_win_prob']}% | 平{matrix_analysis['draw_prob']}% | 客胜{matrix_analysis['away_win_prob']}% | 大2.5球{matrix_analysis['over_2_5_prob']}%")
+        
+        # LLM深度分析
+        if llm.is_llm_enabled():
+            with st.expander("🤖 LongCat深度分析"):
+                elo_data_for_llm = {
+                    "home_rating": elo.get("home_rating", 1500),
+                    "away_rating": elo.get("away_rating", 1500),
+                    "diff": elo.get("diff", 0),
+                    "home_fifa_rank": elo.get("home_fifa_rank", "?"),
+                    "away_fifa_rank": elo.get("away_fifa_rank", "?"),
                 }
-                news_data_for_llm = [n.get("title", "") for n in match_news.get("home_news", [])[:3]]
-                news_data_for_llm.extend([n.get("title", "") for n in match_news.get("away_news", [])[:3]])
-            except:
-                injury_data_for_llm = {"home_summary": "暂无", "away_summary": "暂无", "home_impact": 0, "away_impact": 0}
+                
+                bsd_odds_data = data.get("bsd_odds", {})
+                odds_data_for_llm = {
+                    "average_home": bsd_odds_data.get("average_home", "?"),
+                    "average_draw": bsd_odds_data.get("average_draw", "?"),
+                    "average_away": bsd_odds_data.get("average_away", "?"),
+                }
+                
+                injury_data_for_llm = {"home_summary": "", "away_summary": ""}
                 news_data_for_llm = []
-            
-            report_data_for_llm = {
-                "home_report": "",
-                "away_report": "",
-            }
-            
-            # 调用LLM生成分析
-            with st.spinner("🤖 大模型分析中..."):
-                llm_analysis = llm.generate_match_analysis(
-                    _hn, _an,
-                    elo_data_for_llm,
-                    odds_data_for_llm,
-                    injury_data_for_llm,
-                    news_data_for_llm,
-                    report_data_for_llm,
+                report_data_for_llm = {"home_report": "", "away_report": ""}
+                
+                with st.spinner("分析中..."):
+                    llm_analysis = llm.generate_match_analysis(
+                        _hn, _an, elo_data_for_llm, odds_data_for_llm,
+                        injury_data_for_llm, news_data_for_llm, report_data_for_llm
+                    )
+                
+                st.markdown(llm_analysis)
+                st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+        
+        # 观点摘要
+        if explanation:
+            st.divider()
+            st.markdown("**📝 观点摘要**")
+            st.markdown(explanation.summary)
                 )
             
             st.markdown(llm_analysis)

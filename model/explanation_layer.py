@@ -57,7 +57,21 @@ class ExplanationEngine:
     解释引擎 - 核心分析
     
     所有维度都会影响最终预测，不是装饰。
+    
+    权重配置（参考主流市场预测模型）：
+    - 市场赔率: 40%
+    - Elo实力分: 30%
+    - 伤病因素: 15%
+    - 战术因素: 15%
     """
+    
+    # 权重配置（主流市场预测模型参考）
+    WEIGHTS = {
+        "market": 0.40,  # 市场赔率权重40%
+        "elo": 0.30,     # Elo实力分权重30%
+        "injury": 0.15,  # 伤病因素权重15%
+        "tactical": 0.15, # 战术因素权重15%
+    }
     
     def __init__(self):
         # 补水时刻影响系数
@@ -471,72 +485,108 @@ class ExplanationEngine:
         """
         计算最终胜平负概率
         
-        所有因素都会影响最终概率！
+        权重配置（主流市场预测模型）：
+        - 市场赔率: 40%
+        - Elo实力分: 30%
+        - 伤病因素: 15%
+        - 战术因素: 15%
         """
-        # 基础概率（从贝叶斯或蒙特卡洛）
-        if bayesian_data:
-            base_probs = {
-                "home_win": bayesian_data.get("home_win", 0.33),
-                "draw": bayesian_data.get("draw", 0.34),
-                "away_win": bayesian_data.get("away_win", 0.33),
-            }
-        else:
-            base_probs = {
-                "home_win": mc_data.get("home_win", 0.33),
-                "draw": mc_data.get("draw", 0.34),
-                "away_win": mc_data.get("away_win", 0.33),
-            }
+        # 市场赔率概率（权重40%）
+        market_probs = {
+            "home_win": market_signals.get("implied_home", 0.33),
+            "draw": market_signals.get("implied_draw", 0.34),
+            "away_win": market_signals.get("implied_away", 0.33),
+        }
         
-        # 累积所有影响因子
-        home_impact = 0
-        away_impact = 0
+        # Elo模型概率（权重30%）
+        elo_impact = elo_analysis.get("impact", 0)
+        elo_base = {
+            "home_win": 0.33 + elo_impact,
+            "draw": 0.34,
+            "away_win": 0.33 - elo_impact,
+        }
+        # 正规化
+        elo_total = elo_base["home_win"] + elo_base["draw"] + elo_base["away_win"]
+        elo_probs = {
+            "home_win": elo_base["home_win"] / elo_total,
+            "draw": elo_base["draw"] / elo_total,
+            "away_win": elo_base["away_win"] / elo_total,
+        }
         
-        # Elo影响
-        home_impact += elo_analysis.get("impact", 0)
+        # 伤病影响（权重15%）
+        injury_home_impact = injury_fitness.get("total_home_impact", 0)
+        injury_away_impact = injury_fitness.get("total_away_impact", 0)
+        injury_probs = {
+            "home_win": 0.33 + injury_home_impact,
+            "draw": 0.34 - (abs(injury_home_impact) + abs(injury_away_impact)) / 2,
+            "away_win": 0.33 + injury_away_impact,
+        }
+        injury_total = injury_probs["home_win"] + injury_probs["draw"] + injury_probs["away_win"]
+        injury_probs = {
+            "home_win": injury_probs["home_win"] / injury_total,
+            "draw": injury_probs["draw"] / injury_total,
+            "away_win": injury_probs["away_win"] / injury_total,
+        }
         
-        # 补水影响
-        home_impact += hydration_impact.get("goal_impact", 0)
+        # 战术影响（权重15%）
+        tactical_home = tactical_matchup.get("total_home_advantage", 0)
+        tactical_away = tactical_matchup.get("total_away_advantage", 0)
+        tactical_probs = {
+            "home_win": 0.33 + tactical_home,
+            "draw": 0.34 - (abs(tactical_home) + abs(tactical_away)) / 2,
+            "away_win": 0.33 + tactical_away,
+        }
+        tactical_total = tactical_probs["home_win"] + tactical_probs["draw"] + tactical_probs["away_win"]
+        tactical_probs = {
+            "home_win": tactical_probs["home_win"] / tactical_total,
+            "draw": tactical_probs["draw"] / tactical_total,
+            "away_win": tactical_probs["away_win"] / tactical_total,
+        }
         
-        # 环境影响
-        env_total = environment_factors.get("total_impact", 0)
-        home_impact += env_total
-        
-        # 伤病影响
-        home_impact += injury_fitness.get("total_home_impact", 0)
-        away_impact += injury_fitness.get("total_away_impact", 0)
-        
-        # 战术相克影响
-        home_impact += tactical_matchup.get("total_home_advantage", 0)
-        away_impact += tactical_matchup.get("total_away_advantage", 0)
-        
-        # 调整概率
-        adjusted_home = base_probs["home_win"] + home_impact
-        adjusted_away = base_probs["away_win"] + away_impact
-        adjusted_draw = base_probs["draw"]
-        
-        # 确保概率在合理范围
-        adjusted_home = max(0.05, min(0.85, adjusted_home))
-        adjusted_away = max(0.05, min(0.85, adjusted_away))
+        # 加权融合
+        weights = self.WEIGHTS
+        final_home = (
+            market_probs["home_win"] * weights["market"] +
+            elo_probs["home_win"] * weights["elo"] +
+            injury_probs["home_win"] * weights["injury"] +
+            tactical_probs["home_win"] * weights["tactical"]
+        )
+        final_draw = (
+            market_probs["draw"] * weights["market"] +
+            elo_probs["draw"] * weights["elo"] +
+            injury_probs["draw"] * weights["injury"] +
+            tactical_probs["draw"] * weights["tactical"]
+        )
+        final_away = (
+            market_probs["away_win"] * weights["market"] +
+            elo_probs["away_win"] * weights["elo"] +
+            injury_probs["away_win"] * weights["injury"] +
+            tactical_probs["away_win"] * weights["tactical"]
+        )
         
         # 正规化
-        total = adjusted_home + adjusted_draw + adjusted_away
-        final_home = adjusted_home / total
-        final_draw = adjusted_draw / total
-        final_away = adjusted_away / total
+        total = final_home + final_draw + final_away
+        final_home = final_home / total
+        final_draw = final_draw / total
+        final_away = final_away / total
         
         return {
             "home_win": round(final_home, 3),
             "draw": round(final_draw, 3),
             "away_win": round(final_away, 3),
-            "base_probs": base_probs,
+            "weights": weights,
+            "components": {
+                "market": market_probs,
+                "elo": elo_probs,
+                "injury": injury_probs,
+                "tactical": tactical_probs,
+            },
             "adjustments": {
-                "elo": elo_analysis.get("impact", 0),
-                "hydration": hydration_impact.get("goal_impact", 0),
-                "environment": env_total,
-                "injury_home": injury_fitness.get("total_home_impact", 0),
-                "injury_away": injury_fitness.get("total_away_impact", 0),
-                "tactical_home": tactical_matchup.get("total_home_advantage", 0),
-                "tactical_away": tactical_matchup.get("total_away_advantage", 0),
+                "elo": elo_impact,
+                "injury_home": injury_home_impact,
+                "injury_away": injury_away_impact,
+                "tactical_home": tactical_home,
+                "tactical_away": tactical_away,
             },
         }
     

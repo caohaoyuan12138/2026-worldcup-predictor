@@ -329,8 +329,8 @@ def get_best_odds(home_team: str, away_team: str) -> Dict:
     获取最佳赔率对比（17+博彩公司）
     
     Args:
-        home_team: 主队名
-        away_team: 客队名
+        home_team: 主队名（中文或英文）
+        away_team: 客队名（中文或英文）
     
     Returns:
         {
@@ -344,20 +344,50 @@ def get_best_odds(home_team: str, away_team: str) -> Dict:
             "summary": "赔率摘要"
         }
     """
+    # 中文队名到英文队名映射
+    TEAM_NAME_MAP = {
+        "西班牙": "Spain", "沙特阿拉伯": "Saudi Arabia", "沙特": "Saudi Arabia",
+        "比利时": "Belgium", "伊朗": "Iran",
+        "乌拉圭": "Uruguay", "佛得角": "Cape Verde", "Cabo Verde": "Cape Verde",
+        "新西兰": "New Zealand", "埃及": "Egypt",
+        "巴西": "Brazil", "阿根廷": "Argentina", "法国": "France",
+        "英格兰": "England", "德国": "Germany", "荷兰": "Netherlands",
+        "葡萄牙": "Portugal", "日本": "Japan", "韩国": "South Korea",
+        "墨西哥": "Mexico", "美国": "USA", "加拿大": "Canada",
+        "澳大利亚": "Australia", "克罗地亚": "Croatia", "瑞士": "Switzerland",
+        "塞内加尔": "Senegal", "挪威": "Norway", "阿尔及利亚": "Algeria",
+        "约旦": "Jordan", "巴拿马": "Panama", "哥伦比亚": "Colombia",
+        "奥地利": "Austria", "伊拉克": "Iraq", "乌兹别克斯坦": "Uzbekistan",
+        "加纳": "Ghana", "刚果": "DR Congo",
+    }
+    
+    # 转换队名
+    home_eng = TEAM_NAME_MAP.get(home_team, home_team)
+    away_eng = TEAM_NAME_MAP.get(away_team, away_team)
+    
     if not BSD_API_KEY:
         return {"summary": "未配置BSD API Key"}
     
-    events = get_bsd_events(limit=50)
+    events = get_bsd_events(limit=100)
     
     target_event = None
     for e in events:
-        if (home_team.lower() in e.get("home_team", "").lower() and 
-            away_team.lower() in e.get("away_team", "").lower()):
+        event_home = e.get("home_team", "").lower()
+        event_away = e.get("away_team", "").lower()
+        
+        # 匹配（支持中文和英文）
+        if ((home_team.lower() in event_home or home_eng.lower() in event_home) and 
+            (away_team.lower() in event_away or away_eng.lower() in event_away)):
+            target_event = e
+            break
+        # 反向匹配
+        if ((away_team.lower() in event_home or away_eng.lower() in event_home) and 
+            (home_team.lower() in event_away or home_eng.lower() in event_away)):
             target_event = e
             break
     
     if not target_event:
-        return {"summary": f"未找到 {home_team} vs {away_team} 的赔率"}
+        return {"summary": f"未找到 {home_team} vs {away_team} 的赔率", "average_home": 0, "average_draw": 0, "average_away": 0}
     
     # 获取赔率数据
     odds_data = target_event.get("odds", {})
