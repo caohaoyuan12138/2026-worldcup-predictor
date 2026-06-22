@@ -1515,14 +1515,20 @@ def _render_analysis_card(data: dict):
                     news_data_for_llm = []
                     report_data_for_llm = {"home_report": "", "away_report": ""}
 
-                    with st.spinner("🤖 LongCat 正在分析..."):
-                        llm_analysis = llm.generate_match_analysis(
-                            _hn, _an, elo_data_for_llm, odds_data_for_llm,
-                            injury_data_for_llm, news_data_for_llm, report_data_for_llm
-                        )
+                    with st.spinner("🤖 LongCat 正在分析（最多15秒）..."):
+                        try:
+                            llm_analysis = llm.generate_match_analysis(
+                                _hn, _an, elo_data_for_llm, odds_data_for_llm,
+                                injury_data_for_llm, news_data_for_llm, report_data_for_llm
+                            )
+                        except Exception as e:
+                            llm_analysis = f"⚠️ LongCat 分析失败: {str(e)[:100]}"
 
-                    st.markdown(llm_analysis)
-                    st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                    if llm_analysis and not llm_analysis.startswith("⚠️"):
+                        st.markdown(llm_analysis)
+                        st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                    else:
+                        st.warning(llm_analysis or "⚠️ LongCat 分析返回空结果")
                 else:
                     st.info("点击按钮生成 LongCat 深度分析")
         
