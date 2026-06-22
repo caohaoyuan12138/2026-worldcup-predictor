@@ -1492,48 +1492,73 @@ def _render_analysis_card(data: dict):
                 st.markdown("**比分矩阵**")
                 st.caption(f"主胜{matrix_analysis['home_win_prob']}% | 平{matrix_analysis['draw_prob']}% | 客胜{matrix_analysis['away_win_prob']}% | 大2.5球{matrix_analysis['over_2_5_prob']}%")
         
-        # LLM深度分析 - 点击按钮才触发，避免自动调用
+        # LLM深度分析 - 点击按钮才触发，结果缓存到 session_state
         if llm.is_llm_enabled():
+            llm_cache_key = f"_llm_cache_{_hn}_{_an}"
+            cached_llm = st.session_state.get(llm_cache_key)
+
             with st.expander("🤖 LongCat深度分析"):
-                if st.button("🤖 生成LongCat深度分析", key=f"llm_btn_{_hn}_{_an}"):
-                    elo_data_for_llm = {
-                        "home_rating": elo.get("home_rating", 1500),
-                        "away_rating": elo.get("away_rating", 1500),
-                        "diff": elo.get("diff", 0),
-                        "home_fifa_rank": elo.get("home_fifa_rank", "?"),
-                        "away_fifa_rank": elo.get("away_fifa_rank", "?"),
-                    }
-
-                    bsd_odds_data = data.get("bsd_odds", {})
-                    odds_data_for_llm = {
-                        "average_home": bsd_odds_data.get("average_home", "?"),
-                        "average_draw": bsd_odds_data.get("average_draw", "?"),
-                        "average_away": bsd_odds_data.get("average_away", "?"),
-                        "implied_home": bsd_odds_data.get("implied_home", "?"),
-                        "implied_draw": bsd_odds_data.get("implied_draw", "?"),
-                        "implied_away": bsd_odds_data.get("implied_away", "?"),
-                    }
-
-                    injury_data_for_llm = {"home_summary": "", "away_summary": ""}
-                    news_data_for_llm = []
-                    report_data_for_llm = {"home_report": "", "away_report": ""}
-
-                    with st.spinner("🤖 LongCat 正在分析（最多15秒）..."):
-                        try:
-                            llm_analysis = llm.generate_match_analysis(
-                                _hn, _an, elo_data_for_llm, odds_data_for_llm,
-                                injury_data_for_llm, news_data_for_llm, report_data_for_llm
-                            )
-                        except Exception as e:
-                            llm_analysis = f"⚠️ LongCat 分析失败: {str(e)[:100]}"
-
-                    if llm_analysis and not llm_analysis.startswith("⚠️"):
-                        st.markdown(llm_analysis)
+                if cached_llm:
+                    # 显示缓存结果
+                    if not cached_llm.startswith("⚠️"):
+                        st.markdown(cached_llm)
                         st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
                     else:
-                        st.warning(llm_analysis or "⚠️ LongCat 分析返回空结果")
+                        st.warning(cached_llm)
+                    if st.button("🔄 重新生成", key=f"llm_refresh_{_hn}_{_an}"):
+                        del st.session_state[llm_cache_key]
+                        st.rerun()
                 else:
-                    st.info("点击按钮生成 LongCat 深度分析")
+                    if st.button("🤖 生成LongCat深度分析", key=f"llm_btn_{_hn}_{_an}"):
+                        elo_data_for_llm = {
+                            "home_rating": elo.get("home_rating", 1500),
+                            "away_rating": elo.get("away_rating", 1500),
+                            "diff": elo.get("diff", 0),
+                            "home_fifa_rank": elo.get("home_fifa_rank", "?"),
+                            "away_fifa_rank": elo.get("away_fifa_rank", "?"),
+                        }
+
+                        bsd_odds_data = data.get("bsd_odds", {})
+                        odds_data_for_llm = {
+                            "average_home": bsd_odds_data.get("average_home", "?"),
+                            "average_draw": bsd_odds_data.get("average_draw", "?"),
+                            "average_away": bsd_odds_data.get("average_away", "?"),
+                            "implied_home": bsd_odds_data.get("implied_home", "?"),
+                            "implied_draw": bsd_odds_data.get("implied_draw", "?"),
+                            "implied_away": bsd_odds_data.get("implied_away", "?"),
+                        }
+
+                        injury_data_for_llm = {"home_summary": "", "away_summary": ""}
+                        news_data_for_llm = []
+                        report_data_for_llm = {"home_report": "", "away_report": ""}
+
+                        with st.spinner("🤖 LongCat 正在分析（最多15秒）..."):
+                            try:
+                                import asyncio
+                                import concurrent.futures
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
+                                    future = executor.submit(
+                                        llm.generate_match_analysis,
+                                        _hn, _an, elo_data_for_llm, odds_data_for_llm,
+                                        injury_data_for_llm, news_data_for_llm, report_data_for_llm
+                                    )
+                                    try:
+                                        llm_analysis = future.result(timeout=20)
+                                    except concurrent.futures.TimeoutError:
+                                        llm_analysis = "⚠️ 分析超时（20秒），请稍后重试"
+                            except Exception as e:
+                                llm_analysis = f"⚠️ LongCat 分析失败: {str(e)[:100]}"
+
+                        # 保存到 session_state
+                        st.session_state[llm_cache_key] = llm_analysis
+
+                        if llm_analysis and not llm_analysis.startswith("⚠️"):
+                            st.markdown(llm_analysis)
+                            st.caption(f"模型: {llm.LLM_CONFIG.get('model', 'LongCat-2.0-Preview')}")
+                        else:
+                            st.warning(llm_analysis or "⚠️ LongCat 分析返回空结果")
+                    else:
+                        st.info("点击按钮生成 LongCat 深度分析")
         
         # 观点摘要
         if explanation:
