@@ -1985,42 +1985,30 @@ def render_predictions(data):
                     st.subheader(f"📅 {dt}")
                     prev_date = dt
 
-                # 比赛卡片：仿足球场记分牌样式
+                # 比赛卡片：使用固定宽度表格确保对齐
                 hf = flag(h)
                 af = flag(a)
                 st.markdown(
-                    f'''<div style="
-                        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-                        border-radius: 12px; margin: 6px 0; padding: 0;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                        border: 1px solid #2a2a4a;
-                        overflow: hidden;
-                    ">
-                        <!-- 小组标签条 -->
-                        <div style="background:#f97316;padding:4px 12px;display:flex;align-items:center;gap:8px;">
-                            <span style="color:#fff;font-weight:700;font-size:0.85rem;">{grp}组</span>
-                            <span style="color:rgba(255,255,255,0.7);font-size:0.75rem;">{m.get('match_type_des', '')}</span>
-                        </div>
-                        <!-- 比分区域 -->
-                        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;">
-                            <!-- 主队 -->
-                            <div style="flex:1;text-align:right;">
-                                <div style="font-size:1.8rem;">{hf}</div>
-                                <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;margin-top:4px;">{h}</div>
-                            </div>
-                            <!-- 比分 -->
-                            <div style="width:90px;text-align:center;padding:0 16px;">
-                                <div style="color:#f97316;font-size:2rem;font-weight:800;letter-spacing:2px;text-shadow:0 0 20px rgba(249,115,22,0.5);">
-                                    {hs} : {gs}
-                                </div>
-                            </div>
-                            <!-- 客队 -->
-                            <div style="flex:1;text-align:left;">
-                                <div style="font-size:1.8rem;">{af}</div>
-                                <div style="color:#e2e8f0;font-weight:600;font-size:0.95rem;margin-top:4px;">{a}</div>
-                            </div>
-                        </div>
-                    </div>''',
+                    f'''<table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:10px;margin:4px 0;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+                        <tr style="background:#f97316;">
+                            <th colspan="3" style="padding:6px 16px;color:#fff;font-size:0.85rem;text-align:left;font-weight:700;">
+                                {grp}组 · {m.get('match_type_des', '')}
+                            </th>
+                        </tr>
+                        <tr>
+                            <td style="width:40%;text-align:right;padding:10px 16px;">
+                                <div style="font-size:1.6rem;">{hf}</div>
+                                <div style="color:#e2e8f0;font-weight:600;font-size:0.9rem;">{h}</div>
+                            </td>
+                            <td style="width:20%;text-align:center;padding:10px 8px;">
+                                <div style="color:#f97316;font-size:1.8rem;font-weight:800;letter-spacing:1px;">{hs}:{gs}</div>
+                            </td>
+                            <td style="width:40%;text-align:left;padding:10px 16px;">
+                                <div style="font-size:1.6rem;">{af}</div>
+                                <div style="color:#e2e8f0;font-weight:600;font-size:0.9rem;">{a}</div>
+                            </td>
+                        </tr>
+                    </table>''',
                     unsafe_allow_html=True
                 )
 
