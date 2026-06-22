@@ -1,8 +1,11 @@
 """
 大模型推理增强模块
 
-内置模型：LongCat-2.0-Preview
-API地址：https://api.longcat.chat/openai
+支持的LLM：
+1. OpenAI API (GPT-4)
+2. DeepSeek API (国产，便宜)
+3. 本地模型 (Ollama)
+
 用途：
 - 分析战报内容，提取关键信息
 - 生成详细推理过程
@@ -11,38 +14,32 @@ API地址：https://api.longcat.chat/openai
 
 import requests
 import json
-import threading
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional
 
-# 内置LLM配置（LongCat）
+# LLM配置
 LLM_CONFIG = {
-    "provider": "longcat",
-    "api_key": "ak_2YJ80B0DR3SX6vL0F87nN2QC8jT0V",  # 内置API Key
-    "model": "LongCat-2.0-Preview",
-    "base_url": "https://api.longcat.chat/openai",
-    "api_type": "openai",
-    "enabled": True,  # 默认启用
+    "provider": "deepseek",  # openai / deepseek / ollama
+    "api_key": None,  # 用户配置
+    "model": "deepseek-chat",  # gpt-4 / deepseek-chat / llama3
+    "base_url": {
+        "openai": "https://api.openai.com/v1",
+        "deepseek": "https://api.deepseek.com/v1",
+        "ollama": "http://localhost:11434/v1",
+    }
 }
 
 
-def set_llm_enabled(enabled: bool):
-    """启用/禁用LLM功能"""
-    LLM_CONFIG["enabled"] = enabled
-
-
-def is_llm_enabled() -> bool:
-    """检查LLM是否启用"""
-    return LLM_CONFIG.get("enabled", True)
-
-
-def get_base_url() -> str:
-    """获取API地址"""
-    return LLM_CONFIG["base_url"]
+def set_llm_config(provider: str, api_key: str, model: str = None):
+    """设置LLM配置"""
+    LLM_CONFIG["provider"] = provider
+    LLM_CONFIG["api_key"] = api_key
+    if model:
+        LLM_CONFIG["model"] = model
 
 
 def call_llm(prompt: str, system_prompt: str = None) -> str:
     """
-    调用内置LLM API（LongCat）
+    调用LLM API
     
     Args:
         prompt: 用户输入
@@ -51,32 +48,14 @@ def call_llm(prompt: str, system_prompt: str = None) -> str:
     Returns:
         LLM生成的文本
     """
-    if not is_llm_enabled():
-        return "⚠️ LLM功能已禁用"
+    if not LLM_CONFIG["api_key"]:
+        return "⚠️ 未配置LLM API Key"
     
-    return call_longcat(prompt, system_prompt)
-
-
-def call_longcat(prompt: str, system_prompt: str = None) -> str:
-    """
-    调用LongCat API
-    
-    内置模型：LongCat-2.0-Preview
-    API地址：https://api.longcat.chat/openai
-    
-    Args:
-        prompt: 用户输入
-        system_prompt: 系统提示
-    
-    Returns:
-        LongCat生成的文本
-    """
-    api_key = LLM_CONFIG["api_key"]
-    model = LLM_CONFIG["model"]
-    base_url = get_base_url()
+    provider = LLM_CONFIG["provider"]
+    base_url = LLM_CONFIG["base_url"].get(provider, "")
     
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {LLM_CONFIG['api_key']}",
         "Content-Type": "application/json",
     }
     
@@ -86,7 +65,7 @@ def call_longcat(prompt: str, system_prompt: str = None) -> str:
     messages.append({"role": "user", "content": prompt})
     
     payload = {
-        "model": model,
+        "model": LLM_CONFIG["model"],
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 1000,
@@ -97,21 +76,17 @@ def call_longcat(prompt: str, system_prompt: str = None) -> str:
             f"{base_url}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=15
+            timeout=30
         )
-
+        
         if r.status_code == 200:
             data = r.json()
             return data["choices"][0]["message"]["content"]
         else:
-            error_msg = r.json().get("error", {}).get("message", r.text[:100])
-            return f"⚠️ API错误: {r.status_code} - {error_msg}"
-    except requests.exceptions.Timeout:
-        return "⚠️ LLM分析超时（15秒），请稍后重试"
-    except requests.exceptions.ConnectionError:
-        return "⚠️ 无法连接LongCat API，请检查网络"
+            return f"⚠️ LLM API错误: {r.status_code}"
+    
     except Exception as e:
-        return f"⚠️ LLM分析失败: {str(e)[:100]}"
+        return f"⚠️ LLM调用失败: {str(e)[:50]}"
 
 
 def generate_match_analysis(
@@ -189,40 +164,6 @@ def generate_match_analysis(
     return call_llm(user_prompt, system_prompt)
 
 
-def generate_match_analysis_async(
-    home_team: str,
-    away_team: str,
-    elo_data: Dict,
-    odds_data: Dict,
-    injury_data: Dict,
-    news_data: List[str],
-    report_data: Dict,
-    callback: Callable[[str], None],
-) -> threading.Thread:
-    """
-    异步生成LLM分析（后台线程，不阻塞Streamlit）
-
-    Args:
-        callback: 分析完成后的回调函数，接收分析文本
-
-    Returns:
-        threading.Thread 对象
-    """
-    def _run():
-        try:
-            result = generate_match_analysis(
-                home_team, away_team, elo_data, odds_data,
-                injury_data, news_data, report_data
-            )
-        except Exception as e:
-            result = f"⚠️ LLM分析失败: {str(e)[:100]}"
-        callback(result)
-
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
-    return thread
-
-
 def extract_key_info_from_report(report_text: str) -> Dict:
     """
     使用LLM从战报中提取关键信息
@@ -269,6 +210,12 @@ def extract_key_info_from_report(report_text: str) -> Dict:
 # ──────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # 配置DeepSeek API（便宜，国产）
+    # set_llm_config("deepseek", "your-api-key", "deepseek-chat")
+    
+    # 配置OpenAI API
+    # set_llm_config("openai", "your-api-key", "gpt-4")
+    
     # 测试数据
     elo_data = {
         "home_rating": 1840,
@@ -304,14 +251,14 @@ if __name__ == "__main__":
         "away_report": "首轮1-1乌拉圭，顽强防守",
     }
     
-    # 生成分析（内置LongCat）
+    # 生成分析（需要配置API Key）
     print("=== 大模型推理增强示例 ===")
-    print("内置模型: LongCat-2.0-Preview")
-    print("API地址: https://api.longcat.chat/openai")
+    print("需要配置LLM API Key才能运行")
+    print("支持的LLM: OpenAI, DeepSeek, Ollama")
     
-    # 调用示例
-    analysis = generate_match_analysis(
-        "西班牙", "沙特阿拉伯",
-        elo_data, odds_data, injury_data, news_data, report_data
-    )
-    print(analysis)
+    # 如果配置了API Key，可以这样调用：
+    # analysis = generate_match_analysis(
+    #     "西班牙", "沙特阿拉伯",
+    #     elo_data, odds_data, injury_data, news_data, report_data
+    # )
+    # print(analysis)
