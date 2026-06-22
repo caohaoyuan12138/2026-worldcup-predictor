@@ -245,86 +245,17 @@ def _auto_sync_if_needed():
         st.session_state["_api_last_check"] = ts
 
 
-@st.cache_data(ttl=3600, show_spinner=False)  # 缓存1小时，减少重复加载
-def load_all_data():
+# Data loaded via session_state - no cache_data needed
+def _build_elo_engine(matches):
     """
-    加载所有数据（带缓存）- 优先使用本地数据，API 作为补充
+    根据赛程构建 Elo 引擎
 
-    数据加载策略：
-    1. 始终先加载本地 JSON 文件（standings.json / schedule.json / teams.json）
-    2. 仅在速率限制允许且自动同步触发时，后台拉取 API 数据 merge 到本地
-    3. 不覆盖本地手动录入的数据
-    4. 使用 session_state 避免每次 tab 切换都重新加载
+    Args:
+        matches: 赛程列表
+
+    Returns:
+        EloEngine 实例
     """
-    # ── 1. 始终先加载本地数据作为基础 ──
-    raw = ld.load_all()
-    raw["source"] = "本地数据"
-
-    # ── 2. 尝试从 API merge 新数据（仅在速率限制允许时） ──
-    try:
-        import data.api_client as api
-        import data.api_rate_limiter as rate_limiter
-
-        # 检查是否有 API key 配置
-        if not api.JUHE_KEY:
-            pass  # 没有 API key，纯本地模式
-        elif rate_limiter.can_call_api():
-            # 有剩余 API 次数，尝试拉取
-            remote_matches = api.get_matches()
-            if remote_matches:
-                # merge API 数据到本地（不覆盖手动录入）
-                local = ld.load_schedule()
-                local_by_id = {str(m.get("id")): m for m in local}
-
-                merge_schedule = [dict(lm) for m in local]
-                api_updated = 0
-                api_added = 0
-
-                for rm in remote_matches:
-                    rid = str(rm.get("id", ""))
-                    local_match = local_by_id.get(rid)
-
-                    api_has_score = (
-                        rm.get("match_des") in ("完赛", "进行中") and
-                        rm.get("host_team_score") is not None and
-                        rm.get("guest_team_score") is not None
-                    )
-
-                    if local_match is not None:
-                        local_populated = (
-                            local_match.get("match_des") not in ("", None) or
-                            local_match.get("host_team_score") is not None
-                        )
-                        if api_has_score and not local_populated:
-                            local_match["host_team_score"] = rm.get("host_team_score")
-                            local_match["guest_team_score"] = rm.get("guest_team_score")
-                            local_match["match_des"] = rm.get("match_des", local_match.get("match_des", ""))
-                            local_match["match_status"] = rm.get("match_status", local_match.get("match_status", ""))
-                            api_updated += 1
-                    else:
-                        merge_schedule.append(rm)
-                        api_added += 1
-
-                if api_updated > 0 or api_added > 0:
-                    ld.save_schedule(merge_schedule)
-                    raw["schedule"] = merge_schedule
-                    raw["source"] = f"本地+API（+{api_updated + api_added}场）"
-                    rate_limiter.record_call("schedule")
-
-                standings = ld.recalculate_standings(raw["schedule"])
-                if standings:
-                    raw["standings"] = standings
-    except Exception as e:
-        raw["source"] = f"本地数据（API: {str(e)[:50]}）"
-
-    # ── 3. 确保数据完整性 ──
-    matches = raw.get("schedule") or raw.get("matches") or []
-
-    if not raw.get("standings") or len(raw.get("standings", [])) == 0:
-        standings = ld.recalculate_standings(matches)
-        raw["standings"] = standings
-
-    # ── 4. 初始化 Elo 引擎 ──
     engine = elo.EloEngine()
     for cn_, (tid, code, cont, rank) in TEAM.items():
         is_host = tid in config.HOST_TEAM_IDS if hasattr(config, 'HOST_TEAM_IDS') else False
@@ -347,12 +278,36 @@ def load_all_data():
             except Exception:
                 pass
 
-    raw["elo"] = engine
-    raw["matches"] = matches
-    return raw
+    return engine
 
 
-@st.cache_resource  # Elo引擎作为资源缓存，不重复初始化
+def load_all_data():
+    """
+    加载所有数据 - 使用 session_state 双重缓存
+
+    这是公共 API，供所有 render 函数调用。
+    数据只在首次加载或显式刷新时重新加载。
+    """
+    if "_session_data" not in st.session_state:
+        raw = ld.load_all()
+        raw["source"] = "本地数据"
+
+        matches = raw.get("schedule") or raw.get("matches") or []
+
+        if not raw.get("standings") or len(raw.get("standings", [])) == 0:
+            standings = ld.recalculate_standings(matches)
+            raw["standings"] = standings
+
+        engine = _build_elo_engine(matches)
+        raw["elo"] = engine
+        raw["matches"] = matches
+
+        st.session_state["_session_data"] = raw
+
+    return st.session_state["_session_data"]
+
+
+@st.cache_resource(show_spinner=False)
 def get_elo_engine():
     """获取Elo引擎（资源缓存）"""
     data = load_all_data()
@@ -2715,7 +2670,7 @@ def render_data_manager():
                             st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
 
                         if juhe_data.get("schedule") or juhe_data.get("standings"):
-                            st.cache_data.clear()
+                            if '_session_data' in st.session_state: del st.session_state['_session_data']
                             st.rerun()
                         else:
                             st.warning("⚠️ 聚合API返回空数据")
@@ -2742,9 +2697,16 @@ def render_data_manager():
         if st.button("✅ 更新比分") and mid and hg and ag:
             try:
                 ok = ld.update_match_result(mid,int(hg),int(ag))
-                if ok: ld.recalculate_standings(); st.success(f"✅ {mid}: {hg}-{ag}"); st.cache_data.clear(); st.rerun()
-                else: st.error(f"❌ 未找到 {mid}")
-            except ValueError: st.error("比分必须是整数")
+                if ok:
+                    ld.recalculate_standings()
+                    st.success(f"✅ {mid}: {hg}-{ag}")
+                    if "_session_data" in st.session_state:
+                        del st.session_state["_session_data"]
+                    st.rerun()
+                else:
+                    st.error(f"❌ 未找到 {mid}")
+            except ValueError:
+                st.error("比分必须是整数")
     else:
         cd,cht,cat,chg2,cag2 = st.columns(5)
         with cd: ds = st.text_input("日期")
@@ -2761,7 +2723,10 @@ def render_data_manager():
             if fid: ld.update_match_result(fid,int(hg2),int(ag2))
             else: ld.add_finished_match(f"manual_{ds}_{ht}_{at}",ds,ht,at,int(hg2),int(ag2))
             ld.recalculate_standings()
-            st.success(f"✅ {ds} {ht} {hg2}:{ag2} {at}"); st.cache_data.clear(); st.rerun()
+            st.success(f"✅ {ds} {ht} {hg2}:{ag2} {at}")
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            st.rerun()
 
     st.divider()
     st.subheader("📋 批量粘贴")
@@ -2788,7 +2753,12 @@ def render_data_manager():
                             ld.update_match_result(m["id"],ag,hg); up+=1; fd=True; break
                 if not fd: errs.append(f"未找到:{line}")
             except Exception as e: errs.append(f"解析失败:{line}")
-        if up>0: ld.recalculate_standings(); st.success(f"✅ 已更新 {up} 场"); st.cache_data.clear(); st.rerun()
+        if up>0:
+            ld.recalculate_standings()
+            st.success(f"✅ 已更新 {up} 场")
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            st.rerun()
         if errs: st.warning(f"⚠️ {len(errs)} 条失败:{'; '.join(errs[:5])}")
 
     st.divider()
@@ -2812,15 +2782,13 @@ def main():
         st.toast("🎉 API 发现新比赛数据，已自动同步到本地！", icon="✅")
         st.session_state["_api_new_data"] = False
         import time as _time; _time.sleep(1)
-        st.cache_data.clear()
+        if "_session_data" in st.session_state:
+            del st.session_state["_session_data"]
         st.rerun()
 
-    # 使用 session_state 缓存数据，避免每次 rerun 都重新加载
-    if "_cached_data" not in st.session_state:
+    # 加载数据（load_all_data 内部使用 session_state 缓存）
+    with st.spinner("⏳ 正在加载数据..."):
         data = load_all_data()
-        st.session_state["_cached_data"] = data
-    else:
-        data = st.session_state["_cached_data"]
 
     with st.sidebar:
         st.title("🎮 控制面板")
@@ -2906,7 +2874,8 @@ def main():
                 st.session_state["_last_auto_sync"] = 0
                 cnt, msg = _check_api_for_updates()
                 if cnt > 0:
-                    st.cache_data.clear()
+                    if "_session_data" in st.session_state:
+                        del st.session_state["_session_data"]
                     st.toast(f"✅ {msg}", icon="🎉")
                     st.rerun()
                 else:
@@ -2924,9 +2893,10 @@ def main():
                     st.text(f"{r}. {flag_} {info['name']} — Elo:{info['rating']:.0f} | FIFA排名:{fifa_rank}")
         st.divider()
         if st.button("🔄 刷新"):
-            st.cache_data.clear()
-            if "_cached_data" in st.session_state:
-                del st.session_state["_cached_data"]
+            if "_session_data" in st.session_state:
+                del st.session_state["_session_data"]
+            if "_analysis_cache" in st.session_state:
+                del st.session_state["_analysis_cache"]
             st.rerun()
 
     tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理"])
