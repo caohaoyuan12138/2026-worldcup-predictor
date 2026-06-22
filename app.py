@@ -1387,6 +1387,9 @@ def _render_analysis_card(data: dict):
                     "average_home": bsd_odds_data.get("average_home", "?"),
                     "average_draw": bsd_odds_data.get("average_draw", "?"),
                     "average_away": bsd_odds_data.get("average_away", "?"),
+                    "implied_home": bsd_odds_data.get("implied_home", "?"),
+                    "implied_draw": bsd_odds_data.get("implied_draw", "?"),
+                    "implied_away": bsd_odds_data.get("implied_away", "?"),
                 }
                 
                 injury_data_for_llm = {"home_summary": "", "away_summary": ""}

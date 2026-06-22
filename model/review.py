@@ -339,40 +339,51 @@ class ReviewEngine:
         if not explanation:
             return ["无解释层数据，无法分析偏差原因"]
         
+        # 兼容处理：explanation可能是对象或字典
+        def _get_attr_or_key(obj, key):
+            """兼容获取属性或字典键"""
+            if hasattr(obj, key):
+                return getattr(obj, key)
+            elif isinstance(obj, dict):
+                return obj.get(key, {})
+            return {}
+        
         # Elo偏差
-        elo_analysis = explanation.elo_analysis
-        elo_impact = elo_analysis.get("impact", 0)
+        elo_analysis = _get_attr_or_key(explanation, "elo_analysis")
+        elo_impact = elo_analysis.get("impact", 0) if isinstance(elo_analysis, dict) else 0
         if abs(elo_impact) > 0.10:
             reasons.append(f"Elo影响过大（{elo_impact*100:+.1f}%），可能导致过度偏向一方")
         
         # 伤病偏差
-        injury_fitness = explanation.injury_fitness
+        injury_fitness = _get_attr_or_key(explanation, "injury_fitness")
         if injury_fitness.get("home_injury_count", 0) > 2:
             reasons.append(f"主队伤病人数{injury_fitness['home_injury_count']}，可能低估了主队韧性")
         if injury_fitness.get("away_injury_count", 0) > 2:
             reasons.append(f"客队伤病人数{injury_fitness['away_injury_count']}，可能低估了客队韧性")
         
         # 战术偏差
-        tactical = explanation.tactical_matchup
+        tactical = _get_attr_or_key(explanation, "tactical_matchup")
         if abs(tactical.get("total_home_advantage", 0)) > 0.05:
             reasons.append(f"战术相克影响{tactical['total_home_advantage']*100:+.1f}%，实际比赛战术可能调整")
         
         # 补水时刻偏差
-        hydration = explanation.hydration_impact
+        hydration = _get_attr_or_key(explanation, "hydration_impact")
         if actual_home + actual_away < 2:
             reasons.append(f"补水时刻进球影响-5%，实际进球偏少，符合预期")
         elif actual_home + actual_away > 3:
             reasons.append(f"补水时刻进球影响-5%，但实际进球偏多，可能比赛节奏未受补水影响")
         
         # 大小球偏差
-        expected_total = explanation.expected_goals.get("total_expected", 2.8)
+        expected_goals = _get_attr_or_key(explanation, "expected_goals")
+        expected_total = expected_goals.get("total_expected", 2.8) if isinstance(expected_goals, dict) else 2.8
         actual_total = actual_home + actual_away
         if abs(expected_total - actual_total) > 1:
             reasons.append(f"预期总进球{expected_total:.1f}，实际{actual_total}，偏差{abs(expected_total-actual_total):.1f}球")
         
         # 市场信号偏差
-        market = explanation.market_signals
-        if market.get("confidence") == "高" and not explanation.risk_analysis.get("upset", {}).get("level") == "高":
+        market = _get_attr_or_key(explanation, "market_signals")
+        risk_analysis = _get_attr_or_key(explanation, "risk_analysis")
+        if market.get("confidence") == "高" and not (risk_analysis.get("upset", {}) if isinstance(risk_analysis, dict) else {}).get("level") == "高":
             reasons.append("市场信号置信度高，但模型可能忽略了市场隐含信息")
         
         if not reasons:
