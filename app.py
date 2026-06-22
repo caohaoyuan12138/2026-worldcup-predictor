@@ -2195,7 +2195,7 @@ def render_review(data):
         col1, col2 = st.columns(2)
         
         with col1:
-            if prediction_data:
+            if prediction_data and isinstance(prediction_data, dict):
                 # 已有预测数据，直接复盘
                 if st.button("📊 开始复盘", key="start_review_btn", type="primary"):
                     result = engine.review_match(
@@ -2421,14 +2421,16 @@ def render_portfolio(data):
 
         # 用户输入赔率 — 确保 prob_h / oh_ 在两种模式下都已定义
         prob_h = exp["home_win"]
+        # 使用唯一key：match_id + 队伍名
+        key_prefix = f"pf_{m.get('id','')}_{hn}_{an}"
         if odds_source == "手动输入":
             c1, c2, c3 = st.columns(3)
             with c1:
-                oh_ = st.number_input(f"{hn}胜赔率", key=f"pf_oh_{m.get('id','')}", value=2.50, min_value=1.01, step=0.1, format="%.2f")
+                oh_ = st.number_input(f"{hn}胜赔率", key=f"{key_prefix}_oh", value=2.50, min_value=1.01, step=0.1, format="%.2f")
             with c2:
-                od_ = st.number_input("平局赔率", key=f"pf_od_{m.get('id','')}", value=3.40, min_value=1.01, step=0.1, format="%.2f")
+                od_ = st.number_input("平局赔率", key=f"{key_prefix}_od", value=3.40, min_value=1.01, step=0.1, format="%.2f")
             with c3:
-                oa_ = st.number_input(f"{an}胜赔率", key=f"pf_oa_{m.get('id','')}", value=2.80, min_value=1.01, step=0.1, format="%.2f")
+                oa_ = st.number_input(f"{an}胜赔率", key=f"{key_prefix}_oa", value=2.80, min_value=1.01, step=0.1, format="%.2f")
         else:
             # 预设赔率（基于 Elo 估算）
             prob_d = exp["draw"]
