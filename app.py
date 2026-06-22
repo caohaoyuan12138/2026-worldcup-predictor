@@ -1219,7 +1219,8 @@ def _build_match_environment(hid, aid, hn, an) -> mc.MatchEnvironment:
     # 补水机制：气温>25°C触发补水
     is_water_break = temperature > 25
 
-    return mc.MatchEnvironment(
+    # 返回MatchEnvironment对象和额外信息
+    env_obj = mc.MatchEnvironment(
         home_team_id=hid or 0,
         away_team_id=aid or 0,
         venue_altitude=venue_altitude,
@@ -1231,6 +1232,13 @@ def _build_match_environment(hid, aid, hn, an) -> mc.MatchEnvironment:
         is_high_stakes=False,
         is_water_break=is_water_break,
     )
+    
+    # 添加额外属性
+    env_obj.venue_city = venue_city
+    env_obj.timezone_diff = timezone_diff
+    env_obj.source = env_source
+    
+    return env_obj
 
 
 def _render_analysis_card(data: dict):
@@ -2148,8 +2156,40 @@ def render_review(data):
                 # 无预测数据，先自动预测再复盘
                 if st.button("🤖 自动预测并复盘", key="auto_predict_review_btn", type="primary"):
                     with st.spinner("正在预测并复盘..."):
+                        # 获取球队ID
+                        hid = gid(home_name)
+                        aid = gid(away_name)
+                        
+                        # 获取Elo引擎
+                        elo_engine = data.get("elo")
+                        
+                        # 获取赔率（如果有）
+                        bsd_odds = bsd.get_best_odds(home_name, away_name)
+                        oh = bsd_odds.get("average_home", 0) or 0
+                        od = bsd_odds.get("average_draw", 0) or 0
+                        oa = bsd_odds.get("average_away", 0) or 0
+                        
+                        # 检测比赛阶段
+                        stage, is_ko = _detect_stage_and_knockout(match_data)
+                        
+                        # 构建环境
+                        env = _build_match_environment(hid, aid, home_name, away_name)
+                        
                         # 自动预测
-                        analysis = _do_analysis(data, home_name, away_name)
+                        analysis = _do_analysis(
+                            hid, aid, elo_engine, home_name, away_name,
+                            oh, od, oa, stage, None,
+                            is_knockout=is_ko,
+                            motivation_home=1.0,
+                            motivation_away=1.0,
+                            use_market_odds=(oh > 0)
+                        )
+                        analysis["environment"] = {
+                            "venue_city": getattr(env, 'venue_city', '未知'),
+                            "venue_altitude": getattr(env, 'venue_altitude', 0),
+                            "temperature": getattr(env, 'temperature', 22),
+                            "timezone_diff": getattr(env, 'timezone_diff', 0),
+                        }
                         st.session_state[prediction_key] = analysis
                         
                         # 复盘
