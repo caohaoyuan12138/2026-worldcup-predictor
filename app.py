@@ -90,10 +90,18 @@ def _check_api_for_updates():
       - 只更新 API 中 "完赛" 或 "进行中"（有真实赛果）的比赛
       - 保留本地已手动录入的比赛（本地状态 != "未开赛" 的优先）
       - 同步新增的场次（API 中有但本地没有）
+
+    注意：遵守速率限制，如果超过限制返回 (0, "API 调用次数已用完")
     返回 (updated_count, message)
     """
     try:
         import data.api_client as api
+        import data.api_rate_limiter as rate_limiter
+
+        # 检查速率限制
+        if not rate_limiter.can_call_api():
+            return 0, "API 今日调用次数已用完（50/50），明天再试"
+
         remote_matches = api.get_matches() or []
         if not remote_matches:
             return 0, "API 返回空数据"
@@ -197,90 +205,150 @@ def _check_api_for_updates():
 
 def _auto_sync_if_needed():
     """
-    检查距离上次自动同步是否超过阈值，若是则后台拉 API。
-    结果写入 st.session_state["_api_last_check"] 供 UI 显示。
+    检查是否需要自动同步 API 数据。
+
+    策略：
+    - 遵守速率限制（每天 50 次）
+    - 默认每 2 小时检查一次（而非 30 分钟）
+    - 如果剩余次数 < 10，延长间隔到 6 小时
+    - 如果剩余次数 = 0，不同步
     """
     import time as _time
+    import data.api_rate_limiter as rate_limiter
+
+    # 检查速率限制
+    remaining = rate_limiter.get_remaining_calls()
+    if remaining <= 0:
+        return  # 没有剩余次数，跳过
+
     now = _time.time()
     last = st.session_state.get("_last_auto_sync", 0)
-    interval = st.session_state.get("_auto_sync_interval", 1800)  # 默认 30 分钟
+
+    # 根据剩余次数动态调整间隔
+    if remaining < 10:
+        interval = 3600 * 6  # 剩余 < 10，每 6 小时
+    elif remaining < 30:
+        interval = 3600 * 2  # 剩余 < 30，每 2 小时
+    else:
+        interval = 3600      # 剩余充足，每小时
+
     if now - last < interval:
         return  # 还没到间隔，跳过
+
     st.session_state["_last_auto_sync"] = now
     cnt, msg = _check_api_for_updates()
     ts = pd.Timestamp.now().strftime("%H:%M")
     if cnt > 0:
         st.session_state["_api_last_check"] = f"{ts}（+{cnt}场）"
-        st.session_state["_api_new_data"] = True  # 标记有新数据，下次 rerun 刷新
+        st.session_state["_api_new_data"] = True
     else:
         st.session_state["_api_last_check"] = ts
 
 
-@st.cache_data(ttl=300, show_spinner=False)  # 缓存5分钟
+@st.cache_data(ttl=3600, showspinner=False)  # 缓存1小时，减少重复加载
 def load_all_data():
-    """加载所有数据（带缓存）- 优先从聚合API获取"""
-    # 优先从聚合API获取实时数据
+    """
+    加载所有数据（带缓存）- 优先使用本地数据，API 作为补充
+
+    数据加载策略：
+    1. 始终先加载本地 JSON 文件（standings.json / schedule.json / teams.json）
+    2. 仅在速率限制允许且自动同步触发时，后台拉取 API 数据 merge 到本地
+    3. 不覆盖本地手动录入的数据
+    4. 使用 session_state 避免每次 tab 切换都重新加载
+    """
+    # ── 1. 始终先加载本地数据作为基础 ──
+    raw = ld.load_all()
+    raw["source"] = "本地数据"
+
+    # ── 2. 尝试从 API merge 新数据（仅在速率限制允许时） ──
     try:
-        juhe_data = juhe.sync_all_data()
-        if juhe_data.get("schedule") and len(juhe_data["schedule"]) > 0:
-            # 聚合API有数据，使用聚合数据
-            schedule = juhe_data["schedule"]
-            
-            # 计算积分榜（基于聚合API的赛程数据）
-            standings = ld.recalculate_standings(schedule)
-            
-            raw = {
-                "schedule": schedule,
-                "matches": schedule,
-                "teams": juhe_data["teams"],
-                "standings": standings,
-                "source": "聚合API",
-                "sync_time": juhe_data["sync_time"],
-            }
-        else:
-            # 聚合API返回空数据，使用本地数据
-            raw = ld.load_all()
-            raw["source"] = "本地数据"
+        import data.api_client as api
+        import data.api_rate_limiter as rate_limiter
+
+        # 检查是否有 API key 配置
+        if not api.JUHE_KEY:
+            pass  # 没有 API key，纯本地模式
+        elif rate_limiter.can_call_api():
+            # 有剩余 API 次数，尝试拉取
+            remote_matches = api.get_matches()
+            if remote_matches:
+                # merge API 数据到本地（不覆盖手动录入）
+                local = ld.load_schedule()
+                local_by_id = {str(m.get("id")): m for m in local}
+
+                merge_schedule = [dict(lm) for m in local]
+                api_updated = 0
+                api_added = 0
+
+                for rm in remote_matches:
+                    rid = str(rm.get("id", ""))
+                    local_match = local_by_id.get(rid)
+
+                    api_has_score = (
+                        rm.get("match_des") in ("完赛", "进行中") and
+                        rm.get("host_team_score") is not None and
+                        rm.get("guest_team_score") is not None
+                    )
+
+                    if local_match is not None:
+                        local_populated = (
+                            local_match.get("match_des") not in ("", None) or
+                            local_match.get("host_team_score") is not None
+                        )
+                        if api_has_score and not local_populated:
+                            local_match["host_team_score"] = rm.get("host_team_score")
+                            local_match["guest_team_score"] = rm.get("guest_team_score")
+                            local_match["match_des"] = rm.get("match_des", local_match.get("match_des", ""))
+                            local_match["match_status"] = rm.get("match_status", local_match.get("match_status", ""))
+                            api_updated += 1
+                    else:
+                        merge_schedule.append(rm)
+                        api_added += 1
+
+                if api_updated > 0 or api_added > 0:
+                    ld.save_schedule(merge_schedule)
+                    raw["schedule"] = merge_schedule
+                    raw["source"] = f"本地+API（+{api_updated + api_added}场）"
+                    rate_limiter.record_call("schedule")
+
+                standings = ld.recalculate_standings(raw["schedule"])
+                if standings:
+                    raw["standings"] = standings
     except Exception as e:
-        # 聚合API异常，使用本地数据
-        raw = ld.load_all()
-        raw["source"] = "本地数据（API异常）"
-    
-    # 兼容两种 key 名：schedule 或 matches
+        raw["source"] = f"本地数据（API: {str(e)[:50]}）"
+
+    # ── 3. 确保数据完整性 ──
     matches = raw.get("schedule") or raw.get("matches") or []
 
-    # 确保 standings 存在
     if not raw.get("standings") or len(raw.get("standings", [])) == 0:
         standings = ld.recalculate_standings(matches)
         raw["standings"] = standings
 
-    # Elo — 内置元数据初始化
+    # ── 4. 初始化 Elo 引擎 ──
     engine = elo.EloEngine()
     for cn_, (tid, code, cont, rank) in TEAM.items():
-        # 检测东道主身份
         is_host = tid in config.HOST_TEAM_IDS if hasattr(config, 'HOST_TEAM_IDS') else False
         engine.set_team(tid, cn_, "", fifa_rank=rank, continent=cont,
                         is_defending_champion=(code == "FRA"),
                         is_host_nation=is_host)
-    name2id = {cn_: tid for cn_, (tid, *_) in TEAM.items()}
-    
-    # 只处理已完赛的比赛
+
     for m in matches:
         if m.get("match_des") != "完赛":
             continue
         hg, ag = m.get("host_team_score"), m.get("guest_team_score")
         if hg is None or ag is None:
             continue
-        hid = m.get("host_team_id") or name2id.get(m.get("host_team_name", ""))
-        aid = m.get("guest_team_id") or name2id.get(m.get("guest_team_name", ""))
+        hid = m.get("host_team_id") or CN2ID.get(m.get("host_team_name", ""))
+        aid = m.get("guest_team_id") or CN2ID.get(m.get("guest_team_name", ""))
         if hid and aid:
             try:
                 stage, is_ko = _detect_stage_and_knockout(m)
                 engine.update_after_match(int(hid), int(aid), int(hg), int(ag), stage=stage)
             except Exception:
                 pass
+
     raw["elo"] = engine
-    raw["matches"] = matches   # 保证下游 render_xxx(data) 能拿到数据
+    raw["matches"] = matches
     return raw
 
 
@@ -328,6 +396,9 @@ def gid(name):
 def render_standings(data):
     st.header("📊 小组赛积分榜")
     stnc = data.get("standings") or []
+    # 如果 data 中没有 standings，直接从本地文件加载
+    if not stnc:
+        stnc = ld.load_standings()
     if not stnc:
         st.warning("⚠️ 暂无积分榜数据，请在「数据管理」中录入比赛结果")
         return
@@ -503,10 +574,91 @@ def _pick_best_third(all_third_place, exclude_group, best_third_names):
     return ""
 
 
+def _render_expected_knockout_bracket(group_rankings):
+    """
+    基于当前积分榜显示预期淘汰赛对阵（小组赛尚未结束时的预览）
+    2026世界杯赛制：12组，每组4队，前2名+4个最佳第3名晋级1/16决赛
+    """
+    def get_team(group, rank):
+        teams = group_rankings.get(group, [])
+        idx = rank - 1
+        if 0 <= idx < len(teams):
+            return teams[idx].get("team_name", f"{group}?")
+        return f"{group}?"
+
+    def flag_html(name):
+        meta = TEAM.get(name)
+        fl = FLAG.get(meta[1], "🏳️") if meta else "🏳️"
+        return f"{fl} {name}"
+
+    # 1/16决赛对阵（基于2026世界杯赛制）
+    r16_matchups = [
+        ("A1", "B2"),   # 1
+        ("C1", "D2"),   # 2
+        ("E1", "F2"),   # 3
+        ("G1", "H2"),   # 4
+        ("I1", "J2"),   # 5
+        ("K1", "L2"),   # 6
+        ("B1", "A2"),   # 7
+        ("D1", "C2"),   # 8
+        ("F1", "E2"),   # 9
+        ("H1", "G2"),   # 10
+        ("J1", "I2"),   # 11
+        ("L1", "K2"),   # 12
+        # 4个最佳第3名对阵（简化显示）
+        ("A3", "C3"),   # 13 (示例，实际按积分排序)
+        ("E3", "G3"),   # 14
+        ("I3", "K3"),   # 15
+        ("B3/D3", "F3/H3"),  # 16 (复合)
+    ]
+
+    st.markdown("**🏟️ 预期 1/16 决赛对阵（基于当前积分榜）**")
+
+    # 显示1/16决赛对阵表
+    html = '<div class="knockout-tree">'
+    html += '<div class="ko-round">'
+    for i, (h, a) in enumerate(r16_matchups[:8]):
+        h_name = get_team(h[0], int(h[1]))
+        a_name = get_team(a[0], int(a[1]))
+        html += (
+            f'<div class="ko-match unresolved" style="animation-delay:{i*0.05}s">'
+            f'<div class="ko-stage-label">1/16决赛</div>'
+            f'<div class="ko-team">{flag_html(h_name)}</div>'
+            f'<div class="ko-vs">VS</div>'
+            f'<div class="ko-team">{flag_html(a_name)}</div>'
+            f'</div>'
+        )
+    html += '</div>'
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+    # 小组出线情况摘要
+    st.markdown("**📊 各组出线情况**")
+    groups = sorted(group_rankings.keys())
+    for i in range(0, len(groups), 4):
+        cols = st.columns(4)
+        for j, g in enumerate(groups[i:i+4]):
+            with cols[j]:
+                teams = group_rankings[g]
+                if teams:
+                    first = teams[0].get("team_name", "?")
+                    second = teams[1].get("team_name", "?") if len(teams) > 1 else "?"
+                    fl1 = flag_html(first)
+                    fl2 = flag_html(second)
+                    st.caption(f"**{g}组**: {fl1} / {fl2}")
+
+
 def render_knockout(data):
     st.header("🏆 淘汰赛对阵图")
     matches = data.get("matches") or []
     standings = data.get("standings") or []
+    # 如果 data 中没有 standings，直接从本地加载
+    if not standings:
+        standings = ld.load_standings()
+    # 如果 data 中没有 matches，直接从本地加载
+    if not matches:
+        matches = ld.load_schedule()
+
     stages = {"1/16决赛":[],"1/8决赛":[],"1/4决赛":[],"半决赛":[],"季军战":[],"决赛":[]}
     for m in matches:
         name = m.get("match_type_name","")
@@ -518,7 +670,21 @@ def render_knockout(data):
         elif "决赛" in name: stages["决赛"].append(m)
 
     has_r16 = bool(stages["1/16决赛"])
+
+    # 如果没有淘汰赛数据，显示基于当前积分榜的预期对阵
     if not has_r16:
+        if standings:
+            group_rankings = {}
+            for s in standings:
+                g = s.get("team_group", "")
+                if g:
+                    group_rankings.setdefault(g, []).append(s)
+            for g in group_rankings:
+                group_rankings[g].sort(key=lambda x: int(x.get("rank", "99") or "99"))
+
+            if len(group_rankings) >= 12:
+                _render_expected_knockout_bracket(group_rankings)
+                return
         st.info("淘汰赛数据暂未开放（需小组赛结束后更新）")
         return
 
@@ -1811,6 +1977,11 @@ def render_predictions(data):
     matches = data.get("matches") or []
     engine = data.get("elo")
     standings = data.get("standings") or []
+    # 如果 data 中没有 matches/standings，直接从本地加载
+    if not matches:
+        matches = ld.load_schedule()
+    if not standings:
+        standings = ld.load_standings()
     done = [m for m in matches if m.get("match_des") == "完赛"]
     todo = [m for m in matches if m.get("match_des") != "完赛"]
 
@@ -1844,18 +2015,24 @@ def render_predictions(data):
                 if not (hid and aid):
                     st.warning("无法识别球队 ID")
                     continue
-                stage, is_knockout = _detect_stage_and_knockout(m)
-                mh, ma = _estimate_motivation(m, standings, hid, aid)
-                analysis = _do_analysis(
-                    hid, aid, engine, h, a,
-                    m.get("odds_home"), m.get("odds_draw"), m.get("odds_away"),
-                    stage, None,  # xtra 已移除
-                    is_knockout=is_knockout,
-                    motivation_home=mh, motivation_away=ma,
-                    use_market_odds=bool(m.get("odds_home")),
-                )
+
+                # 缓存分析结果
+                analysis_key = f"_analysis_{h}_{a}"
+                if analysis_key not in st.session_state:
+                    stage, is_knockout = _detect_stage_and_knockout(m)
+                    mh, ma = _estimate_motivation(m, standings, hid, aid)
+                    with st.spinner("🔍 正在分析..."):
+                        st.session_state[analysis_key] = _do_analysis(
+                            hid, aid, engine, h, a,
+                            m.get("odds_home"), m.get("odds_draw"), m.get("odds_away"),
+                            stage, None,
+                            is_knockout=is_knockout,
+                            motivation_home=mh, motivation_away=ma,
+                            use_market_odds=bool(m.get("odds_home")),
+                        )
+                analysis = st.session_state[analysis_key]
                 _render_analysis_card(analysis)
-                
+
                 # 保存预测数据到session_state（用于复盘）
                 prediction_key = f"_prediction_{h}_{a}"
                 st.session_state[prediction_key] = analysis
@@ -2014,7 +2191,12 @@ def render_predictions(data):
                 else:
                     st.info("💡 请在「赔率导入」Tab 上传 Excel 文件导入赔率")
 
-                if st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
+                # 缓存分析结果，避免每次 rerun 都重新计算
+                analysis_key = f"_analysis_{mid}"
+                if analysis_key in st.session_state:
+                    # 使用缓存的分析结果
+                    _render_analysis_card(st.session_state[analysis_key])
+                elif st.button(f"🎯 分析这场比赛", key=f"analyze_{mid}"):
                     hid = m.get("host_team_id") or gid(h)
                     aid = m.get("guest_team_id") or gid(a)
                     if not (hid and aid):
@@ -2029,14 +2211,17 @@ def render_predictions(data):
                     od = oi.get("od") if oi else None
                     oa = oi.get("oa") if oi else None
 
-                    analysis = _do_analysis(
-                        hid, aid, engine, h, a,
-                        oh, od, oa,
-                        stage, None,  # xtra 已移除
-                        is_knockout=is_knockout,
-                        motivation_home=mh, motivation_away=ma,
-                        use_market_odds=bool(oh),
-                    )
+                    with st.spinner("🔍 正在分析（蒙特卡洛模拟 50000 次）..."):
+                        analysis = _do_analysis(
+                            hid, aid, engine, h, a,
+                            oh, od, oa,
+                            stage, None,
+                            is_knockout=is_knockout,
+                            motivation_home=mh, motivation_away=ma,
+                            use_market_odds=bool(oh),
+                        )
+                    # 缓存到 session_state
+                    st.session_state[analysis_key] = analysis
                     _render_analysis_card(analysis)
 
     # ── Tab 3: 赔率导入 ──
@@ -2473,7 +2658,7 @@ def render_data_manager():
     loc = ld.load_all()
     source = loc.get("source", "本地数据")
     sync_time = loc.get("sync_time", "未知")
-    
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("数据来源", source)
     c2.metric("积分榜条目", f"{len(loc.get('standings',[]))} 条")
@@ -2482,43 +2667,68 @@ def render_data_manager():
     c3.metric("赛程", f"{len(sc)} 场 (已赛{fin})")
     c4.metric("同步时间", sync_time[:19] if sync_time else time.strftime("%H:%M:%S"))
 
+    # 显示 API 配额状态
+    import data.api_rate_limiter as _rl
+    rate_status = _rl.get_rate_limit_status()
+    st.divider()
+    st.subheader("📊 API 配额状态")
+    rc1, rc2, rc3 = st.columns(3)
+    rc1.metric("今日已调用", f"{rate_status['calls_today']}/50")
+    rc2.metric("剩余", f"{rate_status['remaining']}/50")
+    if rate_status["last_call"]:
+        rc3.metric("上次调用", rate_status["last_call"]["endpoint"])
+    else:
+        rc3.metric("上次调用", "无")
+
     st.divider()
 
-    # API同步按钮
+    # API同步按钮（遵守速率限制）
+    import data.api_rate_limiter as _rl
+    remaining_api = _rl.get_remaining_calls()
+
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 从聚合API拉取最新数据", type="primary"):
-            try:
-                with st.spinner("⏳ 正在从聚合API拉取赛程/球队/积分榜..."):
-                    juhe_data = juhe.sync_all_data()
-                    
-                    if juhe_data.get("schedule"):
-                        # 保存到本地
-                        ld.save_schedule(juhe_data["schedule"])
-                        st.success(f"✅ 赛程已更新: {len(juhe_data['schedule'])} 场")
-                    
-                    if juhe_data.get("teams"):
-                        ld.save_teams(juhe_data["teams"])
-                        st.success(f"✅ 球队已更新: {len(juhe_data['teams'])} 支")
-                    
-                    if juhe_data.get("standings"):
-                        ld.save_standings(juhe_data["standings"])
-                        st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
-                    
-                    if juhe_data.get("schedule") or juhe_data.get("standings"):
-                        st.cache_data.clear()
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ 聚合API返回空数据")
-            except Exception as e:
-                st.error(f"❌ 聚合API拉取失败: {str(e)[:200]}")
-    
+        if remaining_api <= 0:
+            st.error("🔴 API 今日调用次数已用完（50/50），请明天再试")
+        else:
+            if remaining_api < 10:
+                st.warning(f"⚠️ 剩余 {remaining_api}/50 次，建议节省使用")
+            if st.button("🔄 从聚合API拉取最新数据", type="primary"):
+                try:
+                    with st.spinner("⏳ 正在从聚合API拉取赛程/球队/积分榜..."):
+                        # 记录 3 次 API 调用
+                        _rl.record_call("schedule")
+                        _rl.record_call("teams")
+                        _rl.record_call("standings")
+                        juhe_data = juhe.sync_all_data()
+
+                        if juhe_data.get("schedule"):
+                            ld.save_schedule(juhe_data["schedule"])
+                            st.success(f"✅ 赛程已更新: {len(juhe_data['schedule'])} 场")
+
+                        if juhe_data.get("teams"):
+                            ld.save_teams(juhe_data["teams"])
+                            st.success(f"✅ 球队已更新: {len(juhe_data['teams'])} 支")
+
+                        if juhe_data.get("standings"):
+                            ld.save_standings(juhe_data["standings"])
+                            st.success(f"✅ 积分榜已更新: {len(juhe_data['standings'])} 条")
+
+                        if juhe_data.get("schedule") or juhe_data.get("standings"):
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.warning("⚠️ 聚合API返回空数据")
+                except Exception as e:
+                    st.error(f"❌ 聚合API拉取失败: {str(e)[:200]}")
+
     with col2:
         if st.button("📊 查看聚合API状态"):
             st.info(f"**聚合API配置**")
             st.caption(f"API地址: https://apis.juhe.cn/fapigw/worldcup2026/schedule")
+            st.caption(f"今日已调用: {_rl.get_rate_limit_status()['calls_today']}/50")
+            st.caption(f"剩余: {_rl.get_rate_limit_status()['remaining']}/50")
             st.caption(f"API Key: cacdf03f36ed28cd9c61785656c30dfb（内置）")
-            st.caption(f"MCP服务: https://mcp.juhe.cn/sse?token=...（内置）")
 
     st.divider()
     st.subheader("📝 单场更新")
@@ -2594,19 +2804,23 @@ def main():
     st.markdown('<div class="main-title">⚽ 2026 美加墨世界杯比分预测</div>',unsafe_allow_html=True)
     st.markdown(f'<div class="subtitle">四层融合|Elo+泊松+蒙特卡洛+贝叶斯|本地+API混合|{pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")}</div>',unsafe_allow_html=True)
 
-    # ── 自动同步（每 30 分钟检测一次） ──
+    # ── 自动同步（遵守速率限制，动态间隔） ──
     _auto_sync_if_needed()
 
     # 如果有新数据提醒
     if st.session_state.get("_api_new_data"):
         st.toast("🎉 API 发现新比赛数据，已自动同步到本地！", icon="✅")
         st.session_state["_api_new_data"] = False
-        # 延迟 rerun 让最新数据生效
         import time as _time; _time.sleep(1)
         st.cache_data.clear()
         st.rerun()
 
-    data = load_all_data()
+    # 使用 session_state 缓存数据，避免每次 rerun 都重新加载
+    if "_cached_data" not in st.session_state:
+        data = load_all_data()
+        st.session_state["_cached_data"] = data
+    else:
+        data = st.session_state["_cached_data"]
 
     with st.sidebar:
         st.title("🎮 控制面板")
@@ -2651,24 +2865,52 @@ def main():
 
         # ── 自动同步间隔 ──
         st.divider()
-        st.session_state.setdefault("_auto_sync_interval", 1800)
+        import data.api_rate_limiter as _rate_limiter
+        rate_status = _rate_limiter.get_rate_limit_status()
+        remaining = rate_status["remaining"]
+
+        # 显示 API 配额状态
+        st.markdown(f"**📊 API 配额**")
+        if remaining > 20:
+            st.success(f"✅ 剩余 {remaining}/{rate_status['max_daily']} 次")
+        elif remaining > 5:
+            st.warning(f"⚠️ 剩余 {remaining}/{rate_status['max_daily']} 次")
+        else:
+            st.error(f"🔴 剩余 {remaining}/{rate_status['max_daily']} 次")
+
+        if rate_status["last_call"]:
+            last_ep = rate_status["last_call"].get("endpoint", "")
+            last_ts = rate_status["last_call"].get("timestamp", "")[:19]
+            st.caption(f"上次: {last_ep} @ {last_ts}")
+
+        # 自动同步间隔（根据剩余次数动态调整）
+        default_interval = 3600  # 默认每小时
+        if remaining < 10:
+            default_interval = 3600 * 6
+        elif remaining < 30:
+            default_interval = 3600 * 2
+
+        st.session_state.setdefault("_auto_sync_interval", default_interval)
         interval_min = st.selectbox(
             "⏱️ 自动同步间隔",
-            options=[("关闭自动同步", 0), ("每 10 分钟", 600), ("每 30 分钟", 1800), ("每 1 小时", 3600)],
-            index=2,
+            options=[("关闭自动同步", 0), ("每 30 分钟", 1800), ("每 1 小时", 3600), ("每 2 小时", 7200)],
+            index=2 if remaining > 10 else 3,
             format_func=lambda x: x[0])
         st.session_state["_auto_sync_interval"] = interval_min[1]
 
         # ── 手动立即同步 ──
-        if st.button("🔄 立即同步 API 数据"):
-            st.session_state["_last_auto_sync"] = 0  # 重置计时器触发同步
-            cnt, msg = _check_api_for_updates()
-            if cnt > 0:
-                st.cache_data.clear()
-                st.toast(f"✅ {msg}", icon="🎉")
-                st.rerun()
+        if st.button("🔄 立即同步 API 数据", disabled=(remaining <= 0)):
+            if remaining <= 0:
+                st.error("API 今日调用次数已用完")
             else:
-                st.info(msg)
+                st.session_state["_last_auto_sync"] = 0
+                cnt, msg = _check_api_for_updates()
+                if cnt > 0:
+                    st.cache_data.clear()
+                    st.toast(f"✅ {msg}", icon="🎉")
+                    st.rerun()
+                else:
+                    st.info(msg)
 
         eng = data.get("elo")
         if eng and eng.teams:
@@ -2681,7 +2923,11 @@ def main():
                     fifa_rank = meta[3] if meta[3] else "?"
                     st.text(f"{r}. {flag_} {info['name']} — Elo:{info['rating']:.0f} | FIFA排名:{fifa_rank}")
         st.divider()
-        if st.button("🔄 刷新"): st.cache_data.clear(); st.rerun()
+        if st.button("🔄 刷新"):
+            st.cache_data.clear()
+            if "_cached_data" in st.session_state:
+                del st.session_state["_cached_data"]
+            st.rerun()
 
     tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理"])
     with tabs[0]: render_standings(data)
