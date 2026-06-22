@@ -245,7 +245,7 @@ def _auto_sync_if_needed():
         st.session_state["_api_last_check"] = ts
 
 
-@st.cache_data(ttl=3600, showspinner=False)  # 缓存1小时，减少重复加载
+@st.cache_data(ttl=3600, show_spinner=False)  # 缓存1小时，减少重复加载
 def load_all_data():
     """
     加载所有数据（带缓存）- 优先使用本地数据，API 作为补充
