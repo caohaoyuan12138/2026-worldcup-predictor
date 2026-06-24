@@ -1,54 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
-*.egg
-
-# Virtual environments
-venv/
-.venv/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Data cache (large files, regenerated at runtime)
-data_local/juhe_*.json
-data_local/elo_cache.json
-data_local/odds_*.json
-data_local/cache_stats.json
-
-# Uploads
-uploads/
-
-# Temp
-*.tmp
-*.log
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Environment
+node_modules/
 .env
-.env.local
+*.log
+auth_qr.png
+auth_read_qr.png

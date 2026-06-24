@@ -1,0 +1,338 @@
+{
+  "墨西哥": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 11
+  },
+  "韩国": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 24
+  },
+  "捷克": {
+    "attackBase": 0.9,
+    "defenseBase": 1.3,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 44
+  },
+  "南非": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 60
+  },
+  "加拿大": {
+    "attackBase": 1.5,
+    "defenseBase": 1.3,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 29
+  },
+  "瑞士": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 17
+  },
+  "波黑": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 64
+  },
+  "卡塔尔": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 56
+  },
+  "巴西": {
+    "attackBase": 1.8,
+    "defenseBase": 1,
+    "style": "技术流派",
+    "styleFactor": 1.05,
+    "rank": 5
+  },
+  "摩洛哥": {
+    "attackBase": 1.5,
+    "defenseBase": 0.7,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 6
+  },
+  "苏格兰": {
+    "attackBase": 0.9,
+    "defenseBase": 1.3,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 41
+  },
+  "海地": {
+    "attackBase": 0.6,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 83
+  },
+  "美国": {
+    "attackBase": 1.5,
+    "defenseBase": 1.3,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 13
+  },
+  "澳大利亚": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 26
+  },
+  "巴拉圭": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 37
+  },
+  "土耳其": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "技术流派",
+    "styleFactor": 1.05,
+    "rank": 32
+  },
+  "德国": {
+    "attackBase": 1.8,
+    "defenseBase": 1,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 9
+  },
+  "科特迪瓦": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 31
+  },
+  "厄瓜多尔": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 30
+  },
+  "库拉索": {
+    "attackBase": 0.6,
+    "defenseBase": 1.9,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 82
+  },
+  "荷兰": {
+    "attackBase": 1.5,
+    "defenseBase": 1,
+    "style": "全攻全守",
+    "styleFactor": 1.1,
+    "rank": 8
+  },
+  "日本": {
+    "attackBase": 1.5,
+    "defenseBase": 1,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 16
+  },
+  "瑞典": {
+    "attackBase": 1.2,
+    "defenseBase": 1.6,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 36
+  },
+  "突尼斯": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 45
+  },
+  "比利时": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 9
+  },
+  "埃及": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 29
+  },
+  "伊朗": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 20
+  },
+  "新西兰": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 85
+  },
+  "西班牙": {
+    "attackBase": 1.8,
+    "defenseBase": 1,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 2
+  },
+  "佛得角": {
+    "attackBase": 0.9,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 67
+  },
+  "沙特阿拉伯": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 61
+  },
+  "乌拉圭": {
+    "attackBase": 1.5,
+    "defenseBase": 1.3,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 16
+  },
+  "法国": {
+    "attackBase": 1.8,
+    "defenseBase": 0.7,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 3
+  },
+  "挪威": {
+    "attackBase": 1.5,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 31
+  },
+  "伊拉克": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 57
+  },
+  "塞内加尔": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 15
+  },
+  "阿根廷": {
+    "attackBase": 1.8,
+    "defenseBase": 0.7,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 1
+  },
+  "奥地利": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 24
+  },
+  "阿尔及利亚": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "技术流派",
+    "styleFactor": 1.05,
+    "rank": 28
+  },
+  "约旦": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 63
+  },
+  "葡萄牙": {
+    "attackBase": 1.8,
+    "defenseBase": 1,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 5
+  },
+  "哥伦比亚": {
+    "attackBase": 1.5,
+    "defenseBase": 1.3,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 13
+  },
+  "刚果(金)": {
+    "attackBase": 1.2,
+    "defenseBase": 1,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 46
+  },
+  "乌兹别克斯坦": {
+    "attackBase": 0.9,
+    "defenseBase": 1.6,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 50
+  },
+  "英格兰": {
+    "attackBase": 1.5,
+    "defenseBase": 1,
+    "style": "高压逼抢",
+    "styleFactor": 1.15,
+    "rank": 4
+  },
+  "克罗地亚": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 11
+  },
+  "加纳": {
+    "attackBase": 1.2,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 73
+  },
+  "巴拿马": {
+    "attackBase": 0.9,
+    "defenseBase": 1.3,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 34
+  }
+}

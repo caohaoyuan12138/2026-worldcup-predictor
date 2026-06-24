@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌍 2026 世界杯预测仪表盘</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e17; color: #e0e8f0; padding: 20px; }
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 1.8rem; margin-bottom: 5px; background: linear-gradient(90deg, #f59e0b, #ef4444, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.subtitle { color: #8899aa; font-size: 0.9rem; margin-bottom: 20px; }
+.overview-card { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.stat { background: #141b29; border-radius: 12px; padding: 16px 24px; flex: 1; min-width: 100px; text-align: center; border: 1px solid #1e2d45; }
+.stat-num { display: block; font-size: 1.8rem; font-weight: 700; color: #f0c040; }
+.stat-label { display: block; font-size: 0.8rem; color: #8899aa; margin-top: 4px; }
+h2 { font-size: 1.1rem; margin: 16px 0 12px; color: #c8d8e8; border-left: 3px solid #3b82f6; padding-left: 10px; }
+.group-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: #141b29; border-radius: 8px; margin-bottom: 4px; border: 1px solid #1e2d45; }
+.group-label { font-weight: 700; color: #f0c040; width: 28px; }
+.group-teams { color: #b0c0d0; font-size: 0.85rem; }
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.group-card { background: #141b29; border-radius: 12px; padding: 16px; border: 1px solid #1e2d45; }
+.group-card h2 { margin: 0 0 10px; font-size: 1rem; border: none; padding: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+th { color: #8899aa; font-weight: 600; padding: 6px 4px; text-align: center; border-bottom: 1px solid #1e2d45; }
+td { padding: 5px 4px; text-align: center; }
+td:first-child { text-align: left; font-weight: 600; }
+.bar-wrap { position: relative; width: 100%; height: 20px; background: #1e2d45; border-radius: 10px; overflow: hidden; }
+.bar { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 10px; transition: width 0.5s; }
+.bar-label { position: absolute; left: 8px; top: 2px; font-size: 0.7rem; font-weight: 600; color: #fff; }
+.predictions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.pred-card { background: #141b29; border-radius: 12px; padding: 14px; border: 1px solid #1e2d45; }
+.pred-header { font-size: 0.75rem; color: #8899aa; margin-bottom: 4px; }
+.pred-teams { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.pred-lambda { font-size: 0.75rem; color: #8899aa; margin-bottom: 6px; }
+.pred-top { font-size: 0.85rem; margin-bottom: 8px; }
+.pred-top strong { color: #f0c040; font-size: 1rem; }
+.win-bar-wrap { display: flex; height: 22px; border-radius: 11px; overflow: hidden; margin-bottom: 8px; font-size: 0.65rem; font-weight: 600; }
+.home-bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); display: flex; align-items: center; justify-content: center; color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.draw-bar { background: linear-gradient(90deg, #8b5cf6, #a78bfa); display: flex; align-items: center; justify-content: center; color: #fff; }
+.away-bar { background: linear-gradient(90deg, #ef4444, #f87171); display: flex; align-items: center; justify-content: center; color: #fff; }
+.pred-scores { display: flex; gap: 6px; flex-wrap: wrap; }
+.score-chip { background: #1e2d45; border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; color: #b0c0d0; }
+.score-dist { background: #141b29; border-radius: 12px; padding: 16px; border: 1px solid #1e2d45; margin-bottom: 24px; }
+.score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.score-label { width: 50px; font-weight: 700; font-size: 0.85rem; }
+.score-val { font-size: 0.8rem; color: #8899aa; white-space: nowrap; min-width: 80px; }
+.score-bar { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.footer { text-align: center; color: #556677; font-size: 0.75rem; margin-top: 24px; padding: 16px; border-top: 1px solid #1e2d45; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌍 2026 世界杯 - 预测仪表盘</h1>
+  <div class="subtitle">数据来源: 曹昊源  |  蒙特卡洛: 5,000次/场  |  Dixon-Coles修正  |  更新: 2026-06-24</div>
+
+  
+    <div class="overview-card">
+      <div class="stat"><span class="stat-num">46</span><span class="stat-label">已完赛场次</span></div>
+      <div class="stat"><span class="stat-num">3.02</span><span class="stat-label">场均进球</span></div>
+      <div class="stat"><span class="stat-num">52.2%</span><span class="stat-label">主胜率</span></div>
+      <div class="stat"><span class="stat-num">30.4%</span><span class="stat-label">平率</span></div>
+      <div class="stat"><span class="stat-num">17.4%</span><span class="stat-label">客胜率</span></div>
+      <div class="stat"><span class="stat-num">20</span><span class="stat-label">剩余小组赛</span></div>
+    </div>
+  
+
+  <h2>📊 小组积分榜总览</h2>
+  <div class="groups-grid">
+    <div class="group-card">
+      <h2>Group A</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>墨西哥</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>3</td>
+        <td>0</td>
+        <td>+3</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>韩国</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>捷克</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>2</td>
+        <td>3</td>
+        <td>-1</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:17%"></div><span class="bar-label">1分</span></div></td>
+      </tr><tr>
+        <td>南非</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1</td>
+        <td>3</td>
+        <td>-2</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:17%"></div><span class="bar-label">1分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group B</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>加拿大</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>7</td>
+        <td>1</td>
+        <td>+6</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>瑞士</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>5</td>
+        <td>2</td>
+        <td>+3</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>波黑</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>2</td>
+        <td>5</td>
+        <td>-3</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:25%"></div><span class="bar-label">1分</span></div></td>
+      </tr><tr>
+        <td>卡塔尔</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1</td>
+        <td>7</td>
+        <td>-6</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:25%"></div><span class="bar-label">1分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group C</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>巴西</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>4</td>
+        <td>1</td>
+        <td>+3</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>摩洛哥</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>2</td>
+        <td>1</td>
+        <td>+1</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>苏格兰</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:75%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>海地</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>4</td>
+        <td>-4</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group D</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>美国</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>6</td>
+        <td>1</td>
+        <td>+5</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>澳大利亚</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>巴拉圭</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>4</td>
+        <td>-2</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>土耳其</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>3</td>
+        <td>-3</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group E</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>德国</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>9</td>
+        <td>2</td>
+        <td>+7</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>科特迪瓦</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>厄瓜多尔</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>-1</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:17%"></div><span class="bar-label">1分</span></div></td>
+      </tr><tr>
+        <td>库拉索</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1</td>
+        <td>7</td>
+        <td>-6</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:17%"></div><span class="bar-label">1分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group F</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>荷兰</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>7</td>
+        <td>3</td>
+        <td>+4</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>日本</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>6</td>
+        <td>2</td>
+        <td>+4</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>瑞典</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>6</td>
+        <td>6</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:75%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>突尼斯</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>1</td>
+        <td>9</td>
+        <td>-8</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group G</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>埃及</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>4</td>
+        <td>2</td>
+        <td>+2</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>伊朗</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td><strong>2</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">2分</span></div></td>
+      </tr><tr>
+        <td>比利时</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td><strong>2</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">2分</span></div></td>
+      </tr><tr>
+        <td>新西兰</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>3</td>
+        <td>5</td>
+        <td>-2</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:25%"></div><span class="bar-label">1分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group H</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>西班牙</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>4</td>
+        <td>0</td>
+        <td>+4</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>乌拉圭</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>3</td>
+        <td>3</td>
+        <td>0</td>
+        <td><strong>2</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">2分</span></div></td>
+      </tr><tr>
+        <td>佛得角</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td><strong>2</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">2分</span></div></td>
+      </tr><tr>
+        <td>沙特阿拉伯</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>1</td>
+        <td>5</td>
+        <td>-4</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:25%"></div><span class="bar-label">1分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group I</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>法国</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>6</td>
+        <td>1</td>
+        <td>+5</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>挪威</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>7</td>
+        <td>3</td>
+        <td>+4</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>塞内加尔</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>3</td>
+        <td>6</td>
+        <td>-3</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr><tr>
+        <td>伊拉克</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>1</td>
+        <td>7</td>
+        <td>-6</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group J</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>阿根廷</td>
+        <td>2</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>5</td>
+        <td>0</td>
+        <td>+5</td>
+        <td><strong>6</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">6分</span></div></td>
+      </tr><tr>
+        <td>奥地利</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>3</td>
+        <td>3</td>
+        <td>0</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>阿尔及利亚</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>4</td>
+        <td>-2</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:50%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>约旦</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>2</td>
+        <td>5</td>
+        <td>-3</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group K</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>葡萄牙</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>6</td>
+        <td>1</td>
+        <td>+5</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>哥伦比亚</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>3</td>
+        <td>1</td>
+        <td>+2</td>
+        <td><strong>3</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:75%"></div><span class="bar-label">3分</span></div></td>
+      </tr><tr>
+        <td>刚果(金)</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td><strong>1</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:25%"></div><span class="bar-label">1分</span></div></td>
+      </tr><tr>
+        <td>乌兹别克斯坦</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>2</td>
+        <td>1</td>
+        <td>8</td>
+        <td>-7</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div><div class="group-card">
+      <h2>Group L</h2>
+      <table><thead><tr><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th><th></th></tr></thead><tbody><tr>
+        <td>英格兰</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>4</td>
+        <td>2</td>
+        <td>+2</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>加纳</td>
+        <td>2</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>+1</td>
+        <td><strong>4</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:100%"></div><span class="bar-label">4分</span></div></td>
+      </tr><tr>
+        <td>巴拿马</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1</td>
+        <td>-1</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr><tr>
+        <td>克罗地亚</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>4</td>
+        <td>-2</td>
+        <td><strong>0</strong></td>
+        <td><div class="bar-wrap"><div class="bar" style="width:0%"></div><span class="bar-label">0分</span></div></td>
+      </tr></tbody></table>
+    </div>
+  </div>
+
+  <h2>📈 第3轮预测 (20场)</h2>
+  <div class="predictions-grid">
+    <div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group A</div>
+      <div class="pred-teams">捷克 vs 墨西哥</div>
+      <div class="pred-lambda">λ 0.81 : 1.15</div>
+      <div class="pred-top">最可能: <strong>0-1</strong> (16.1%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:26%">捷克 25.7%</div>
+        <div class="win-bar draw-bar" style="width:30%">平 30.1%</div>
+        <div class="win-bar away-bar" style="width:44%">墨西哥 44.2%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-1 16.1%</span><span class="score-chip">0-0 13.5%</span><span class="score-chip">1-1 13.2%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group A</div>
+      <div class="pred-teams">南非 vs 韩国</div>
+      <div class="pred-lambda">λ 0.55 : 0.97</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (21.9%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:21%">南非 20.7%</div>
+        <div class="win-bar draw-bar" style="width:35%">平 35.4%</div>
+        <div class="win-bar away-bar" style="width:44%">韩国 43.9%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 21.9%</span><span class="score-chip">0-1 20.3%</span><span class="score-chip">1-0 12.8%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group E</div>
+      <div class="pred-teams">厄瓜多尔 vs 德国</div>
+      <div class="pred-lambda">λ 0.57 : 2.64</div>
+      <div class="pred-top">最可能: <strong>0-2</strong> (13.9%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:7%">厄瓜多尔 6.6%</div>
+        <div class="win-bar draw-bar" style="width:12%">平 12.3%</div>
+        <div class="win-bar away-bar" style="width:81%">德国 81.1%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-2 13.9%</span><span class="score-chip">0-3 12.5%</span><span class="score-chip">0-1 10.6%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group E</div>
+      <div class="pred-teams">库拉索 vs 科特迪瓦</div>
+      <div class="pred-lambda">λ 0.42 : 0.90</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (26.3%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:17%">库拉索 16.7%</div>
+        <div class="win-bar draw-bar" style="width:38%">平 37.9%</div>
+        <div class="win-bar away-bar" style="width:45%">科特迪瓦 45.4%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 26.3%</span><span class="score-chip">0-1 24.5%</span><span class="score-chip">1-0 11.9%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group F</div>
+      <div class="pred-teams">日本 vs 瑞典</div>
+      <div class="pred-lambda">λ 1.89 : 1.64</div>
+      <div class="pred-top">最可能: <strong>1-1</strong> (9.4%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:45%">日本 44.9%</div>
+        <div class="win-bar draw-bar" style="width:22%">平 22.4%</div>
+        <div class="win-bar away-bar" style="width:33%">瑞典 32.7%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-1 9.4%</span><span class="score-chip">2-1 9.1%</span><span class="score-chip">2-2 7.4%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group F</div>
+      <div class="pred-teams">突尼斯 vs 荷兰</div>
+      <div class="pred-lambda">λ 0.59 : 1.94</div>
+      <div class="pred-top">最可能: <strong>0-2</strong> (15.9%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:10%">突尼斯 10.4%</div>
+        <div class="win-bar draw-bar" style="width:19%">平 18.8%</div>
+        <div class="win-bar away-bar" style="width:71%">荷兰 70.9%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-2 15.9%</span><span class="score-chip">0-1 15.3%</span><span class="score-chip">0-3 10.3%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group D</div>
+      <div class="pred-teams">土耳其 vs 美国</div>
+      <div class="pred-lambda">λ 0.68 : 1.85</div>
+      <div class="pred-top">最可能: <strong>0-2</strong> (15.5%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:13%">土耳其 13.3%</div>
+        <div class="win-bar draw-bar" style="width:21%">平 21.5%</div>
+        <div class="win-bar away-bar" style="width:65%">美国 65.3%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-2 15.5%</span><span class="score-chip">0-1 14.2%</span><span class="score-chip">1-1 9.5%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-25 | Group D</div>
+      <div class="pred-teams">巴拉圭 vs 澳大利亚</div>
+      <div class="pred-lambda">λ 0.91 : 0.87</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (17.3%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:34%">巴拉圭 33.5%</div>
+        <div class="win-bar draw-bar" style="width:35%">平 34.8%</div>
+        <div class="win-bar away-bar" style="width:32%">澳大利亚 31.7%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 17.3%</span><span class="score-chip">1-0 14.6%</span><span class="score-chip">0-1 14.5%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group I</div>
+      <div class="pred-teams">挪威 vs 法国</div>
+      <div class="pred-lambda">λ 2.13 : 2.08</div>
+      <div class="pred-top">最可能: <strong>2-2</strong> (8.1%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:40%">挪威 40.3%</div>
+        <div class="win-bar draw-bar" style="width:21%">平 20.6%</div>
+        <div class="win-bar away-bar" style="width:39%">法国 39.1%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">2-2 8.1%</span><span class="score-chip">2-1 7.2%</span><span class="score-chip">1-1 6.5%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group I</div>
+      <div class="pred-teams">塞内加尔 vs 伊拉克</div>
+      <div class="pred-lambda">λ 1.08 : 0.54</div>
+      <div class="pred-top">最可能: <strong>1-0</strong> (21.6%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:49%">塞内加尔 49.0%</div>
+        <div class="win-bar draw-bar" style="width:33%">平 32.9%</div>
+        <div class="win-bar away-bar" style="width:18%">伊拉克 18.1%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-0 21.6%</span><span class="score-chip">0-0 19.3%</span><span class="score-chip">1-1 11.7%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group H</div>
+      <div class="pred-teams">佛得角 vs 沙特阿拉伯</div>
+      <div class="pred-lambda">λ 0.71 : 0.57</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (27.0%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:35%">佛得角 34.8%</div>
+        <div class="win-bar draw-bar" style="width:39%">平 38.6%</div>
+        <div class="win-bar away-bar" style="width:27%">沙特阿拉伯 26.7%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 27.0%</span><span class="score-chip">1-0 20.2%</span><span class="score-chip">0-1 16.5%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group H</div>
+      <div class="pred-teams">乌拉圭 vs 西班牙</div>
+      <div class="pred-lambda">λ 1.40 : 1.68</div>
+      <div class="pred-top">最可能: <strong>1-1</strong> (11.0%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:32%">乌拉圭 32.2%</div>
+        <div class="win-bar draw-bar" style="width:23%">平 23.1%</div>
+        <div class="win-bar away-bar" style="width:45%">西班牙 44.7%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-1 11.0%</span><span class="score-chip">1-2 9.7%</span><span class="score-chip">0-1 7.7%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group G</div>
+      <div class="pred-teams">埃及 vs 伊朗</div>
+      <div class="pred-lambda">λ 1.24 : 0.87</div>
+      <div class="pred-top">最可能: <strong>1-0</strong> (15.6%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:46%">埃及 46.0%</div>
+        <div class="win-bar draw-bar" style="width:28%">平 28.5%</div>
+        <div class="win-bar away-bar" style="width:26%">伊朗 25.5%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-0 15.6%</span><span class="score-chip">1-1 13.0%</span><span class="score-chip">0-0 11.6%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-26 | Group G</div>
+      <div class="pred-teams">新西兰 vs 比利时</div>
+      <div class="pred-lambda">λ 0.86 : 0.80</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (19.1%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:35%">新西兰 34.8%</div>
+        <div class="win-bar draw-bar" style="width:35%">平 34.7%</div>
+        <div class="win-bar away-bar" style="width:30%">比利时 30.5%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 19.1%</span><span class="score-chip">1-0 17.4%</span><span class="score-chip">0-1 14.3%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group L</div>
+      <div class="pred-teams">巴拿马 vs 英格兰</div>
+      <div class="pred-lambda">λ 0.43 : 1.60</div>
+      <div class="pred-top">最可能: <strong>0-1</strong> (21.5%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:9%">巴拿马 9.0%</div>
+        <div class="win-bar draw-bar" style="width:24%">平 23.9%</div>
+        <div class="win-bar away-bar" style="width:67%">英格兰 67.1%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-1 21.5%</span><span class="score-chip">0-2 17.6%</span><span class="score-chip">0-0 13.0%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group L</div>
+      <div class="pred-teams">克罗地亚 vs 加纳</div>
+      <div class="pred-lambda">λ 1.34 : 0.70</div>
+      <div class="pred-top">最可能: <strong>1-0</strong> (17.1%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:52%">克罗地亚 51.7%</div>
+        <div class="win-bar draw-bar" style="width:30%">平 29.7%</div>
+        <div class="win-bar away-bar" style="width:19%">加纳 18.6%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-0 17.1%</span><span class="score-chip">0-0 13.2%</span><span class="score-chip">1-1 12.8%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group K</div>
+      <div class="pred-teams">哥伦比亚 vs 葡萄牙</div>
+      <div class="pred-lambda">λ 1.84 : 2.03</div>
+      <div class="pred-top">最可能: <strong>1-2</strong> (8.1%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:35%">哥伦比亚 35.5%</div>
+        <div class="win-bar draw-bar" style="width:21%">平 20.5%</div>
+        <div class="win-bar away-bar" style="width:44%">葡萄牙 44.0%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">1-2 8.1%</span><span class="score-chip">2-2 7.4%</span><span class="score-chip">1-1 7.2%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group K</div>
+      <div class="pred-teams">刚果(金) vs 乌兹别克斯坦</div>
+      <div class="pred-lambda">λ 0.92 : 0.58</div>
+      <div class="pred-top">最可能: <strong>0-0</strong> (22.4%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:41%">刚果(金) 41.3%</div>
+        <div class="win-bar draw-bar" style="width:36%">平 35.9%</div>
+        <div class="win-bar away-bar" style="width:23%">乌兹别克斯坦 22.8%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-0 22.4%</span><span class="score-chip">1-0 20.4%</span><span class="score-chip">0-1 13.2%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group J</div>
+      <div class="pred-teams">阿尔及利亚 vs 奥地利</div>
+      <div class="pred-lambda">λ 1.01 : 1.18</div>
+      <div class="pred-top">最可能: <strong>0-1</strong> (13.9%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:32%">阿尔及利亚 31.7%</div>
+        <div class="win-bar draw-bar" style="width:29%">平 29.5%</div>
+        <div class="win-bar away-bar" style="width:39%">奥地利 38.8%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-1 13.9%</span><span class="score-chip">1-1 13.4%</span><span class="score-chip">1-0 11.4%</span>
+      </div>
+    </div><div class="pred-card">
+      <div class="pred-header">2026-06-27 | Group J</div>
+      <div class="pred-teams">约旦 vs 阿根廷</div>
+      <div class="pred-lambda">λ 0.80 : 1.78</div>
+      <div class="pred-top">最可能: <strong>0-1</strong> (13.7%)</div>
+      <div class="win-bar-wrap">
+        <div class="win-bar home-bar" style="width:16%">约旦 15.9%</div>
+        <div class="win-bar draw-bar" style="width:24%">平 24.1%</div>
+        <div class="win-bar away-bar" style="width:60%">阿根廷 60.0%</div>
+      </div>
+      <div class="pred-scores">
+        <span class="score-chip">0-1 13.7%</span><span class="score-chip">0-2 11.9%</span><span class="score-chip">1-1 11.7%</span>
+      </div>
+    </div>
+  </div>
+
+  <h2>📉 已完赛比分分布 (46场)</h2>
+  <div class="score-dist">
+    <div class="score-row">
+      <span class="score-label">1-1</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:100%"></div></div>
+      <span class="score-val">7次 (15.2%)</span>
+    </div><div class="score-row">
+      <span class="score-label">2-0</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:57%"></div></div>
+      <span class="score-val">4次 (8.7%)</span>
+    </div><div class="score-row">
+      <span class="score-label">0-0</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:57%"></div></div>
+      <span class="score-val">4次 (8.7%)</span>
+    </div><div class="score-row">
+      <span class="score-label">0-1</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:43%"></div></div>
+      <span class="score-val">3次 (6.5%)</span>
+    </div><div class="score-row">
+      <span class="score-label">2-2</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:43%"></div></div>
+      <span class="score-val">3次 (6.5%)</span>
+    </div><div class="score-row">
+      <span class="score-label">1-0</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:43%"></div></div>
+      <span class="score-val">3次 (6.5%)</span>
+    </div><div class="score-row">
+      <span class="score-label">3-0</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:43%"></div></div>
+      <span class="score-val">3次 (6.5%)</span>
+    </div><div class="score-row">
+      <span class="score-label">2-1</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:29%"></div></div>
+      <span class="score-val">2次 (4.3%)</span>
+    </div><div class="score-row">
+      <span class="score-label">4-1</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:29%"></div></div>
+      <span class="score-val">2次 (4.3%)</span>
+    </div><div class="score-row">
+      <span class="score-label">5-1</span>
+      <div class="bar-wrap"><div class="bar score-bar" style="width:29%"></div></div>
+      <span class="score-val">2次 (4.3%)</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    2026 美加墨世界杯 | Powered by Kasha Predictor v2.0 | Dixon-Coles + 蒙特卡洛
+  </div>
+</div>
+</body>
+</html>
