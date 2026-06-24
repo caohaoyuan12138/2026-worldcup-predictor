@@ -2,7 +2,7 @@
   "meta": {
     "version": 3,
     "createdAt": "2026-06-24T01:03:06.569Z",
-    "updatedAt": "2026-06-24T13:07:54.648Z",
+    "updatedAt": "2026-06-24T13:31:42.924Z",
     "description": "2026 世界杯预测数据库",
     "dataVersion": 5,
     "dataSource": "2026世界杯48队数据汇总.xlsx",
@@ -9962,6 +9962,68 @@
         "home": 1.86,
         "draw": 3.65,
         "away": 3.15
+      }
+    },
+    {
+      "timestamp": "2026-06-24T13:31:01.240Z",
+      "home": "苏格兰",
+      "away": "巴西",
+      "fusion": {
+        "lambda": {
+          "home": 0.54,
+          "away": 1.62
+        },
+        "winPct": 17.9,
+        "drawPct": 20.6,
+        "awayPct": 61.4,
+        "top5": [
+          {
+            "score": "0-1",
+            "home": 0,
+            "away": 1,
+            "count": 942,
+            "pct": 18.8
+          },
+          {
+            "score": "0-2",
+            "home": 0,
+            "away": 2,
+            "count": 723,
+            "pct": 14.5
+          },
+          {
+            "score": "0-0",
+            "home": 0,
+            "away": 0,
+            "count": 591,
+            "pct": 11.8
+          },
+          {
+            "score": "1-1",
+            "home": 1,
+            "away": 1,
+            "count": 530,
+            "pct": 10.6
+          },
+          {
+            "score": "1-2",
+            "home": 1,
+            "away": 2,
+            "count": 429,
+            "pct": 8.6
+          }
+        ],
+        "avgGoals": 2.12,
+        "totalRuns": 5000
+      },
+      "models": {
+        "elo": "7.5/19/73.5",
+        "poisson": "32.5/24.2/43.3"
+      },
+      "odds": {
+        "home": 9.6,
+        "draw": 5.4,
+        "away": 1.19
       }
     }
   ],
