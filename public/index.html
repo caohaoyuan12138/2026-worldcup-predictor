@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ 2026 世界杯预测系统</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ============================================= -->
+<!-- 导航栏 -->
+<!-- ============================================= -->
+<nav class="navbar">
+  <h1>⚽ 2026 世界杯预测</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview">📊 总览</button>
+    <button class="tab-btn" data-tab="predictions">📈 预测</button>
+    <button class="tab-btn" data-tab="advance">🏆 出线形势</button>
+    <button class="tab-btn" data-tab="teams">⚙️ 球队数据</button>
+    <button class="tab-btn" data-tab="matches">📋 比赛管理</button>
+    <button class="tab-btn" data-tab="elo">🏅 Elo排名</button>
+    <button class="tab-btn" data-tab="knockout">🏆 晋级图</button>
+    <button class="tab-btn" data-tab="review">📊 复盘分析</button>
+    <button class="tab-btn" data-tab="config">🔧 模型配置</button>
+  </div>
+  <span class="status-badge" id="statusBadge">加载中...</span>
+</nav>
+
+<div class="container">
+
+  <!-- ============================================= -->
+  <!-- TAB 1: 总览 -->
+  <!-- ============================================= -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="overview-cards" id="overviewCards"></div>
+    <h2 style="margin: 16px 0 12px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-blue); padding-left:10px;">📊 小组积分榜</h2>
+    <div class="groups-grid" id="groupsGrid"></div>
+    <h2 style="margin: 16px 0 12px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-orange); padding-left:10px;">📉 比分分布</h2>
+    <div class="score-dist" id="scoreDist"></div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 2: 预测 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-predictions">
+    <div class="filter-bar">
+      <button class="btn btn-primary" onclick="predictAll()">🔄 预测全部未赛</button>
+      <button class="btn btn-outline" onclick="predictCustom()">🎯 自定义预测</button>
+      <span id="predStatus" style="color:var(--text-secondary); font-size:0.85rem;"></span>
+    </div>
+    <div id="predictResults" class="predictions-grid"></div>
+    
+    <h2 style="margin: 20px 0 12px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-purple); padding-left:10px;">📜 预测历史</h2>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 3: 出线形势 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-advance">
+    <div class="filter-bar">
+      <button class="btn btn-primary" onclick="runAdvanceSim()">🏆 运行出线模拟 (10000次)</button>
+      <span id="advanceStatus" style="color:var(--text-secondary); font-size:0.85rem;"></span>
+    </div>
+    <div class="advance-table-wrap" id="advanceTableWrap">
+      <div class="loading"><div class="spinner"></div><div>点击上方按钮运行模拟</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 4: 球队数据 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-teams">
+    <div class="filter-bar">
+      <select id="teamGroupFilter" onchange="renderTeamEdit()">
+        <option value="">全部小组</option>
+      </select>
+      <input type="text" id="teamSearch" placeholder="搜索球队..." oninput="renderTeamEdit()">
+    </div>
+    <div class="team-edit-grid" id="teamEditGrid"></div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 5: 比赛管理 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-matches">
+    <div class="add-match-form">
+      <h3>➕ 添加比赛结果</h3>
+      <div class="form-row">
+        <input type="date" id="matchDate" value="2026-06-25">
+        <select id="matchGroup">
+          <option value="">选择小组</option>
+        </select>
+        <select id="matchHome"><option value="">主队</option></select>
+        <select id="matchAway"><option value="">客队</option></select>
+      </div>
+      <div class="form-row">
+        <input type="text" id="matchScore" placeholder="比分 (如 2-1)">
+        <input type="number" id="matchRound" placeholder="轮次" value="3" min="1" max="3" style="max-width:80px;">
+        <button onclick="addMatchResult()">✅ 添加</button>
+      </div>
+    </div>
+    
+    <h2 style="margin: 16px 0 12px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-blue); padding-left:10px;">📋 已完赛比赛</h2>
+    <div class="match-list" id="matchList"></div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 6: Elo 排名 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-elo">
+    <h2 style="margin: 0 0 14px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-green); padding-left:10px;">🏅 Elo 等级分排行榜</h2>
+    <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:12px;">动态等级分系统，每场比赛后自动更新。基础分=2100，K=30（小组赛）/40（淘汰赛）</p>
+    <div class="advance-table-wrap" id="eloTableWrap">
+      <div class="loading"><div class="spinner"></div><div>加载中...</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 7: 晋级图 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-knockout">
+    <h2 style="margin: 0 0 8px; font-size:1.1rem; color:#1a2338; border-left:3px solid var(--accent-blue); padding-left:10px;">🏆 2026 世界杯晋级图</h2>
+    <p style="color:var(--text-secondary); font-size:0.8rem; margin-bottom:12px;">小组赛末轮 + 32强淘汰赛对阵</p>
+    <div id="knockoutContainer">
+      <div class="loading"><div class="spinner"></div><div>加载中...</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 8: 复盘分析 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-review">
+    <div id="reviewContainer">
+      <div class="loading"><div class="spinner"></div><div>复盘分析中... (48场比赛逐一模拟)</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 9: 模型配置 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-config">
+    <h2 style="margin: 0 0 14px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-blue); padding-left:10px;">🔧 预测模型参数</h2>
+    <div class="config-grid" id="configGrid"></div>
+    <div class="config-actions" style="margin-top: 16px;">
+      <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+      <button class="btn btn-success" onclick="runAnalysis()">📊 模型准确率分析</button>
+    </div>
+    <div id="analysisResult" style="margin-top: 16px;"></div>
+  </div>
+
+</div>
+
+<!-- ============================================= -->
+<!-- 自定义预测弹窗 -->
+<!-- ============================================= -->
+<div id="customPredModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:200; display:none; align-items:center; justify-content:center;">
+  <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; max-width:500px; width:90%;">
+    <h3 style="margin-bottom:16px;">🎯 自定义预测 (含赔率)</h3>
+    <div class="form-row">
+      <select id="predHome" style="flex:1;"><option value="">主队</option></select>
+      <span style="color:var(--text-secondary); padding:0 8px;">vs</span>
+      <select id="predAway" style="flex:1;"><option value="">客队</option></select>
+    </div>
+    <div class="form-row" style="margin-top:8px;">
+      <input type="number" id="oddsHome" placeholder="主胜赔率" step="0.01" min="1.01" style="flex:1;">
+      <input type="number" id="oddsDraw" placeholder="平赔率" step="0.01" min="1.01" style="flex:1;">
+      <input type="number" id="oddsAway" placeholder="客胜赔率" step="0.01" min="1.01" style="flex:1;">
+    </div>
+    <div class="form-row" style="margin-top:8px;">
+      <input type="number" id="handicap" placeholder="让球盘口 (+主受让, -主让球, 如-1.5,+1)" step="0.25" style="flex:1;">
+      <span style="color:var(--text-muted); font-size:0.75rem; display:flex; align-items:center;">正=主让, 负=客让</span>
+    </div>
+    <div class="form-row" style="margin-top:6px;">
+      <label style="color:var(--text-secondary); font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="predFinalRound"> 最后一轮
+      </label>
+      <label style="color:var(--text-secondary); font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="predKnockout"> 淘汰赛
+      </label>
+      <label style="color:var(--text-secondary); font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="predUseAI" checked> 🧠 AI推理
+      </label>
+    </div>
+    <div class="form-row" style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="doCustomPredict()">🔮 预测</button>
+      <button class="btn btn-outline" onclick="closeCustomPred()">取消</button>
+    </div>
+    <div id="customPredResult" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

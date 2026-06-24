@@ -1,0 +1,5 @@
+node_modules/
+db/worldcup.json
+*.pyc
+__pycache__/
+.env
