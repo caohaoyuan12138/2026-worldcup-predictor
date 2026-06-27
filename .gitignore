@@ -3,3 +3,9 @@ node_modules/
 *.log
 auth_qr.png
 auth_read_qr.png
+_espn_test.html
+*.txt
+worldcup_backup_*.json
+engine_v3_backup.mjs
+push_to_github.py
+predictions/

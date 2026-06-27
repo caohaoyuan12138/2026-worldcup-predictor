@@ -1,102 +1,89 @@
-# 2026 World Cup Predictor
+# ⚽ 2026世界杯预测系统 v3.0
 
-2026 FIFA World Cup (USA/Mexico/Canada) four-layer fusion prediction model.
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://2026-worldcup-predictor.streamlit.app)
 
-## Features
+融合 **Elo 等级分 + 泊松分布(Dixon-Coles) + 经济学模型 + 赔率市场** 的四维足球预测引擎。
 
-- **Elo Rating** — Dynamic team strength with host nation bonus, champion bonus
-- **Dixon-Coles Poisson** — Expected goals with stage-aware adjustments
-- **Monte Carlo Simulation** — 10,000 match simulations with environment factors
-- **Bayesian Fusion** — Model + market odds weighted fusion
-- **Extra Time & Penalties** — Knockout stage simulation
-- **Kelly Staking** — Portfolio management with 6-filter risk control
-- **Smart Data** — Local JSON + juhe API auto-sync
-- **Excel Import** — Smart recognition, any format, incremental merge
-- **Real-time Odds** — Multi-source aggregation with mock/real scrapers
-- **Unit Tests** — 36 tests covering all core models
-- **Docker Deploy** — One-command containerized deployment
+## 界面展示
 
-## Quick Start
+Streamlit 版展示与 Node.js 本地版**完全一致的前端界面**，包含：
+- 📊 **总览** — 小组积分榜、比分分布
+- 📈 **预测** — 自定义预测（含赔率/让球盘口）+ 预测全部未赛
+- 🏆 **出线形势** — 10000次蒙特卡洛出线模拟
+- ⚙️ **球队数据** — 48队实力参数编辑
+- 📋 **比赛管理** — 添加/查看比赛结果
+- 🏅 **Elo排名** — 实时等级分排行榜
+- 🏆 **晋级图** — 淘汰赛对阵树
+- 📊 **复盘分析** — 模型准确率回测
+- 📜 **预测日志** — 每次预测的完整记录（含 AI 推理报告）
+- 🔧 **模型配置** — 权重参数调整
+
+## 部署
+
+### Streamlit Cloud（一键部署）
+
+[![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/cloud)
+
+1. Fork 这个仓库
+2. 在 [Streamlit Cloud](https://streamlit.io/cloud) 选择仓库
+3. 入口文件: `streamlit_app.py`
+4. 部署完成 ✅
+
+### Node.js 本地版（完整功能）
+
+```bash
+node server.mjs
+# 浏览器打开 http://localhost:3000
+```
+
+Node 版额外支持：
+- 🧠 **AI 推理裁判** — 接入 deepseek-v4-flash 大模型生成比赛研判报告
+- 🎯 **自定义预测日志持久化** — 含 AI 报告全文保存
+
+### Streamlit 本地运行
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
 
-## Run Tests
+## 模型
 
-```bash
-pytest tests/test_models.py -v
-```
+| 模型 | 权重 | 说明 |
+|------|------|------|
+| Elo等级分 | 25% | FIFA排名初始化，每场动态更新 |
+| 泊松分布 | 30% | Dixon-Coles低比分修正 |
+| 经济学 | 10% | GDP/人口/气候因子 |
+| 赔率市场 | 35% | 含让球盘口调整 |
 
-## Docker Deploy
+## 技术栈
 
-```bash
-docker-compose up -d
-```
+- **Node.js 版**: `server.mjs` + `model/engine.mjs` + `public/` 前端
+- **Streamlit 版**: `streamlit_app.py` — 嵌入 Node.js 前端 UI，Python 引擎
+- **数据库**: `db/worldcup.json` — 48队/72组交锋/1494场历史数据
 
-Then open http://localhost:8501
+## 复盘
 
-## Tech Stack
+- 方向正确率: **68.8%** (33/48)
+- 精确命中比分: **8场**
+- 让球方向正确: **87.0%**
 
-Python + Streamlit + NumPy + Pandas + SciPy + pytest
-
-## Data Sources
-
-- juhe.cn API (standings, schedule, teams)
-- Local JSON cache with auto-sync
-- User-uploaded Excel odds & intelligence (smart format recognition)
-- Real-time odds scraping (Oddschecker / Betfair / mock data)
-
-## Project Structure
+## 项目结构
 
 ```
-worldcup-predictor/
-├── app.py                    # Streamlit main entry
-├── config.py                 # Global configuration
-├── requirements.txt
-├── Dockerfile / docker-compose.yml
-├── data/
-│   ├── local_data.py         # Local JSON data management
-│   ├── api_client.py         # juhe.cn API client
-│   ├── odds_importer.py      # Smart Excel/CSV odds import
-│   ├── odds_scraper.py       # Web odds scraper (OddSlot + OddsFilter)
-│   ├── data_pipeline.py      # Data cleaning & merging
-│   └── cache.py              # File cache layer
+football/
+├── streamlit_app.py          # Streamlit 入口（嵌入前端）
+├── server.mjs                # Node.js 后端服务器
 ├── model/
-│   ├── elo_engine.py         # Elo rating engine
-│   ├── poisson.py            # Dixon-Coles Poisson model
-│   ├── monte_carlo.py        # Monte Carlo simulation
-│   └── bayesian.py           # Bayesian fusion layer
-├── strategy/
-│   ├── kelly.py              # Kelly stake management
-│   ├── filters.py            # Six-veto filters
-│   └── risk_control.py       # Risk control module
-├── realtime/
-│   └── odds_scraper.py       # Real-time odds aggregator
-├── ui/
-│   └── components.py         # Reusable Streamlit components
-├── tests/
-│   └── test_models.py        # Unit tests (36 cases)
-└── data_local/               # Runtime data cache
+│   ├── engine.mjs            # 融合预测引擎
+│   └── tactics.mjs           # 战术分析引擎
+├── public/
+│   ├── index.html            # 前端页面
+│   ├── app.js                # 前端逻辑
+│   └── style.css             # 前端样式
+├── db/
+│   └── worldcup.json         # 数据库
+├── prediction_log.jsonl      # 预测日志
+├── requirements.txt
+└── README.md
 ```
-
-## Excel Import Format
-
-The odds importer supports **any column naming** — no fixed template required.
-
-Supported column names (case-insensitive):
-- **Home team**: 主队 / Home Team / team1 / A队 / 队伍一 / 主场
-- **Away team**: 客队 / Away Team / team2 / B队 / 队伍二 / 客场
-- **Home odds**: 主胜赔率 / 1 / win / oh / 主胜 / 主
-- **Draw odds**: 平局赔率 / X / draw / od / 平局 / 平
-- **Away odds**: 客胜赔率 / 2 / lose / oa / 客胜 / 客
-- **Date**: 日期 / date / time / match_date / 开赛时间
-- **ID**: 编号 / id / match_id / 场次
-- **Intel**: 情报 / intel / note / 备注 / 战报
-
-You can upload **partial matchday data** — the system will auto-match to schedule and merge incrementally.
-
-## License
-
-MIT

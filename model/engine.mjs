@@ -1,15 +1,50 @@
 #!/usr/bin/env node
 
 /**
- * ⚽ 世界杯预测引擎 v3.1
+ * ⚽ 世界杯预测引擎 v4.0 — 三层架构
  * 
- * 融合模型: Elo等级分 + 泊松(Dixon-Coles修正) + 经济学 + 赔率市场
- * 数据: 真实近10场战绩 + 历史交锋 + 48队Elo
+ *   第一层 (λ计算层): calcLambda() — 进攻/防守/动量/战意 → 预期进球
+ *   第二层 (修正层):   monteCarlo() — Dixon-Coles + 动态ρ + 低λ平率权重
+ *   第三层 (情境层):   bayesianAdjust() — 贝叶斯情境 + 赔率融合 + 集成加权
+ * 
+ *   评估层: evaluatePredictions() — Log Loss / Brier Score / ROI
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// 战术分析模块 (可选加载)
+let __tactics = {};
+try {
+  __tactics = await import('./tactics.mjs');
+  __tactics.loadTactics();
+} catch (e) {
+  __tactics = { tacticalLambdaAdjust: () => ({ adjust: 1.0 }), fullTacticalAnalysis: () => ({}), loadTactics: () => ({}) };
+}
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_DIR = path.join(__dirname, '..', 'db');
+
 // ============================================================
-// 1. Elo 等级分
+// 0. 工具函数 & 常量
 // ============================================================
+export function factorial(n) {
+  if (n <= 1) return 1;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+export function comb(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  k = Math.min(k, n - k);
+  let r = 1;
+  for (let i = 1; i <= k; i++) r = r * (n - k + i) / i;
+  return r;
+}
+
 export function eloExpected(eloA, eloB) {
   return 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
 }
@@ -18,9 +53,15 @@ export function updateElo(eloA, eloB, goalA, goalB, K = 30) {
   const expectedA = eloExpected(eloA, eloB);
   const gd = goalA - goalB;
   let scoreA;
-  if (gd > 0) { const gdFactor = Math.min(Math.log(Math.abs(gd) + 1) / Math.LN2, 1.5); scoreA = 1 + gdFactor * 0.3; }
+  if (gd > 0) { 
+    // 大胜过热限制: 净胜4球以上时, gdFactor不再增长
+    // 7-1的Elo提升效果与5-0相当, 避免一场大胜扭曲全局
+    const cappedGd = Math.min(Math.abs(gd), 4);  // 最多算4球净胜
+    const gdFactor = Math.min(Math.log(cappedGd + 1) / Math.LN2, 1.5); 
+    scoreA = 1 + gdFactor * 0.3; 
+  }
   else if (gd === 0) scoreA = 0.5;
-  else scoreA = 0;
+  else scoreA = 0;  // 输球方score固定为0, 但gdBias会体现在expected差值中
   return { home: Math.round(eloA + K * (scoreA - expectedA)), away: Math.round(eloB + K * ((1 - scoreA) - (1 - expectedA))) };
 }
 
@@ -64,7 +105,11 @@ function calcMomentum(teamName, recentMatches, N = 10) {
     if (!m.score) continue;
     const parts = m.score.split('-').map(Number);
     if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) continue;
-    const [h, a] = parts;
+    let [h, a] = parts;
+    // 大胜过热限制: 单场进球最多算4球, 失球最多算4球
+    // 避免7-1这种极端比分扭曲 momentum 数据
+    h = Math.min(h, 4);
+    a = Math.min(a, 4);
     const isHome = m.venue === '主';
     if (isHome) { totalGf += h; totalGa += a; if (h > a) wins++; else if (h === a) draws++; else losses++; }
     else { totalGf += a; totalGa += h; if (a > h) wins++; else if (a === h) draws++; else losses++; }
@@ -142,19 +187,37 @@ export function calcLambda(teamName, opponentName, isHome, teams, recentMatches,
   if (titles >= 2) lambda *= 1.05;
   if (titles >= 4) lambda *= 1.03;
 
-  // 末轮战意修正 (出线形势影响)
+  // 末轮战意修正 (出线形势影响) — v3.2 增强版
+  // 基于复盘教训: 已出线球队轮换效应、必须赢球队拼劲加成
   if (ctx.isFinalRound) {
     const urgency = (ctx.teamUrgency && ctx.teamUrgency[teamName]) || 0;
     // urgency: 0=已出局(无战意), 1=渺茫(负战意), 2=需赢+看别人(强战意), 3=需赢(极强战意), 4=打平就出线(稳), 5=已出线(保守)
-    if (urgency === 3) lambda *= 1.12;  // 需赢球: 全力进攻
-    else if (urgency === 2) lambda *= 1.06;  // 需赢+看别人: 有希望, 进攻
-    else if (urgency === 1) lambda *= 0.95;  // 渺茫: 信心不足
-    else if (urgency === 0) lambda *= 0.88;  // 已出局: 斗志低落
-    else if (urgency === 5) lambda *= 0.90;  // 已出线: 轮换保存体力
-    else if (urgency === 4) lambda *= 0.95;  // 打平就出线: 保守
-    lambda *= (ctx.finalRoundFactor || 0.95);
+    if (urgency === 3) lambda *= 1.15;  // 需赢球: 全力进攻 (从1.12→1.15)
+    else if (urgency === 2) lambda *= 1.08;  // 需赢+看别人: 有希望, 进攻 (从1.06→1.08)
+    else if (urgency === 1) lambda *= 0.92;  // 渺茫: 信心不足 (从0.95→0.92)
+    else if (urgency === 0) lambda *= 0.85;  // 已出局: 斗志低落 (从0.88→0.85)
+    else if (urgency === 5) lambda *= 0.82;  // 已出线: 轮换保存体力 (从0.90→0.82, 大幅调低)
+    else if (urgency === 4) lambda *= 0.93;  // 打平就出线: 保守 (从0.95→0.93)
+    // 已出线球队防守也会受影响
+    if (urgency === 5) {
+      // 已出线球队防守注意力下降 → 对手进球λ增加
+      // 在对手的calcLambda中通过对手防守修正体现
+    }
+    lambda *= (ctx.finalRoundFactor || 0.93);  // 从0.95→0.93, 最后一轮整体进球偏低
+  }
+  
+  // 对手已出线时, 本方进攻加成 (对手轮换防守下降)
+  if (ctx.isFinalRound) {
+    const oppUrgency = (ctx.teamUrgency && ctx.teamUrgency[opponentName]) || 0;
+    if (oppUrgency === 5) lambda *= 1.12;  // 对手已出线轮换 → 本方进攻机会增加
+    else if (oppUrgency === 0) lambda *= 1.08;  // 对手已出局斗志低 → 本方进攻机会增加
   }
   if (ctx.isKnockout) lambda *= 0.88;
+
+  // 战术修正 (由外层 fusionPredict 传入)
+  if (ctx.tacticalAdj && ctx.tacticalAdj.teamName === teamName && ctx.tacticalAdj.adjust != null) {
+    lambda *= ctx.tacticalAdj.adjust;
+  }
 
   return Math.round(lambda * 100) / 100;
 }
@@ -234,7 +297,136 @@ export function monteCarlo(lH, lA, N = 5000, rho = 0.02) {
     .map(([score, count]) => ({ score, home: Number(score.split('-')[0]), away: Number(score.split('-')[1]), count, pct: +(count / N * 100).toFixed(1) }))
     .sort((a, b) => b.count - a.count);
 
-  return { sorted, top5: sorted.slice(0, 5), homeWinPct: +(hW / N * 100).toFixed(1), drawPct: +(dr / N * 100).toFixed(1), awayWinPct: +(aW / N * 100).toFixed(1), avgGoals: +(tG / N).toFixed(2), totalRuns: N };
+  return { sorted, top5: sorted.slice(0, 5), top10: sorted.slice(0, 10), homeWinPct: +(hW / N * 100).toFixed(1), drawPct: +(dr / N * 100).toFixed(1), awayWinPct: +(aW / N * 100).toFixed(1), avgGoals: +(tG / N).toFixed(2), totalRuns: N, scoreMatrix: buildScoreMatrix(sorted, 6) };
+}
+
+function buildScoreMatrix(sorted, size = 6) {
+  const matrix = [];
+  for (let h = 0; h < size; h++) {
+    const row = [];
+    for (let a = 0; a < size; a++) {
+      const found = sorted.find(s => s.home === h && s.away === a);
+      row.push(found ? found.pct : 0);
+    }
+    matrix.push(row);
+  }
+  return matrix;
+}
+
+/**
+ * 计算动态 DC ρ
+ */
+export function calcDynamicRho(eloH, eloA, lambdaH, lambdaA, dcRho = 0.02, isFinalRound = false, teamUrgency = {}, home = '', away = '') {
+  const eloDiff = Math.abs(eloH - eloA);
+  let rho = eloDiff < 50 ? 0.06 : eloDiff < 100 ? 0.03 : Math.max(0.02, dcRho);
+  if (lambdaH < 0.8 && lambdaA < 0.8) rho = Math.max(rho, 0.08);
+  if ((lambdaH < 0.5 || lambdaA < 0.5) && lambdaH < 1.0 && lambdaA < 1.0) rho = Math.max(rho, 0.10);
+  if (isFinalRound) {
+    const hU = teamUrgency[home] || 0, aU = teamUrgency[away] || 0;
+    if ((hU === 4 || hU === 5) && (aU === 4 || aU === 5)) rho = Math.max(rho, 0.09);
+  }
+  return Math.min(rho, 0.15);
+}
+
+/**
+ * 快速解析胜负估算 (曹昊源模型)
+ */
+export function fastWinDrawLoss(a, b) {
+  if (a <= 0 || b <= 0) return { homeWinPct: a > b ? 100 : 0, drawPct: 0, awayWinPct: b > a ? 100 : 0 };
+  const p1 = a / (a + b), p2 = b / (a + b), tl = a + b;
+  function pp(k, lam) { return Math.exp(-lam) * Math.pow(lam, k) / factorial(k); }
+  let hw = 0, dr = 0, aw = 0;
+  for (let t = 0; t <= 15; t++) {
+    const pt = pp(t, tl);
+    if (pt < 0.001) continue;
+    if (t % 2 === 0) {
+      dr += pt * comb(t, t/2) * Math.pow(p1 * p2, t/2);
+      for (let hg = Math.floor(t/2)+1; hg <= t; hg++) hw += pt * comb(t, hg) * Math.pow(p1, hg) * Math.pow(p2, t - hg);
+      for (let ag = Math.floor(t/2)+1; ag <= t; ag++) aw += pt * comb(t, ag) * Math.pow(p2, ag) * Math.pow(p1, t - ag);
+    } else {
+      for (let hg = Math.ceil(t/2); hg <= t; hg++) {
+        const ag = t - hg;
+        if (hg > ag) hw += pt * comb(t, hg) * Math.pow(p1, hg) * Math.pow(p2, ag);
+        else aw += pt * comb(t, ag) * Math.pow(p2, ag) * Math.pow(p1, hg);
+      }
+    }
+  }
+  const tp = hw + dr + aw || 1;
+  return { homeWinPct: +(hw/tp*100).toFixed(1), drawPct: +(dr/tp*100).toFixed(1), awayWinPct: +(aw/tp*100).toFixed(1) };
+}
+
+// ════════════════════════════════════════════════════════════
+// 第三层: 情境调整层 — 贝叶斯风格调整
+// ════════════════════════════════════════════════════════════
+
+/**
+ * 贝叶斯情境调整
+ */
+export function bayesianAdjust(baseProbs, context = {}) {
+  let h = baseProbs.homeWinPct, d = baseProbs.drawPct, a = baseProbs.awayWinPct;
+  const hU = context.homeUrgency || 0, aU = context.awayUrgency || 0;
+  if (hU === 3) { h *= 1.08; d *= 0.90; a *= 0.85; }
+  if (aU === 3) { a *= 1.08; d *= 0.90; h *= 0.85; }
+  if ((hU === 4 || hU === 5) && (aU === 4 || aU === 5)) { d *= 1.20; h *= 0.92; a *= 0.92; }
+  const hm = context.homeKeyInjuries || 0, am = context.awayKeyInjuries || 0;
+  if (hm > 0) { h *= (1 - 0.05*hm); a *= (1 + 0.03*hm); }
+  if (am > 0) { a *= (1 - 0.05*am); h *= (1 + 0.03*am); }
+  const h2 = context.h2hHomeAdvantage || 1.0;
+  if (h2 > 1.05) { h *= 1.03; a *= 0.97; } else if (h2 < 0.95) { a *= 1.03; h *= 0.97; }
+  if (context.isKnockout) { d *= 1.10; h *= 0.95; a *= 0.95; }
+  const total = h + d + a;
+  return { homeWinPct: +(h/total*100).toFixed(1), drawPct: +(d/total*100).toFixed(1), awayWinPct: +(a/total*100).toFixed(1) };
+}
+
+// ════════════════════════════════════════════════════════════
+// 评估层: 模型评估指标
+// ════════════════════════════════════════════════════════════
+
+/**
+ * 评估预测结果
+ */
+export function evaluatePredictions(predictions, actualResults) {
+  if (!predictions || !actualResults || predictions.length === 0) return { error: '无数据' };
+  let ll = 0, bs = 0, dc = 0, cnt = 0;
+  for (let i = 0; i < Math.min(predictions.length, actualResults.length); i++) {
+    const p = predictions[i], a = actualResults[i];
+    if (!p || !a) continue;
+    const [hs, as] = a.score.split('-').map(Number);
+    if (isNaN(hs) || isNaN(as)) continue;
+    const ar = hs > as ? 'home' : hs === as ? 'draw' : 'away';
+    const ph = p.homeWinPct/100, pd = p.drawPct/100, pa = p.awayWinPct/100;
+    const pa_ = ar === 'home' ? ph : ar === 'draw' ? pd : pa;
+    ll += Math.log(Math.max(pa_, 0.0001));
+    if (ar === 'home') bs += Math.pow(ph-1,2) + Math.pow(pd,2) + Math.pow(pa,2);
+    else if (ar === 'draw') bs += Math.pow(pd-1,2) + Math.pow(ph,2) + Math.pow(pa,2);
+    else bs += Math.pow(pa-1,2) + Math.pow(ph,2) + Math.pow(pd,2);
+    const pr = ph > pd && ph > pa ? 'home' : pd > ph && pd > pa ? 'draw' : 'away';
+    if (pr === ar) dc++;
+    cnt++;
+  }
+  return { logLoss: cnt > 0 ? +(-ll/cnt).toFixed(4) : 0, brierScore: cnt > 0 ? +(bs/cnt).toFixed(4) : 0, directionAccuracy: cnt > 0 ? +(dc/cnt*100).toFixed(1) : 0, sampleCount: cnt };
+}
+
+/**
+ * 模拟投注 ROI
+ */
+export function simulateBetting(predictions, actualResults, threshold = 0.05) {
+  let tb = 0, w = 0, pft = 0;
+  for (let i = 0; i < Math.min(predictions.length, actualResults.length); i++) {
+    const p = predictions[i], a = actualResults[i];
+    if (!p || !a || !p.oddsHome) continue;
+    const [hs, as] = a.score.split('-').map(Number);
+    if (isNaN(hs) || isNaN(as)) continue;
+    const ar = hs > as ? 'home' : hs === as ? 'draw' : 'away';
+    for (const bet of [{t:'home',mp:p.homeWinPct/100,od:p.oddsHome},{t:'draw',mp:p.drawPct/100,od:p.oddsDraw},{t:'away',mp:p.awayWinPct/100,od:p.oddsAway}]) {
+      if (!bet.od) continue;
+      if (bet.mp - 1/bet.od > threshold) {
+        tb++;
+        if (bet.t === ar) { w++; pft += bet.od - 1; } else { pft -= 1; }
+      }
+    }
+  }
+  return { totalBets: tb, wins: w, winRate: tb > 0 ? +(w/tb*100).toFixed(1) : 0, profit: +pft.toFixed(2), roi: tb > 0 ? +(pft/tb*100).toFixed(1) : 0 };
 }
 
 // ============================================================
@@ -251,6 +443,23 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   const teamHome = teams[home], teamAway = teams[away];
   if (!teamHome || !teamAway) return { error: `球队不存在: ${!teamHome ? home : away}` };
 
+  // === 战术分析 (tactics.mjs) ===
+  let tacticalInfo = null;
+  let hTacticalAdj = null, aTacticalAdj = null;
+  try {
+    const { tacticalLambdaAdjust, fullTacticalAnalysis, loadTactics } = __tactics;
+    const tactics = loadTactics();
+    if (tactics && Object.keys(tactics).length > 0 && tactics[home] && tactics[away]) {
+      tacticalInfo = fullTacticalAnalysis(home, away);
+      const hAdj = tacticalLambdaAdjust(home, away, true, tactics);
+      const aAdj = tacticalLambdaAdjust(away, home, false, tactics);
+      if (hAdj && hAdj.adjust != null) hTacticalAdj = hAdj;
+      if (aAdj && aAdj.adjust != null) aTacticalAdj = aAdj;
+    }
+  } catch (e) {
+    // 战术数据未加载, 跳过
+  }
+
   // === A. Elo ===
   const eloH = teamHome.eloRating || rankToElo(teamHome.rank || 50);
   const eloA = teamAway.eloRating || rankToElo(teamAway.rank || 50);
@@ -258,7 +467,7 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   const eloRawHomePct = expectedH * 100;
   const eloRawAwayPct = (1 - expectedH) * 100;
   // Elo 平率估算 — 考虑多种因素
-  let baseDrawPct = 25 - Math.abs(eloH - eloA) * 0.015;  // 基础: Elo差越小平率越高
+  let baseDrawPct = 27 - Math.abs(eloH - eloA) * 0.012;  // 基础: 实际世界杯平率25.9%, 提升基准并降低Elo差衰减
   // 主观因素: 末轮战意影响平率
   const homeUrgency = teamUrgency[home] || 0;
   const awayUrgency = teamUrgency[away] || 0;
@@ -266,12 +475,12 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   if ((homeUrgency === 4 || homeUrgency === 5) && (awayUrgency === 4 || awayUrgency === 5)) {
     baseDrawPct *= 1.25;  // 都保守, 各拿1分
   }
-  // 一方需赢球 → 平率降低（另一方可接受平局）
-  if (homeUrgency === 3 || awayUrgency === 3) baseDrawPct *= 0.85;
+  // 一方需赢球 → 平率降低（但世界杯实战中需赢球方经常被逼平, 降低调整幅度）
+  if (homeUrgency === 3 || awayUrgency === 3) baseDrawPct *= 0.90;
   // 淘汰赛平率降低
-  if (isKnockout) baseDrawPct *= 0.8;
-  // 大赛修正: 世界杯小组赛平局更多
-  baseDrawPct *= 1.15;
+  if (isKnockout) baseDrawPct *= 0.85;
+  // 大赛修正: 世界杯小组赛平局显著更多(实际25.9%), 提高系数
+  baseDrawPct *= 1.25;
   
   const eloDrawPctEstimate = Math.max(10, Math.min(38, Math.round(baseDrawPct)));
   const eloHomePct = +((eloRawHomePct / (eloRawHomePct + eloRawAwayPct)) * (100 - eloDrawPctEstimate)).toFixed(1);
@@ -279,13 +488,19 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   const eloDrawPct = +(100 - eloHomePct - eloAwayPct).toFixed(1);
 
   // === B. 泊松 (含真实近10场 + 历史交锋 + Dixon-Coles) ===
-  const ctx = { isFinalRound, isKnockout, headToAdvantage: options.homeAdvantage || 1.08, headToHead, teamUrgency: options.teamUrgency || {} };
-  const poissonLH = calcLambda(home, away, true, teams, recentMatches, ctx);
-  const poissonLA = calcLambda(away, home, false, teams, recentMatches, ctx);
+  const ctx = { isFinalRound, isKnockout, homeAdvantage: options.homeAdvantage || 1.08, headToHead, teamUrgency: options.teamUrgency || {} };
+  const poissonLH = calcLambda(home, away, true, teams, recentMatches, { ...ctx, tacticalAdj: hTacticalAdj ? { teamName: home, adjust: hTacticalAdj.adjust } : null });
+  const poissonLA = calcLambda(away, home, false, teams, recentMatches, { ...ctx, tacticalAdj: aTacticalAdj ? { teamName: away, adjust: aTacticalAdj.adjust } : null });
   // 动态 DC ρ: 实力接近 ρ 升高 (增加平局), 实力悬殊 ρ 降低
   const eloDiff = Math.abs(eloH - eloA);
-  const dynamicRho = eloDiff < 50 ? 0.05 : eloDiff < 100 ? dcRho : Math.max(0.01, dcRho - 0.01);
+  let dynamicRho = eloDiff < 50 ? 0.06 : eloDiff < 100 ? 0.03 : Math.max(0.02, dcRho);
+  // 低λ平率权重: 当两队预期进球都低时, 平率应显著提升
+  // 复盘教训: 巴拉圭0-0澳大利亚(λ≈0.5/0.7), 实际0-0但模型选了客胜方向
+  if (poissonLH < 0.8 && poissonLA < 0.8) {
+    dynamicRho = Math.max(dynamicRho, 0.08);  // 低λ场景ρ从0.02-0.06提升到至少0.08
+  }
   const poissonSim = monteCarlo(poissonLH, poissonLA, monteCarloRuns, dynamicRho);
+  const fastRef = fastWinDrawLoss(poissonLH, poissonLA);
 
   // === C. 经济学 ===
   const ecoSim = monteCarlo(economicModel(teamHome, teamAway, true), economicModel(teamAway, teamHome, false), monteCarloRuns, 0);
@@ -295,6 +510,21 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   if (oddsHome && oddsDraw && oddsAway) {
     marketProb = oddsToProb(oddsHome, oddsDraw, oddsAway);
     if (handicap && marketProb) marketProb = handicapAdjust(marketProb.homeWinPct, marketProb.drawPct, marketProb.awayWinPct, handicap);
+  } else if (handicap) {
+    // 有让球无赔率: 基于 Elo 生成隐含概率后再做 handicap 修正
+    const eloDiff = Math.abs(eloH - eloA);
+    const impliedHomePct = expectedH * 100;
+    const impliedAwayPct = (1 - expectedH) * 100;
+    const eloBasedDraw = Math.max(10, Math.min(32, 28 - eloDiff * 0.015));
+    const totalNonDraw = impliedHomePct + impliedAwayPct;
+    marketProb = {
+      homeWinPct: +((impliedHomePct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
+      drawPct: +eloBasedDraw.toFixed(1),
+      awayWinPct: +((impliedAwayPct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
+      overround: 100,
+      isInferred: true
+    };
+    marketProb = handicapAdjust(marketProb.homeWinPct, marketProb.drawPct, marketProb.awayWinPct, handicap);
   } else {
     // 无赔率时, 用 Elo 差值生成隐含赔率
     const eloDiff = Math.abs(eloH - eloA);
@@ -340,15 +570,16 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
     const marketLA = Math.max(0.3, Math.min(4.0, 0.15 + marketProb.awayWinPct * 0.035));
     fusedLH = (fusedLH * (1 - marketWeight) + marketLH * marketWeight);
     fusedLA = (fusedLA * (1 - marketWeight) + marketLA * marketWeight);
-    // 深盘附加 λ 提升
-    if (handicap && Math.abs(handicap) >= 1.5) {
-      const deepBoost = Math.abs(handicap) * 0.3;
-      if (handicap > 0) fusedLH += deepBoost;
-      else fusedLA += deepBoost;
-    }
   } else {
     fusedLH = fusedLH / (baseW);
     fusedLA = fusedLA / (baseW);
+  }
+  
+  // 让球盘口 λ 修正 — 确保泊松模拟反映让球预期 (独立于赔率)
+  if (handicap) {
+    const handicapBoost = Math.abs(handicap) * 0.25;  // 让1球→λ+0.25, 让2球→λ+0.5
+    if (handicap > 0) fusedLH += handicapBoost;
+    else fusedLA += handicapBoost;
   }
   fusedLH = +(fusedLH).toFixed(2);
   fusedLA = +(fusedLA).toFixed(2);
@@ -364,6 +595,7 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
     },
     weights: { elo: eloWeight, poisson: poissonWeight, economic: economicWeight, market: marketProb ? marketWeight : 0 },
     fusion: { lambda: { home: fusedLH, away: fusedLA }, winPct: fusedHomePct, drawPct: fusedDrawPct, awayPct: fusedAwayPct, top5: fusedSim.top5, avgGoals: fusedSim.avgGoals, totalRuns: fusedSim.totalRuns },
+    tactics: tacticalInfo,
     timestamp: new Date().toISOString()
   };
 }
@@ -409,13 +641,21 @@ export function getStats(completedMatches) {
 // ============================================================
 // 10. 出线模拟
 // ============================================================
-export function simulateTournament(dbData, N = 10000) {
+export function simulateTournament(dbData, N = 10000, onProgress = null) {
   const { groups, teams, completedMatches, upcomingMatches, recentMatches, headToHead } = dbData;
   const groupNames = Object.keys(groups);
   const advanceCount = {};
   for (const g of groupNames) for (const t of groups[g]) advanceCount[t] = { groupWin: 0, groupRunnerUp: 0, bestThird: 0, round16: 0, round8: 0, round4: 0, runnerUp: 0, champion: 0, totalSims: 0 };
 
+  const REPORT_INTERVAL = Math.max(1, Math.floor(N / 20));  // 报告 20 次进度
+  let nextReport = REPORT_INTERVAL;
+
   for (let sim = 0; sim < N; sim++) {
+    // 进度报告
+    if (onProgress && sim >= nextReport) {
+      onProgress({ current: sim, total: N, pct: Math.round((sim / N) * 100) });
+      nextReport += REPORT_INTERVAL;
+    }
     const standings = { ...computeStandings(completedMatches, groups) };
     for (const t of Object.keys(standings)) standings[t] = { ...standings[t] };
     for (const g of groupNames) for (const t of groups[g]) if (!standings[t]) standings[t] = { team: t, group: g, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, played: 0 };
@@ -440,11 +680,26 @@ export function simulateTournament(dbData, N = 10000) {
     const bestThirds = allThirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf).slice(0, 8);
     const bestThirdTeams = new Set(bestThirds.map(t => t.team));
 
+    // 每次模拟开始, 标记哪些队进了16强
+    const advancedThisSim = new Set();
+
     for (const g of groupNames) {
       const r = groupRankings[g];
-      if (r.length >= 2) { advanceCount[r[0].team].groupWin++; advanceCount[r[0].team].round16++; advanceCount[r[1].team].groupRunnerUp++; advanceCount[r[1].team].round16++; }
+      if (r.length >= 2) {
+        advancedThisSim.add(r[0].team);
+        advancedThisSim.add(r[1].team);
+        advanceCount[r[0].team].groupWin++;
+        advanceCount[r[1].team].groupRunnerUp++;
+      }
     }
-    for (const t of bestThirdTeams) { advanceCount[t].bestThird++; advanceCount[t].round16++; }
+    for (const t of bestThirdTeams) {
+      advanceCount[t].bestThird++;
+      if (!advancedThisSim.has(t)) {
+        advancedThisSim.add(t);
+      }
+    }
+    // 本轮16强总计数 (每人只加一次)
+    for (const t of advancedThisSim) advanceCount[t].round16++;
 
     const round16Teams = [];
     for (const g of groupNames) { const r = groupRankings[g]; if (r.length >= 2) { round16Teams.push(r[0].team); round16Teams.push(r[1].team); } }
@@ -458,7 +713,7 @@ export function simulateTournament(dbData, N = 10000) {
     }
 
     let current = [...round16Teams];
-    for (const round of ['round8', 'round4', 'runnerUp']) {
+    for (const round of ['round8', 'round4', 'final']) {
       if (current.length < 2) break;
       const next = [];
       for (let i = 0; i < current.length - 1; i += 2) {
@@ -467,13 +722,15 @@ export function simulateTournament(dbData, N = 10000) {
         const loser = w === current[i] ? current[i + 1] : current[i];
         if (round === 'round8') { advanceCount[w].round8++; advanceCount[loser].round8++; }
         else if (round === 'round4') { advanceCount[w].round4++; advanceCount[loser].round4++; }
-        else if (round === 'runnerUp') { advanceCount[w].champion++; advanceCount[loser].runnerUp++; advanceCount[loser].champion++; }
+        else if (round === 'final') { advanceCount[w].champion++; advanceCount[loser].runnerUp++; }
       }
       current = next;
     }
-    if (current.length >= 2) advanceCount[knockWinner(current[0], current[1])].champion++;
     for (const t of Object.keys(advanceCount)) advanceCount[t].totalSims++;
   }
+
+  // 最终报告
+  if (onProgress) onProgress({ current: N, total: N, pct: 100 });
 
   const result = {};
   for (const [team, counts] of Object.entries(advanceCount)) {

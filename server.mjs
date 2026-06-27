@@ -42,6 +42,33 @@ function saveDB() {
   invalidateCache();
 }
 
+// ============================================================
+// 预测日志系统 (prediction_log.jsonl)
+// ============================================================
+const LOG_PATH = path.join(__dirname, 'prediction_log.jsonl');
+
+function appendPredictionLog(entry) {
+  try {
+    const line = JSON.stringify(entry) + '\n';
+    fs.appendFileSync(LOG_PATH, line, 'utf8');
+  } catch (e) {
+    console.error('写入预测日志失败:', e.message);
+  }
+}
+
+function readPredictionLog(limit = 200) {
+  try {
+    if (!fs.existsSync(LOG_PATH)) return [];
+    const raw = fs.readFileSync(LOG_PATH, 'utf8');
+    const lines = raw.trim().split('\n').filter(Boolean);
+    return lines.slice(-limit).map(line => {
+      try { return JSON.parse(line); } catch(e) { return null; }
+    }).filter(Boolean);
+  } catch (e) {
+    return [];
+  }
+}
+
 function invalidateCache() {
   standingsCache = null;
   statsCache = null;
@@ -115,6 +142,89 @@ function parseBody(req) {
   });
 }
 
+// ============================================================
+// 预测日志分析引擎
+// 对比预测日志中的预判与实际赛果, 分析各因素对判断的影响
+// ============================================================
+function analyzePredictionLog(currentReviewResults) {
+  const logs = readPredictionLog(200).filter(l => l && l.fusionProb);
+  if (logs.length === 0) return { message: '暂无有效预测日志记录' };
+  
+  const customCount = logs.filter(l => l.source === 'custom').length;
+  const batchCount = logs.filter(l => l.source === 'batch').length;
+  
+  const logMatched = [];
+  for (const log of logs) {
+    const match = currentReviewResults.find(r => r.home === log.home && r.away === log.away);
+    if (match) {
+      const logTopResult = log.fusionProb.winPct >= log.fusionProb.drawPct && log.fusionProb.winPct >= log.fusionProb.awayPct ? 'home'
+        : log.fusionProb.drawPct >= log.fusionProb.winPct && log.fusionProb.drawPct >= log.fusionProb.awayPct ? 'draw'
+        : 'away';
+      logMatched.push({
+        match: log.match, source: log.source,
+        topPredictions: log.topPredictions,
+        fusionProb: log.fusionProb, modelProb: log.modelProb,
+        weights: log.weights, config: log.config,
+        teamUrgency: log.teamUrgency, hasOdds: log.hasOdds, handicap: log.handicap,
+        actualScore: match.score, actualResult: match.actualResult,
+        logPredResult: logTopResult,
+        correct: logTopResult === match.actualResult,
+      });
+    }
+  }
+  
+  const factors = [];
+  const avgElo = logs.reduce((s, l) => s + (l.weights?.elo || 0), 0) / logs.length;
+  const avgPoisson = logs.reduce((s, l) => s + (l.weights?.poisson || 0), 0) / logs.length;
+  const avgMarket = logs.reduce((s, l) => s + (l.weights?.market || 0), 0) / logs.length;
+  factors.push({ name: '融合权重', value: 'Elo ' + (avgElo*100).toFixed(0) + '% / Poisson ' + (avgPoisson*100).toFixed(0) + '% / Market ' + (avgMarket*100).toFixed(0) + '%' });
+  
+  const avgRho = logs.reduce((s, l) => s + (l.config?.dcRho || 0), 0) / logs.length;
+  factors.push({ name: 'Dixon-Coles \u03c1', value: avgRho.toFixed(3) });
+  
+  const withOddsLogs = logMatched.filter(l => l.hasOdds);
+  const noOddsLogs = logMatched.filter(l => !l.hasOdds);
+  if (withOddsLogs.length > 0) {
+    const woC = withOddsLogs.filter(l => l.correct).length;
+    factors.push({ name: '有赔率准确率', value: woC + '/' + withOddsLogs.length + ' (' + (woC/withOddsLogs.length*100).toFixed(0) + '%)' });
+  }
+  if (noOddsLogs.length > 0) {
+    const noC = noOddsLogs.filter(l => l.correct).length;
+    factors.push({ name: '无赔率准确率', value: noC + '/' + noOddsLogs.length + ' (' + (noC/noOddsLogs.length*100).toFixed(0) + '%)' });
+  }
+  
+  const wrongDrawLogs = logMatched.filter(l => !l.correct && l.actualResult === 'draw');
+  if (wrongDrawLogs.length > 0) {
+    const avgDP = wrongDrawLogs.reduce((s, l) => s + l.fusionProb.drawPct, 0) / wrongDrawLogs.length;
+    const avgHP = wrongDrawLogs.reduce((s, l) => s + l.fusionProb.winPct, 0) / wrongDrawLogs.length;
+    factors.push({ name: '平局误判平均概率', value: '主胜' + avgHP.toFixed(1) + '% / 平' + avgDP.toFixed(1) + '%' });
+  }
+  
+  const top1C = logMatched.filter(l => l.topPredictions?.[0]?.score === l.actualScore).length;
+  if (logMatched.length > 0) {
+    factors.push({ name: 'top1比分精确率', value: top1C + '/' + logMatched.length + ' (' + (top1C/logMatched.length*100).toFixed(1) + '%)' });
+  }
+  
+  return {
+    totalLogs: logs.length, customPredictions: customCount, batchPredictions: batchCount,
+    matchedWithResults: logMatched.length,
+    matchedCorrect: logMatched.filter(l => l.correct).length,
+    matchedCorrectPct: logMatched.length > 0 ? +((logMatched.filter(l => l.correct).length / logMatched.length) * 100).toFixed(1) : 0,
+    keyFactors: factors,
+    recentLogs: logs.slice(-10).map(l => ({
+      timestamp: l.timestamp, match: l.match, source: l.source,
+      top1: (l.topPredictions?.[0]?.score || '?') + '(' + (l.topPredictions?.[0]?.pct || '?') + '%)',
+      fusion: l.fusionProb.winPct + '/' + l.fusionProb.drawPct + '/' + l.fusionProb.awayPct
+    })),
+    wrongDrawDetails: wrongDrawLogs.slice(0, 5).map(l => ({
+      match: l.match,
+      predicted: l.fusionProb.winPct + '/' + l.fusionProb.drawPct + '/' + l.fusionProb.awayPct,
+      actual: l.actualScore + '(' + l.actualResult + ')',
+      top1: (l.topPredictions?.[0]?.score || '?') + '(' + (l.topPredictions?.[0]?.pct || '?') + '%)'
+    }))
+  };
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -140,8 +250,9 @@ function getLocalIP() {
 // API 路由
 // ============================================================
 async function handleRequest(req, res) {
-  const parsed = url.parse(req.url, true);
-  const pathname = parsed.pathname;
+  const parsedUrl = new URL(req.url, 'http://localhost');
+  const pathname = parsedUrl.pathname;
+  const queryParams = Object.fromEntries(parsedUrl.searchParams.entries());
   const method = req.method;
 
   if (method === 'OPTIONS') {
@@ -182,7 +293,7 @@ async function handleRequest(req, res) {
     // ========================================
     if (pathname === '/api/teams' && method === 'GET') {
       ensureElo();
-      const group = parsed.query.group;
+      const group = queryParams.group;
       let teams = Object.entries(dbData.teams).map(([name, data]) => ({
         name, ...data, group: dbData.teamGroup[name] || ''
       }));
@@ -382,6 +493,34 @@ async function handleRequest(req, res) {
           dbData.predictionHistory = dbData.predictionHistory.slice(-200);
         }
         saveDB();
+
+        // ---- 写入预测日志 (prediction_log.jsonl) ----
+        const logEntry = {
+          timestamp: pred.timestamp,
+          source: 'custom',
+          match: home + ' vs ' + away,
+          home, away,
+          isFinalRound: isFinalRound || false,
+          isKnockout: isKnockout || false,
+          hasOdds: !!oddsHome,
+          odds: oddsHome ? { home: oddsHome, draw: oddsDraw, away: oddsAway } : null,
+          handicap: handicap || null,
+          teamUrgency,
+          weights: { elo: weights.elo, poisson: weights.poisson, economic: weights.economic, market: weights.market },
+          config: { dcRho: config.dcRho, homeAdvantage: config.homeAdvantage, realPerformanceWeight: config.realPerformanceWeight },
+          fusionLambda: pred.fusion.lambda,
+          topPredictions: pred.fusion.top5,
+          fusionProb: { winPct: pred.fusion.winPct, drawPct: pred.fusion.drawPct, awayPct: pred.fusion.awayPct },
+          modelProb: {
+            elo: { winPct: pred.models.elo.winPct, drawPct: pred.models.elo.drawPct, awayPct: pred.models.elo.awayPct },
+            poisson: { winPct: pred.models.poisson.winPct, drawPct: pred.models.poisson.drawPct, awayPct: pred.models.poisson.awayPct },
+            economic: { winPct: pred.models.economic.winPct, drawPct: pred.models.economic.drawPct, awayPct: pred.models.economic.awayPct },
+            market: pred.models.market ? { winPct: pred.models.market.winPct, drawPct: pred.models.market.drawPct, awayPct: pred.models.market.awayPct } : null
+          },
+          // AI 推理报告（useAI=true 时才有）
+          aiReport: pred.aiReport || null
+        };
+        appendPredictionLog(logEntry);
       }
 
       sendJSON(res, pred);
@@ -405,6 +544,35 @@ async function handleRequest(req, res) {
           marketWeight: 0, // 无赔率时忽略市场模型
         });
         results.push({ ...m, ...pred });
+
+        // ---- 写入预测日志 (prediction_log.jsonl) ----
+        if (!pred.error) {
+          appendPredictionLog({
+            timestamp: pred.timestamp,
+            source: 'batch',
+            match: m.home + ' vs ' + m.away,
+            home: m.home, away: m.away,
+            group: m.group, round: m.round,
+            date: m.date,
+            isFinalRound: m.round === 3,
+            isKnockout: false,
+            hasOdds: false,
+            odds: null,
+            handicap: null,
+            teamUrgency: {},
+            weights: { elo: (config.fusionWeights || {}).elo || 0.25, poisson: (config.fusionWeights || {}).poisson || 0.30, economic: (config.fusionWeights || {}).economic || 0.10, market: 0 },
+            config: { dcRho: config.dcRho, homeAdvantage: config.homeAdvantage, realPerformanceWeight: config.realPerformanceWeight },
+            fusionLambda: pred.fusion.lambda,
+            topPredictions: pred.fusion.top5,
+            fusionProb: { winPct: pred.fusion.winPct, drawPct: pred.fusion.drawPct, awayPct: pred.fusion.awayPct },
+            modelProb: {
+              elo: { winPct: pred.models.elo.winPct, drawPct: pred.models.elo.drawPct, awayPct: pred.models.elo.awayPct },
+              poisson: { winPct: pred.models.poisson.winPct, drawPct: pred.models.poisson.drawPct, awayPct: pred.models.poisson.awayPct },
+              economic: { winPct: pred.models.economic.winPct, drawPct: pred.models.economic.drawPct, awayPct: pred.models.economic.awayPct },
+              market: null
+            }
+          });
+        }
       }
       sendJSON(res, { total: results.length, results, timestamp: new Date().toISOString() });
       return;
@@ -417,8 +585,28 @@ async function handleRequest(req, res) {
       ensureElo();
       const body = await parseBody(req);
       const N = body.simulations || 10000;
-      const result = engine.simulateTournament(dbData, N);
-      sendJSON(res, result);
+      
+      // SSE 流式响应
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+      });
+      
+      // 先发一个开始信号
+      res.write(`data: ${JSON.stringify({ type: 'start', total: N })}\n\n`);
+      
+      const result = engine.simulateTournament(dbData, N, (progress) => {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'progress', ...progress })}\n\n`);
+        } catch(e) {}
+      });
+      
+      // 发结果
+      res.write(`data: ${JSON.stringify({ type: 'result', data: result })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      res.end();
       return;
     }
 
@@ -460,6 +648,17 @@ async function handleRequest(req, res) {
     // ========================================
     if (pathname === '/api/history' && method === 'GET') {
       sendJSON(res, dbData.predictionHistory?.slice(-50).reverse() || []);
+      return;
+    }
+
+    // ========================================
+    // 14b. 预测日志 (prediction_log.jsonl) — 含 AI 推理报告
+    // ========================================
+    if (pathname === '/api/prediction/logs' && method === 'GET') {
+      const limit = parseInt(queryParams.limit || '200', 10);
+      const logs = readPredictionLog(limit);
+      // 最新的在前
+      sendJSON(res, logs.reverse());
       return;
     }
 
@@ -586,6 +785,8 @@ async function handleRequest(req, res) {
           '3-4分': results.filter(r=>r.scoreDiff>=3&&r.scoreDiff<=4).length,
           '5分+': results.filter(r=>r.scoreDiff>=5).length,
         },
+        // ---- 预测日志分析 ----
+        logAnalysis: analyzePredictionLog(results),
       });
       return;
     }

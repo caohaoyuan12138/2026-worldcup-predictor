@@ -83,7 +83,8 @@ async function init() {
       loadHistory(),
       loadEloRanking(),
       loadKnockout(),
-      loadReview()
+      loadReview(),
+      loadPredLogs()
     ]);
     
     // 填充球队下拉
@@ -210,11 +211,17 @@ async function loadHistory() {
     const html = history.map(h => {
       const time = new Date(h.timestamp);
       const timeStr = `${time.getHours().toString().padStart(2,'0')}:${time.getMinutes().toString().padStart(2,'0')}`;
+      // fusion 可能为 null 或旧格式
+      const fusion = h.fusion || {};
+      const top = fusion.top5?.[0];
+      const topStr = top ? `${top.score} (${top.pct?.toFixed(1)}%)` : '—';
+      const lambda = fusion.lambda || {};
+      const lStr = lambda.home ? `λ ${lambda.home.toFixed(2)}:${lambda.away.toFixed(2)}` : '';
       return `<div class="history-item">
         <span class="history-time">${timeStr}</span>
         <span class="history-teams">${h.home} vs ${h.away}</span>
-        <span class="history-result">${h.result.topScore} (${h.result.topPct}%)</span>
-        <span style="color:var(--text-secondary);font-size:0.75rem;">λ ${h.lambda.home.toFixed(2)}:${h.lambda.away.toFixed(2)}</span>
+        <span class="history-result">${topStr}</span>
+        <span style="color:var(--text-secondary);font-size:0.75rem;">${lStr}</span>
       </div>`;
     }).join('');
     $('historyList').innerHTML = html;
@@ -235,17 +242,20 @@ async function predictAll() {
       const dP = sim.drawPct.toFixed(1);
       const aP = sim.awayWinPct.toFixed(1);
       return `<div class="pred-card">
-        <div class="pred-date">${formatDate(m.date)} | Group ${m.group}</div>
-        <div class="pred-teams">${m.home} vs ${m.away}</div>
-        <div class="pred-lambda">融合λ ${m.fusion.lambda.home.toFixed(2)} : ${m.fusion.lambda.away.toFixed(2)}</div>
-        <div class="pred-top">最可能: <strong>${top.score}</strong> (${top.pct}%)</div>
-        <div class="win-bar-wrap">
-          <div class="win-bar home-bar" style="width:${Math.round(sim.homeWinPct)}%">${m.home} ${hP}%</div>
-          <div class="win-bar draw-bar" style="width:${Math.max(Math.round(sim.drawPct), 5)}%">平 ${dP}%</div>
-          <div class="win-bar away-bar" style="width:${Math.round(sim.awayWinPct)}%">${m.away} ${aP}%</div>
+        <div class="pred-left">
+          <div class="pred-date">${formatDate(m.date)} | Group ${m.group}</div>
+          <div class="pred-teams">${m.home} vs ${m.away}</div>
+          <div class="pred-lambda">λ ${m.fusion.lambda.home.toFixed(2)} : ${m.fusion.lambda.away.toFixed(2)}</div>
         </div>
-        <div class="pred-scores">
-          ${sim.top5.slice(0, 3).map((s, i) => `<span class="score-chip ${i===0?'top':''}">${s.score} ${s.pct}%</span>`).join('')}
+        <div class="pred-right">
+          <div class="win-bar-wrap">
+            <div class="win-bar home-bar" style="width:${Math.round(sim.homeWinPct)}%">${m.home} ${hP}%</div>
+            <div class="win-bar draw-bar" style="width:${Math.max(Math.round(sim.drawPct), 5)}%">平 ${dP}%</div>
+            <div class="win-bar away-bar" style="width:${Math.round(sim.awayWinPct)}%">${m.away} ${aP}%</div>
+          </div>
+          <div class="pred-scores">
+            ${sim.top5.slice(0, 3).map((s, i) => `<span class="score-chip ${i===0?'top':''}">${s.score.replace('-',':')} ${s.pct}%</span>`).join('')}
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -310,7 +320,7 @@ async function doCustomPredict() {
           const p = [models.market.winPct, models.market.drawPct, models.market.awayPct][i];
           return `<div style="flex:1;background:var(--bg-hover);border-radius:8px;padding:8px;text-align:center;">
             <div style="font-size:0.7rem;color:var(--text-muted);">${label}</div>
-            <div style="font-size:1.1rem;font-weight:700;color:var(--accent-orange);">${o}</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--accent-orange);">${o !== null ? o : '-'}</div>
             <div style="font-size:0.75rem;color:var(--text-secondary);">${p}%</div>
           </div>`;
         }).join('')}
@@ -319,7 +329,7 @@ async function doCustomPredict() {
         // 引擎 handciop>0=主让, 显示转回用户语义: 用户输入-2=主队让2球
         const h = models.market.handicap;
         const displayH = -h;
-        oddsInfo += `<div style="margin-top:6px;text-align:center;font-size:0.75rem;color:var(--text-muted);">⚖️ 让球盘口: ${displayH > 0 ? '+' : ''}${displayH} (主${displayH < 0 ? '让' : '受让'}${Math.abs(displayH)})</div>`;
+        oddsInfo += `<div style="margin-top:6px;text-align:center;font-size:0.75rem;color:var(--text-muted);">⚖️ 让球盘口: ${displayH > 0 ? '+' : ''}${displayH} (主${displayH > 0 ? '+' : ''}${displayH}球)</div>`;
       }
     }
     
@@ -374,25 +384,7 @@ async function doCustomPredict() {
           </div>
         </div>
         
-        <!-- 比分分布 -->
-        <div style="padding:14px 20px 0;">
-          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">🎯 最可能比分</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${fusion.top5.map((s, i) => {
-              const maxPct = fusion.top5[0].pct;
-              const barH = Math.round((s.pct / maxPct) * 100);
-              return `<div style="flex:1;min-width:60px;background:var(--bg-hover);border-radius:8px;padding:6px;text-align:center;border:${i===0?'1px solid var(--accent-orange)':'1px solid var(--border)'};">
-                <div style="font-size:1.1rem;font-weight:700;color:${i===0?'var(--accent-orange)':'var(--text-primary)'};">${s.score}</div>
-                <div style="margin-top:4px;height:40px;background:var(--border);border-radius:4px;overflow:hidden;display:flex;align-items:flex-end;">
-                  <div style="width:100%;height:${barH}%;background:${i===0?'var(--accent-orange)':'var(--accent-blue)'};border-radius:4px;transition:height 0.5s;"></div>
-                </div>
-                <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px;">${s.pct}%</div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
         
-        <!-- 模型对比 -->
         <div style="padding:14px 20px 0;">
           <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:6px;">🔬 各模型胜率对比</div>
           ${modelBar('⚡ Elo', models.elo.winPct, models.elo.drawPct, models.elo.awayPct, '#3b82f6')}
@@ -425,6 +417,38 @@ async function doCustomPredict() {
           </div>
         </div>`;
     
+    // ---- 战术分析面板 ----
+    if (data.tactics && data.tactics.style) {
+      const tac = data.tactics;
+      modelHtml += `<div style="padding:0 20px 12px;">
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px 14px;">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--accent-blue);margin-bottom:8px;">🎯 战术分析</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:120px;">
+              <div style="font-size:0.65rem;color:var(--text-muted);">风格匹配</div>
+              <div style="font-size:0.8rem;font-weight:600;">${tac.style.description || '—'}</div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+              <div style="font-size:0.65rem;color:var(--text-muted);">主/客场胜率</div>
+              <div style="font-size:0.8rem;">${tac.homeAway?.homeWinRate || '?'}% / ${tac.homeAway?.awayWinRate || '?'}%</div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+              <div style="font-size:0.65rem;color:var(--text-muted);">大赛胜率</div>
+              <div style="font-size:0.8rem;">${tac.bigGame?.homeTournamentWinRate || '?'}% / ${tac.bigGame?.awayTournamentWinRate || '?'}%</div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+              <div style="font-size:0.65rem;color:var(--text-muted);">近期状态</div>
+              <div style="font-size:0.8rem;">${tac.bigGame?.homeRecentForm || '?'} / ${tac.bigGame?.awayRecentForm || '?'}</div>
+            </div>
+            <div style="flex:1;min-width:80px;">
+              <div style="font-size:0.65rem;color:var(--text-muted);">预期总进球</div>
+              <div style="font-size:0.8rem;font-weight:600;">${tac.goalExpectation?.expectedTotal || '?'}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
     // AI 推理报告
     if (data.aiReport && data.aiReport.report) {
       const report = data.aiReport.report;
@@ -474,7 +498,7 @@ async function doCustomPredict() {
     modelHtml += `</div></div>`;
     
     $('customPredResult').innerHTML = modelHtml;
-    await loadHistory();
+    await Promise.all([loadHistory(), loadPredLogs()]);
   } catch (e) {
     $('customPredResult').innerHTML = `<div style="color:var(--accent-red);padding:12px;">❌ ${e.message}</div>`;
   }
@@ -485,39 +509,78 @@ async function doCustomPredict() {
 // =============================================
 async function runAdvanceSim() {
   $('advanceStatus').textContent = '🔄 模拟 10000次...';
-  loading($('advanceTableWrap'), '模拟出线形势中...');
+  
+  // 显示进度条
+  $('advanceTableWrap').innerHTML = `<div style="padding:20px;text-align:center;">
+    <div style="margin:0 auto;max-width:400px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-secondary);margin-bottom:4px;">
+        <span id="advanceProgressText">0 / 10000</span>
+        <span id="advanceProgressPct">0%</span>
+      </div>
+      <div class="progress-bar-wrap" style="height:12px;">
+        <div id="advanceProgressBar" class="progress-bar" style="width:0%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+  </div>`;
+  
   try {
-    const data = await api('/api/predict/advance', { method: 'POST', body: { simulations: 10000 } });
+    // 用 fetch 获取 SSE 流
+    const response = await fetch('/api/predict/advance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simulations: 10000 })
+    });
     
-    // 按小组排列
-    const groupOrder = ['A','B','C','D','E','F','G','H','I','J','K','L'];
-    let html = '<table class="advance-table"><thead><tr><th>小组</th><th>球队</th><th>出线率</th><th>小组第1</th><th>小组第2</th><th>最佳第3</th><th>8强</th><th>4强</th><th>亚军</th><th>冠军</th></tr></thead><tbody>';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let resultData = null;
     
-    for (const g of groupOrder) {
-      const teams = data.group[g];
-      const sorted = teams.map(t => ({ name: t, ...data.results[t] })).sort((a, b) => b.advancePct - a.advancePct);
-      for (const t of sorted) {
-        const barClass = t.advancePct >= 70 ? 'progress-high' : t.advancePct >= 30 ? 'progress-mid' : t.advancePct >= 10 ? 'progress-low' : 'progress-none';
-        html += `<tr>
-          <td>${g}</td>
-          <td style="font-weight:600;">${t.name}</td>
-          <td><div class="progress-bar-wrap"><div class="progress-bar ${barClass}" style="width:${t.advancePct}%">${t.advancePct}%</div></div></td>
-          <td>${t.groupWinPct}%</td>
-          <td>${t.groupRunnerUpPct}%</td>
-          <td>${t.bestThirdPct}%</td>
-          <td>${t.round8Pct}%</td>
-          <td>${t.round4Pct}%</td>
-          <td>${t.runnerUpPct}%</td>
-          <td style="font-weight:700;color:var(--accent-orange);">${t.championPct}%</td>
-        </tr>`;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const msg = JSON.parse(line.slice(6));
+            
+            if (msg.type === 'progress') {
+              const pct = msg.pct || 0;
+              $('advanceProgressBar').style.width = pct + '%';
+              $('advanceProgressText').textContent = msg.current.toLocaleString() + ' / ' + msg.total.toLocaleString();
+              $('advanceProgressPct').textContent = pct + '%';
+            } else if (msg.type === 'result') {
+              resultData = msg.data;
+            } else if (msg.type === 'done' && resultData) {
+              // 渲染结果
+              const data = resultData;
+              const groupOrder = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+              let html = '<table class="advance-table"><thead><tr><th>小组</th><th>球队</th><th>出线率</th><th>小组第1</th><th>小组第2</th><th>最佳第3</th><th>8强</th><th>4强</th><th>亚军</th><th>冠军</th></tr></thead><tbody>';
+              
+              for (const g of groupOrder) {
+                const teams = data.group[g];
+                const sorted = teams.map(t => ({ name: t, ...data.results[t] })).sort((a, b) => b.advancePct - a.advancePct);
+                for (const t of sorted) {
+                  const barClass = t.advancePct >= 70 ? 'progress-high' : t.advancePct >= 30 ? 'progress-mid' : t.advancePct >= 10 ? 'progress-low' : 'progress-none';
+                  html += '<tr><td>' + g + '</td><td style="font-weight:600;">' + t.name + '</td><td><div class="progress-bar-wrap"><div class="progress-bar ' + barClass + '" style="width:' + t.advancePct + '%">' + t.advancePct + '%</div></div></td><td>' + t.groupWinPct + '%</td><td>' + t.groupRunnerUpPct + '%</td><td>' + t.bestThirdPct + '%</td><td>' + t.round8Pct + '%</td><td>' + t.round4Pct + '%</td><td>' + t.runnerUpPct + '%</td><td style="font-weight:700;color:var(--accent-orange);">' + t.championPct + '%</td></tr>';
+                }
+              }
+              html += '</tbody></table>';
+              $('advanceTableWrap').innerHTML = html;
+              $('advanceStatus').textContent = '✅ ' + data.totalSims.toLocaleString() + ' 次模拟完成';
+            }
+          } catch(e) {}
+        }
       }
     }
-    html += '</tbody></table>';
-    $('advanceTableWrap').innerHTML = html;
-    $('advanceStatus').textContent = `✅ ${data.totalSims.toLocaleString()} 次模拟完成`;
   } catch (e) {
-    $('advanceStatus').textContent = `❌ 错误: ${e.message}`;
-    $('advanceTableWrap').innerHTML = `<div style="color:var(--accent-red);text-align:center;padding:20px;">${e.message}</div>`;
+    $('advanceStatus').textContent = '❌ 错误: ' + e.message;
+    $('advanceTableWrap').innerHTML = '<div style="color:var(--accent-red);text-align:center;padding:20px;">' + e.message + '</div>';
   }
 }
 
@@ -757,6 +820,75 @@ async function runAnalysis() {
   }
 }
 
+// =============================================
+// TAB 9: 预测日志
+// =============================================
+async function loadPredLogs() {
+  try {
+    const logs = await api('/api/prediction/logs?limit=100');
+    if (logs.length === 0) {
+      $('predLogsList').innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:40px;">暂无预测日志记录<br><span style="font-size:0.8rem;">使用自定义预测（含 AI 推理）后日志将出现在这里</span></div>';
+      return;
+    }
+    let html = logs.map((log, i) => {
+      const time = new Date(log.timestamp);
+      const dateStr = time.toLocaleDateString('zh-CN', { month:'2-digit', day:'2-digit' });
+      const timeStr = time.toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+      const sourceLabel = log.source === 'custom' ? '🎯' : '📦';
+      const aiBadge = log.aiReport && !log.aiReport.error ? ' <span style="color:var(--accent-green);font-size:0.75rem;">🧠 AI</span>' : '';
+      const top = log.topPredictions?.[0];
+      const topStr = top ? `${top.score} (${top.pct?.toFixed(1)}%)` : '—';
+      const prob = log.fusionProb ? `${log.fusionProb.winPct?.toFixed(0)}/${log.fusionProb.drawPct?.toFixed(0)}/${log.fusionProb.awayPct?.toFixed(0)}` : '';
+      const logId = `predlog-${i}`;
+      const hasAI = log.aiReport && log.aiReport.report;
+      const bodyId = `predlog-body-${i}`;
+      return `<div class="log-entry" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <div class="log-header" onclick="toggleLogBody('${bodyId}')" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;user-select:none;">
+          <span style="font-size:0.75rem;color:var(--text-muted);min-width:70px;">${dateStr} ${timeStr}</span>
+          <span>${sourceLabel}</span>
+          <strong>${flag(log.home)} ${log.home}</strong>
+          <span style="color:var(--text-secondary);">vs</span>
+          <strong>${flag(log.away)} ${log.away}</strong>
+          <span class="badge" style="background:var(--accent-blue);color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75rem;">${topStr}</span>
+          <span style="font-size:0.75rem;color:var(--text-secondary);">胜率 ${prob}</span>
+          ${aiBadge}
+          <span class="toggle-icon" style="margin-left:auto;font-size:0.7rem;color:var(--text-muted);transition:transform 0.2s;">▼</span>
+        </div>
+        <div id="${bodyId}" style="display:none;padding:0 14px 10px;border-top:1px solid var(--border);">
+          ${hasAI ? `<div style="padding-top:10px;">
+            <div style="font-size:0.75rem;color:var(--accent-green);margin-bottom:6px;">🧠 AI 推理报告</div>
+            <div style="font-size:0.8rem;line-height:1.6;white-space:pre-wrap;color:var(--text-primary);max-height:500px;overflow-y:auto;padding:10px;background:var(--bg-primary);border-radius:6px;">${escapeHtml(log.aiReport.report)}</div>
+          </div>` : '<div style="padding:12px 0;font-size:0.75rem;color:var(--text-muted);text-align:center;">无 AI 推理报告</div>'}
+          ${log.odds ? `<div style="margin-top:6px;font-size:0.7rem;color:var(--text-muted);">赔率 ${log.odds.home}/${log.odds.draw}/${log.odds.away}${log.handicap ? ` 盘口 ${log.handicap}` : ''}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    $('predLogsList').innerHTML = html;
+  } catch (e) {
+    console.error('加载预测日志失败:', e);
+    $('predLogsList').innerHTML = '<div style="color:var(--accent-red);text-align:center;padding:20px;">❌ 加载预测日志失败</div>';
+  }
+}
+
+function toggleLogBody(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isHidden = el.style.display === 'none' || el.style.display === '';
+  el.style.display = isHidden ? 'block' : 'none';
+  // 切换箭头方向
+  const header = el.previousElementSibling;
+  if (header) {
+    const icon = header.querySelector('.toggle-icon');
+    if (icon) icon.textContent = isHidden ? '▲' : '▼';
+  }
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// =============================================
 // TAB 6: 复盘分析
 // =============================================
 async function loadReview() {

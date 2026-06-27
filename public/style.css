@@ -200,30 +200,61 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: 12px 16px;
   transition: border-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#predictResults {
+  max-width: 50%;
+  margin: 0 auto;
 }
 
 .pred-card:hover {
   border-color: var(--accent-blue);
 }
 
+.pred-left {
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
 .pred-date {
   font-size: 0.75rem;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .pred-teams {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 2px;
+  white-space: nowrap;
 }
 
 .pred-lambda {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pred-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.pred-right .win-bar-wrap {
   margin-bottom: 6px;
+}
+
+.pred-right .pred-scores {
+  gap: 4px;
+}
+
+.pred-right .score-chip {
+  font-size: 0.7rem;
+  padding: 2px 6px;
 }
 
 .pred-top {
