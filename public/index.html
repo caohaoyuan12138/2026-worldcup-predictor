@@ -22,6 +22,7 @@
     <button class="tab-btn" data-tab="elo">🏅 Elo排名</button>
     <button class="tab-btn" data-tab="knockout">🏆 晋级图</button>
     <button class="tab-btn" data-tab="review">📊 复盘分析</button>
+    <button class="tab-btn" data-tab="predlogs">📜 预测日志</button>
     <button class="tab-btn" data-tab="config">🔧 模型配置</button>
   </div>
   <span class="status-badge" id="statusBadge">加载中...</span>
@@ -88,7 +89,7 @@
     <div class="add-match-form">
       <h3>➕ 添加比赛结果</h3>
       <div class="form-row">
-        <input type="date" id="matchDate" value="2026-06-25">
+        <input type="date" id="matchDate" value="2026-06-26">
         <select id="matchGroup">
           <option value="">选择小组</option>
         </select>
@@ -138,7 +139,19 @@
   </div>
 
   <!-- ============================================= -->
-  <!-- TAB 9: 模型配置 -->
+  <!-- TAB 9: 预测日志 -->
+  <!-- ============================================= -->
+  <div class="tab-content" id="tab-predlogs">
+    <div class="filter-bar" style="margin-bottom:12px;">
+      <span style="color:var(--text-secondary);font-size:0.85rem;">🧠 每次自定义预测的完整日志（含 AI 推理报告）</span>
+    </div>
+    <div id="predLogsList">
+      <div class="loading"><div class="spinner"></div><div>加载预测日志...</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- TAB 10: 模型配置 -->
   <!-- ============================================= -->
   <div class="tab-content" id="tab-config">
     <h2 style="margin: 0 0 14px; font-size:1.1rem; color:#c8d8e8; border-left:3px solid var(--accent-blue); padding-left:10px;">🔧 预测模型参数</h2>
