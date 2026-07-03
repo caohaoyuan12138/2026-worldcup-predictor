@@ -1,6 +1,6 @@
 {
   "name": "worldcup-predictor",
-  "version": "3.0.0",
+  "version": "5.0.0",
   "description": "2026世界杯预测系统 - Elo+泊松+经济学+赔率四维融合模型",
   "main": "server.mjs",
   "scripts": {

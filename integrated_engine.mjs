@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 预测引擎 v3.0 — 集成优化版
+ * 预测引擎 v5.0 — 集成版（Oracle V2 融合引擎）
  * 
  * 整合所有P0-P2优化：
  * 1. 实时Elo更新 + 战力反哺
@@ -55,7 +55,7 @@ import {
   fusionPredict, calcLambda, monteCarlo, monteCarlo as mc,
   batchUpdateElo, rankToElo, eloExpected, updateElo,
   getDynamicWeights 
-} from './model/engine.mjs';
+} from './model/_fusion_v5.mjs';
 
 // 加载Elo更新器
 import { loadAndUpdateTeams, saveUpdatedTeams, fullUpdate as runFullUpdate } from './model/elo_updater.mjs';
@@ -280,7 +280,7 @@ switch (cmd) {
   
   case 'backtest': {
     console.log('\n📊 回测淘汰赛预测...\n');
-    const completed = db.COMPLETED_MATCHES.filter(m => m.score && (m.round && m.round.includes('强')));
+    const completed = db.COMPLETED_MATCHES.filter(m => m.score && (typeof m.round === 'string' && m.round.includes('强')));
     let correct = 0, top3 = 0, total = 0;
     
     for (const m of completed) {

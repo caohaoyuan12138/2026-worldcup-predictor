@@ -73,7 +73,7 @@ function bayesian_fusion_js(model_probs, market_probs, stage, model_confidence) 
 /**
  * 赔率转市场隐含概率（去水）
  */
-function market_probs_from_odds(h, d, a) {
+export function market_probs_from_odds(h, d, a) {
   if (!h || !d || !a || h <= 0 || d <= 0 || a <= 0) return null;
   const ih = 1/h, id = 1/d, ia = 1/a;
   const total = ih + id + ia;
@@ -932,10 +932,10 @@ export function batchUpdateElo(teams, completedMatches) {
     
     // 淘汰赛K值放大
     let K = 30;
-    if (m.round && (m.round.includes('强') || m.round === 'KO' || m.round === '1/16' || m.round === '16强')) {
+    if (m.round && String(m.round).includes('强') || m.round === 'KO' || m.round === '1/16' || m.round === '16强') {
       K = 35;
     }
-    if (m.round && (m.round.includes('半') || m.round === '决赛')) {
+    if (m.round && String(m.round).includes('半') || m.round === '决赛') {
       K = 45;
     }
     

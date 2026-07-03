@@ -694,7 +694,7 @@ async function runBacktest() {
   
   const completed = db.COMPLETED_MATCHES || [];
   const knockoutMatches = completed.filter(m => 
-    m.round && (m.round.includes('强') || m.round === 'KO' || m.group === 'KO')
+    m.round && ((typeof m.round === 'string' && m.round.includes('强')) || m.round === 'KO' || m.group === 'KO')
   );
   
   if (knockoutMatches.length === 0) {

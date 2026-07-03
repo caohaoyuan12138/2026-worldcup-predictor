@@ -1,6 +1,10 @@
 node_modules/
 .env
 *.log
+__pycache__/
+*.pyc
+prediction_log.jsonl
+data_local/
 auth_qr.png
 auth_read_qr.png
 _espn_test.html

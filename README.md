@@ -1,10 +1,22 @@
-# ⚽ 2026世界杯预测系统 v3.0
+# ⚽ 2026世界杯预测系统 v5.0
 
-> 2026美加墨世界杯 · 四维融合预测引擎 · 淘汰赛专项优化
+> 2026美加墨世界杯 · 四维融合预测引擎 · Oracle V2 五层架构 · AI推理增强
 
 融合 **Elo等级分 + 泊松分布(Dixon-Coles) + 经济学模型 + 赔率市场** 的四维足球预测引擎。
 
-## ✨ v3.0 新增功能
+## ✨ v5.0 新增功能
+
+| 功能 | 说明 |
+|------|------|
+| 🏗️ Oracle V2 五层架构 | 数据输入层 → 数据治理层 → AI推理引擎 → 可视化层 → UI层，全链路解耦 |
+| 🧠 AI推理裁判 | 集成 deepseek-v4-flash，多因子推理分析，赔率+盘口信号强引导 |
+| ⚽ xG预期进球模型 | 基于射门转化率、传球渗透率等统计的预期进球子模块 |
+| 🔄 数据管道 | 自动同步、数据质量校验、趋势生成器 |
+| 📊 预测日志系统 | 每次预测完整持久化 JSONL，含日志分析引擎 |
+| 📈 实时组态模拟 | SSE 流式推送蒙特卡洛模拟进度，出线形势可视化 |
+| 🎨 统一前端 | 10-Tab SPA（总览/预测/出线形势/球队数据/比赛管理/Elo排名/晋级图/复盘分析/预测日志/模型配置） |
+
+### v4.0 新增功能
 
 | 功能 | 说明 |
 |------|------|
@@ -57,7 +69,8 @@ streamlit run streamlit_app.py
 - **Node.js 版**: `server.mjs` + `model/engine.mjs` + `public/` 前端
 - **Streamlit 版**: `streamlit_app.py` — 嵌入 Node.js 前端 UI，Python 完整引擎
 - **数据库**: `db/worldcup.json` — 48队/12组/78场已赛/32场淘汰赛
-- **新引擎**: `model/knockout_engine.mjs` + `model/elo_updater.mjs` + `model/odds_validator.mjs`
+- **新引擎**: `model/knockout_engine.mjs` + `model/elo_updater.mjs` + `model/odds_validator.mjs` + `model/xg_model.mjs`
+- **AI推理**: `reasoning_agent.py` — deepseek-v4-flash 多因子分析
 
 ## 复盘
 

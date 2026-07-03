@@ -1,8 +1,8 @@
 """
 大模型推理增强模块
 
-内置模型：LongCat-2.0-Preview
-API地址：https://api.longcat.chat/openai
+内置模型：Agnes 2.0 Flash
+API地址：https://apihub.agnes-ai.com/v1
 用途：
 - 分析战报内容，提取关键信息
 - 生成详细推理过程
@@ -14,12 +14,12 @@ import json
 import threading
 from typing import Dict, List, Optional, Callable
 
-# 内置LLM配置（LongCat）
+# 内置LLM配置（Agnes AI）
 LLM_CONFIG = {
-    "provider": "longcat",
-    "api_key": "ak_2YJ80B0DR3SX6vL0F87nN2QC8jT0V",  # 内置API Key
-    "model": "LongCat-2.0-Preview",
-    "base_url": "https://api.longcat.chat/openai",
+    "provider": "agnes",
+    "api_key": "sk-6FqQ8pmPLUuouABzdDihaUkUG730w7ADT6zxySDodQUFuGGe",
+    "model": "agnes-2.0-flash",
+    "base_url": "https://apihub.agnes-ai.com/v1",
     "api_type": "openai",
     "enabled": True,  # 默认启用
 }

@@ -55,6 +55,17 @@ function formatDate(d) {
   return `${date.getMonth()+1}/${date.getDate()}`;
 }
 
+function exportCSV(type) {
+  const url = `/api/export/csv?type=${type}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `worldcup_${type}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  showToast(`正在下载 ${type} CSV`, 'info');
+}
+
 // =============================================
 // Tab 切换
 // =============================================
@@ -85,7 +96,8 @@ async function init() {
       loadEloRanking(),
       loadKnockout(),
       loadReview(),
-      loadPredLogs()
+      loadPredLogs(),
+      loadDashboard()
     ]);
     
     // 填充球队下拉
@@ -96,6 +108,17 @@ async function init() {
     console.error('初始化失败:', e);
     showToast('连接后端失败，请确保 server.mjs 已启动', 'error');
   }
+}
+
+function connectSSE() {
+  if (typeof EventSource === "undefined") return;
+  const es = new EventSource("/api/events");
+  es.addEventListener("match_update", () => {
+    loadOverview();
+    loadEloRanking();
+    loadDashboard();
+  });
+  es.addEventListener("error", () => { /* auto-reconnect */ });
 }
 
 function populateTeamSelects(teams) {
@@ -1219,6 +1242,446 @@ async function loadKnockout() {
     $('knockoutContainer').innerHTML = html;
   } catch (e) {
     $('knockoutContainer').innerHTML = `<div style="color:var(--accent-red);text-align:center;padding:20px;">${e.message}</div>`;
+  }
+}
+
+// =============================================
+// TAB 10: 仪表板 (Canvas 图表)
+// =============================================
+
+const DASH_COLORS = ['#2563eb','#16a34a','#dc2626','#d97706','#7c3aed','#0891b2','#db2777','#ca8a04'];
+
+async function loadDashboard() {
+  try {
+    const [data, eloHistory] = await Promise.all([
+      api('/api/dashboard'),
+      api('/api/elo/history')
+    ]);
+
+    // KPI cards
+    $('dashMatchCount').textContent = data.stats.totalMatches;
+    $('dashTeamCount').textContent = data.teamCount;
+    $('dashAccuracy').innerHTML = data.stats.directionAccuracy + '%';
+    $('dashAccuracy').style.color = data.stats.directionAccuracy > 60 ? 'var(--accent-green)' : data.stats.directionAccuracy > 45 ? 'var(--accent-orange)' : 'var(--accent-red)';
+    $('dashTop3').innerHTML = data.stats.top3HitRate + '%';
+    $('dashTop3').style.color = data.stats.top3HitRate > 30 ? 'var(--accent-green)' : 'var(--accent-orange)';
+
+    // Weights
+    const w = data.modelWeights;
+    $('dashWeights').textContent = `Elo ${(w.elo*100).toFixed(0)}% | 泊松 ${(w.poisson*100).toFixed(0)}% | 经济 ${(w.economic*100).toFixed(0)}% | 市场 ${(w.market*100).toFixed(0)}%`;
+
+    // Populate team select for elo chart
+    const teamSelect = $('chartTeamSelect');
+    if (eloHistory.length > 0) {
+      const allTeams = Object.keys(eloHistory[eloHistory.length - 1].ratings || {}).sort();
+      teamSelect.innerHTML = allTeams.map(t =>
+        `<option value="${t}">${flag(t)} ${t}</option>`
+      ).join('');
+      // Select top 5 by default
+      const topTeams = Object.entries(eloHistory[eloHistory.length - 1].ratings)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t);
+      [...teamSelect.options].forEach(o => { if (topTeams.includes(o.value)) o.selected = true; });
+    }
+
+    // Draw charts
+    drawEloTrendChart(eloHistory);
+    drawAccuracyTrendChart(data.dailyAccuracy);
+    drawDistributionChart(data.predDistribution);
+    drawRoundAccuracyChart(data.roundAccuracy);
+
+  } catch (e) {
+    console.error('仪表板加载失败:', e);
+  }
+}
+
+function updateEloChart() {
+  api('/api/elo/history').then(h => drawEloTrendChart(h)).catch(e => console.error(e));
+}
+
+// =============================================
+// Canvas 工具函数
+// =============================================
+
+function resizeCanvas(canvas) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 4;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h: canvas.clientHeight };
+}
+
+function drawGrid(ctx, w, h, steps) {
+  ctx.strokeStyle = '#e8edf3';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= steps; i++) {
+    const y = 20 + (h - 40) * i / steps;
+    ctx.beginPath();
+    ctx.moveTo(50, y);
+    ctx.lineTo(w - 10, y);
+    ctx.stroke();
+  }
+}
+
+function drawAxisLabels(ctx, w, h, labels, side) {
+  ctx.fillStyle = '#8a9aaa';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = side === 'left' ? 'right' : 'center';
+  for (let i = 0; i < labels.length; i++) {
+    const x = side === 'left' ? 44 : 50 + (w - 60) * i / (labels.length - 1);
+    const y = side === 'left' ? 20 + (h - 40) * (1 - i / (labels.length - 1)) : h - 6;
+    ctx.fillText(labels[i], x, y);
+  }
+}
+
+// =============================================
+// Elo 趋势折线图
+// =============================================
+
+function drawEloTrendChart(history) {
+  const canvas = $('eloTrendChart');
+  if (!canvas) return;
+  canvas.style.height = '280px';
+  const { ctx, w, h } = resizeCanvas(canvas);
+  if (w < 100) return;
+
+  const selected = [...$('chartTeamSelect').selectedOptions].map(o => o.value);
+  if (!selected.length || history.length < 2) {
+    ctx.fillStyle = '#8a9aaa';
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('请选择球队', w / 2, h / 2);
+    return;
+  }
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Background
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+
+  const pad = { top: 20, bottom: 24, left: 50, right: 16 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  // Find global min/max across selected teams
+  let minElo = Infinity, maxElo = -Infinity;
+  for (const snap of history) {
+    for (const t of selected) {
+      const v = snap.ratings[t];
+      if (v != null) { minElo = Math.min(minElo, v); maxElo = Math.max(maxElo, v); }
+    }
+  }
+  const range = maxElo - minElo || 1;
+  const margin = range * 0.1;
+  const yMin = Math.max(1800, minElo - margin);
+  const yMax = Math.min(2400, maxElo + margin);
+
+  // Grid lines
+  const gridSteps = 5;
+  drawGrid(ctx, w, h, gridSteps);
+  const yLabels = [];
+  for (let i = 0; i <= gridSteps; i++) {
+    yLabels.push(Math.round(yMin + (yMax - yMin) * (gridSteps - i) / gridSteps));
+  }
+  drawAxisLabels(ctx, w, h, yLabels, 'left');
+
+  // X labels (show every Nth)
+  const xStep = Math.max(1, Math.floor(history.length / 8));
+  ctx.fillStyle = '#8a9aaa';
+  ctx.font = '9px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i < history.length; i += xStep) {
+    const x = pad.left + chartW * i / (history.length - 1);
+    const label = history[i].matchCount.toString();
+    ctx.fillText(label, x, h - 4);
+  }
+  ctx.fillText('场次', w - 30, h - 4);
+
+  // Draw lines for each team
+  for (let ti = 0; ti < selected.length; ti++) {
+    const team = selected[ti];
+    const color = DASH_COLORS[ti % DASH_COLORS.length];
+    const points = history.map((snap, i) => {
+      const v = snap.ratings[team];
+      if (v == null) return null;
+      return {
+        x: pad.left + chartW * i / (history.length - 1),
+        y: pad.top + chartH * (1 - (v - yMin) / (yMax - yMin))
+      };
+    }).filter(p => p !== null);
+
+    if (points.length < 2) continue;
+
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, pad.top + chartH);
+    for (const p of points) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+    grad.addColorStop(0, color + '40');
+    grad.addColorStop(1, color + '05');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Points
+    for (const p of points) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // Legend
+  const legendY = 6;
+  let legendX = pad.left;
+  ctx.font = '10px -apple-system, sans-serif';
+  for (let ti = 0; ti < Math.min(selected.length, 8); ti++) {
+    const color = DASH_COLORS[ti % DASH_COLORS.length];
+    const name = selected[ti];
+    const text = name.length > 6 ? name.slice(0, 6) : name;
+    const tw = ctx.measureText(text).width;
+
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, legendY, 10, 10);
+    ctx.fillStyle = '#1a2338';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, legendX + 14, legendY + 9);
+
+    legendX += tw + 30;
+    if (legendX > w - 80) break;
+  }
+}
+
+// =============================================
+// 方向准确率趋势图
+// =============================================
+
+function drawAccuracyTrendChart(dailyData) {
+  const canvas = $('accuracyChart');
+  if (!canvas) return;
+  canvas.style.height = '220px';
+  const { ctx, w, h } = resizeCanvas(canvas);
+  if (w < 100 || dailyData.length < 1) return;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+
+  const pad = { top: 16, bottom: 20, left: 44, right: 14 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  drawGrid(ctx, w, h, 4);
+  drawAxisLabels(ctx, w, h, ['0%','25%','50%','75%','100%'], 'left');
+
+  const barW = Math.min(18, chartW / dailyData.length - 2);
+  const maxTotal = Math.max(...dailyData.map(d => d.total), 1);
+
+  // Gradient line for accuracy
+  ctx.beginPath();
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < dailyData.length; i++) {
+    const x = pad.left + chartW * (i + 0.5) / dailyData.length;
+    const y = pad.top + chartH * (1 - dailyData[i].accuracy / 100);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Bar fill under line
+  ctx.beginPath();
+  ctx.moveTo(pad.left + chartW * 0.5 / dailyData.length, pad.top + chartH);
+  for (let i = 0; i < dailyData.length; i++) {
+    const x = pad.left + chartW * (i + 0.5) / dailyData.length;
+    const y = pad.top + chartH * (1 - dailyData[i].accuracy / 100);
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pad.left + chartW * (dailyData.length - 0.5) / dailyData.length, pad.top + chartH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(37, 99, 235, 0.12)';
+  ctx.fill();
+
+  // X labels
+  ctx.fillStyle = '#8a9aaa';
+  ctx.font = '8px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  const xStep = Math.max(1, Math.floor(dailyData.length / 7));
+  for (let i = 0; i < dailyData.length; i += xStep) {
+    const x = pad.left + chartW * (i + 0.5) / dailyData.length;
+    ctx.fillText(dailyData[i].date.slice(5), x, h - 4);
+  }
+}
+
+// =============================================
+// 预测分布圆环图
+// =============================================
+
+function drawDistributionChart(dist) {
+  const canvas = $('distributionChart');
+  if (!canvas) return;
+  canvas.style.height = '220px';
+  const { ctx, w, h } = resizeCanvas(canvas);
+  if (w < 100) return;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+
+  const total = dist.home + dist.draw + dist.away;
+  if (total === 0) {
+    ctx.fillStyle = '#8a9aaa';
+    ctx.font = '14px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无预测数据', w / 2, h / 2);
+    return;
+  }
+
+  const cx = w * 0.35;
+  const cy = h / 2;
+  const outerR = Math.min(cx - 10, cy - 10, 70);
+  const innerR = outerR * 0.55;
+
+  const slices = [
+    { label: '主胜', pct: dist.home / total, color: '#2563eb' },
+    { label: '平局', pct: dist.draw / total, color: '#7c3aed' },
+    { label: '客胜', pct: dist.away / total, color: '#dc2626' },
+  ];
+
+  let startAngle = -Math.PI / 2;
+  for (const s of slices) {
+    const angle = s.pct * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, startAngle, startAngle + angle);
+    ctx.arc(cx, cy, innerR, startAngle + angle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = s.color;
+    ctx.fill();
+
+    // Label line and text
+    if (s.pct > 0.05) {
+      const midAngle = startAngle + angle / 2;
+      const lx = cx + Math.cos(midAngle) * (outerR + 16);
+      const ly = cy + Math.sin(midAngle) * (outerR + 16);
+
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(midAngle) * outerR, cy + Math.sin(midAngle) * outerR);
+      ctx.lineTo(lx, ly);
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#1a2338';
+      ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.textAlign = lx > cx ? 'left' : 'right';
+      ctx.fillText(`${s.label} ${(s.pct * 100).toFixed(0)}%`, lx + (lx > cx ? 4 : -4), ly + 4);
+    }
+
+    startAngle += angle;
+  }
+
+  // Center text
+  ctx.fillStyle = '#1a2338';
+  ctx.font = 'bold 16px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(total, cx, cy + 2);
+  ctx.font = '9px -apple-system, sans-serif';
+  ctx.fillStyle = '#8a9aaa';
+  ctx.fillText('预测', cx, cy + 16);
+}
+
+// =============================================
+// 轮次准确率柱状图
+// =============================================
+
+function drawRoundAccuracyChart(roundData) {
+  const canvas = $('roundAccuracyChart');
+  if (!canvas) return;
+  canvas.style.height = '220px';
+  const { ctx, w, h } = resizeCanvas(canvas);
+  if (w < 100 || roundData.length < 1) return;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+
+  const pad = { top: 16, bottom: 20, left: 44, right: 14 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  drawGrid(ctx, w, h, 4);
+  drawAxisLabels(ctx, w, h, ['0%','25%','50%','75%','100%'], 'left');
+
+  const cols = roundData.length;
+  const barW = Math.min(28, chartW / cols - 6);
+  const gap = (chartW - barW * cols) / (cols + 1);
+
+  for (let i = 0; i < cols; i++) {
+    const d = roundData[i];
+    const x = pad.left + gap + (barW + gap) * i;
+    const barH = (d.accuracy / 100) * chartH;
+    const y = pad.top + chartH - barH;
+
+    // Bar
+    const color = d.accuracy > 60 ? '#16a34a' : d.accuracy > 45 ? '#d97706' : '#dc2626';
+    const grad = ctx.createLinearGradient(0, y, 0, pad.top + chartH);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, color + '88');
+    ctx.fillStyle = grad;
+
+    const r = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + barW - r, y);
+    ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+    ctx.lineTo(x + barW, pad.top + chartH);
+    ctx.lineTo(x, pad.top + chartH);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.fill();
+
+    // Label on bar
+    ctx.fillStyle = '#1a2338';
+    ctx.font = 'bold 10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.accuracy + '%', x + barW / 2, y - 4);
+
+    // Round label
+    ctx.fillStyle = '#8a9aaa';
+    ctx.font = '9px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    const label = d.round === 'unknown' ? '?' : 'R' + d.round;
+    ctx.fillText(label, x + barW / 2, h - 4);
+
+    // Total count
+    ctx.fillStyle = '#bbb';
+    ctx.font = '8px -apple-system, sans-serif';
+    ctx.fillText('(' + d.total + ')', x + barW / 2, h - 16);
   }
 }
 

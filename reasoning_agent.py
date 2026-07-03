@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 ⚽ 足球预测 - AI 推理裁判
 
@@ -10,10 +11,10 @@ import json
 import sys
 import os
 
-# sensenova API 配置 (从环境变量读取, 由 Node.js 传入)
-API_KEY = os.environ.get('SENSENOVA_KEY', os.environ.get('AGNES_API_KEY', ''))
-API_BASE = os.environ.get('SENSENOVA_BASE', os.environ.get('AGNES_BASE_URL', 'https://token.sensenova.cn/v1'))
-MODEL = os.environ.get('REASONING_MODEL', 'deepseek-v4-flash')
+# Agnes AI API 配置 (从环境变量读取, 由 Node.js 传入)
+API_KEY = os.environ.get('SENSENOVA_KEY', os.environ.get('AGNES_API_KEY', 'sk-6FqQ8pmPLUuouABzdDihaUkUG730w7ADT6zxySDodQUFuGGe'))
+API_BASE = os.environ.get('SENSENOVA_BASE', os.environ.get('AGNES_BASE_URL', 'https://apihub.agnes-ai.com/v1'))
+MODEL = os.environ.get('REASONING_MODEL', 'agnes-2.0-flash')
 
 def build_prompt(factors):
     """组装推理 Prompt"""
@@ -58,6 +59,11 @@ def build_prompt(factors):
 
     # 让球盘口描述
     handicap_val = odds.get('handicap')
+    try:
+        handicap_val = float(handicap_val) if handicap_val is not None else None
+    except (ValueError, TypeError):
+        handicap_val = None
+    
     if handicap_val is not None:
         if handicap_val > 0:
             handicap_desc = f"+{handicap_val}（主队让{handicap_val}球，主队是强方/让球方，客队是弱方/受让方）"
