@@ -1,0 +1,386 @@
+{
+  "阿根廷": {
+    "attackBase": 1.92,
+    "defenseBase": 0.59,
+    "style": "控球渗透",
+    "styleFactor": 1.1,
+    "rank": 1,
+    "eloRating": 2122
+  },
+  "法国": {
+    "attackBase": 2.17,
+    "defenseBase": 0.57,
+    "style": "全能攻防",
+    "styleFactor": 1.15,
+    "rank": 2,
+    "eloRating": 2119
+  },
+  "巴西": {
+    "attackBase": 1.72,
+    "defenseBase": 0.64,
+    "style": "个人突破",
+    "styleFactor": 1.15,
+    "rank": 3,
+    "eloRating": 2078
+  },
+  "英格兰": {
+    "attackBase": 1.72,
+    "defenseBase": 0.62,
+    "style": "快速转换",
+    "styleFactor": 1.1,
+    "rank": 4,
+    "eloRating": 2049
+  },
+  "德国": {
+    "attackBase": 2.01,
+    "defenseBase": 0.87,
+    "style": "高压控球",
+    "styleFactor": 1.1,
+    "rank": 5,
+    "eloRating": 2010
+  },
+  "西班牙": {
+    "attackBase": 1.55,
+    "defenseBase": 0.49,
+    "style": "传控",
+    "styleFactor": 1.05,
+    "rank": 6,
+    "eloRating": 2014
+  },
+  "葡萄牙": {
+    "attackBase": 1.65,
+    "defenseBase": 0.66,
+    "style": "边路进攻",
+    "styleFactor": 1.1,
+    "rank": 7,
+    "eloRating": 1984
+  },
+  "荷兰": {
+    "attackBase": 1.98,
+    "defenseBase": 0.96,
+    "style": "全攻全守",
+    "styleFactor": 1.1,
+    "rank": 8,
+    "eloRating": 1976
+  },
+  "比利时": {
+    "attackBase": 1.51,
+    "defenseBase": 0.76,
+    "style": "中场控制",
+    "styleFactor": 1.05,
+    "rank": 9,
+    "eloRating": 1929
+  },
+  "乌拉圭": {
+    "attackBase": 1.21,
+    "defenseBase": 1.03,
+    "style": "强硬防守",
+    "styleFactor": 0.95,
+    "rank": 10,
+    "eloRating": 1900
+  },
+  "克罗地亚": {
+    "attackBase": 1.34,
+    "defenseBase": 1.13,
+    "style": "中场绞杀",
+    "styleFactor": 0.95,
+    "rank": 11,
+    "eloRating": 1904
+  },
+  "美国": {
+    "attackBase": 1.71,
+    "defenseBase": 1.03,
+    "style": "体能压制",
+    "styleFactor": 1.1,
+    "rank": 12,
+    "eloRating": 1889
+  },
+  "摩洛哥": {
+    "attackBase": 1.44,
+    "defenseBase": 0.93,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 13,
+    "eloRating": 1890
+  },
+  "哥伦比亚": {
+    "attackBase": 1.24,
+    "defenseBase": 0.8,
+    "style": "技术流派",
+    "styleFactor": 1,
+    "rank": 14,
+    "eloRating": 1861
+  },
+  "墨西哥": {
+    "attackBase": 1.37,
+    "defenseBase": 0.7,
+    "style": "快速反击",
+    "styleFactor": 1,
+    "rank": 15,
+    "eloRating": 1858
+  },
+  "日本": {
+    "attackBase": 1.37,
+    "defenseBase": 1.08,
+    "style": "团队配合",
+    "styleFactor": 1,
+    "rank": 16,
+    "eloRating": 1807
+  },
+  "瑞典": {
+    "attackBase": 1.37,
+    "defenseBase": 1.45,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 17,
+    "eloRating": 1780
+  },
+  "瑞士": {
+    "attackBase": 1.47,
+    "defenseBase": 1,
+    "style": "防守稳固",
+    "styleFactor": 0.95,
+    "rank": 18,
+    "eloRating": 1793
+  },
+  "挪威": {
+    "attackBase": 1.59,
+    "defenseBase": 1.37,
+    "style": "长传冲吊",
+    "styleFactor": 1.05,
+    "rank": 19,
+    "eloRating": 1776
+  },
+  "加拿大": {
+    "attackBase": 1.44,
+    "defenseBase": 0.93,
+    "style": "速度突破",
+    "styleFactor": 1.05,
+    "rank": 20,
+    "eloRating": 1732
+  },
+  "塞内加尔": {
+    "attackBase": 1.57,
+    "defenseBase": 1.37,
+    "style": "身体+速度",
+    "styleFactor": 1.05,
+    "rank": 21,
+    "eloRating": 1705
+  },
+  "厄瓜多尔": {
+    "attackBase": 0.9,
+    "defenseBase": 0.9,
+    "style": "防守反击",
+    "styleFactor": 0.95,
+    "rank": 22,
+    "eloRating": 1697
+  },
+  "科特迪瓦": {
+    "attackBase": 1.08,
+    "defenseBase": 1.07,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 23,
+    "eloRating": 1679
+  },
+  "奥地利": {
+    "attackBase": 1.3,
+    "defenseBase": 1.37,
+    "style": "高压逼抢",
+    "styleFactor": 1.05,
+    "rank": 24,
+    "eloRating": 1658
+  },
+  "捷克": {
+    "attackBase": 0.83,
+    "defenseBase": 1.37,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 25,
+    "eloRating": 1614
+  },
+  "韩国": {
+    "attackBase": 0.9,
+    "defenseBase": 1.14,
+    "style": "体能奔跑",
+    "styleFactor": 1.05,
+    "rank": 26,
+    "eloRating": 1606
+  },
+  "澳大利亚": {
+    "attackBase": 0.83,
+    "defenseBase": 0.97,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 27,
+    "eloRating": 1603
+  },
+  "苏格兰": {
+    "attackBase": 0.73,
+    "defenseBase": 1.17,
+    "style": "强硬拼抢",
+    "styleFactor": 1,
+    "rank": 28,
+    "eloRating": 1582
+  },
+  "埃及": {
+    "attackBase": 1.13,
+    "defenseBase": 1.07,
+    "style": "防守反击",
+    "styleFactor": 0.95,
+    "rank": 29,
+    "eloRating": 1573
+  },
+  "伊朗": {
+    "attackBase": 0.86,
+    "defenseBase": 1,
+    "style": "铁桶防守",
+    "styleFactor": 0.85,
+    "rank": 30,
+    "eloRating": 1549
+  },
+  "阿尔及利亚": {
+    "attackBase": 1.13,
+    "defenseBase": 1.54,
+    "style": "技术+速度",
+    "styleFactor": 1,
+    "rank": 31,
+    "eloRating": 1523
+  },
+  "加纳": {
+    "attackBase": 0.83,
+    "defenseBase": 1.04,
+    "style": "身体+速度",
+    "styleFactor": 1,
+    "rank": 32,
+    "eloRating": 1518
+  },
+  "土耳其": {
+    "attackBase": 0.93,
+    "defenseBase": 1.34,
+    "style": "情绪化进攻",
+    "styleFactor": 1.1,
+    "rank": 33,
+    "eloRating": 1484
+  },
+  "巴拉圭": {
+    "attackBase": 0.78,
+    "defenseBase": 1.15,
+    "style": "铁桶防守",
+    "styleFactor": 0.85,
+    "rank": 34,
+    "eloRating": 1479
+  },
+  "波黑": {
+    "attackBase": 1.06,
+    "defenseBase": 1.51,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 35,
+    "eloRating": 1461
+  },
+  "南非": {
+    "attackBase": 0.64,
+    "defenseBase": 1.14,
+    "style": "防守反击",
+    "styleFactor": 0.95,
+    "rank": 36,
+    "eloRating": 1441
+  },
+  "卡塔尔": {
+    "attackBase": 0.69,
+    "defenseBase": 1.91,
+    "style": "传控",
+    "styleFactor": 0.95,
+    "rank": 37,
+    "eloRating": 1388
+  },
+  "刚果(金)": {
+    "attackBase": 0.89,
+    "defenseBase": 1.21,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 38,
+    "eloRating": 1410
+  },
+  "巴拿马": {
+    "attackBase": 0.42,
+    "defenseBase": 1.31,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 39,
+    "eloRating": 1359
+  },
+  "乌兹别克斯坦": {
+    "attackBase": 0.69,
+    "defenseBase": 2.08,
+    "style": "技术流派",
+    "styleFactor": 0.95,
+    "rank": 40,
+    "eloRating": 1325
+  },
+  "约旦": {
+    "attackBase": 0.72,
+    "defenseBase": 1.78,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 41,
+    "eloRating": 1317
+  },
+  "海地": {
+    "attackBase": 0.55,
+    "defenseBase": 1.85,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 42,
+    "eloRating": 1289
+  },
+  "伊拉克": {
+    "attackBase": 0.52,
+    "defenseBase": 2.18,
+    "style": "防守反击",
+    "styleFactor": 0.9,
+    "rank": 43,
+    "eloRating": 1271
+  },
+  "突尼斯": {
+    "attackBase": 0.62,
+    "defenseBase": 2.18,
+    "style": "铁桶防守",
+    "styleFactor": 0.85,
+    "rank": 44,
+    "eloRating": 1265
+  },
+  "沙特阿拉伯": {
+    "attackBase": 0.45,
+    "defenseBase": 1.55,
+    "style": "技术不足",
+    "styleFactor": 0.9,
+    "rank": 45,
+    "eloRating": 1257
+  },
+  "佛得角": {
+    "attackBase": 0.62,
+    "defenseBase": 1.25,
+    "style": "技术流派",
+    "styleFactor": 0.95,
+    "rank": 46,
+    "eloRating": 1256
+  },
+  "新西兰": {
+    "attackBase": 0.82,
+    "defenseBase": 1.98,
+    "style": "身体对抗",
+    "styleFactor": 1,
+    "rank": 47,
+    "eloRating": 1224
+  },
+  "库拉索": {
+    "attackBase": 0.38,
+    "defenseBase": 2.02,
+    "style": "技术流派",
+    "styleFactor": 0.95,
+    "rank": 48,
+    "eloRating": 1196
+  }
+}

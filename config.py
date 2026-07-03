@@ -59,7 +59,7 @@ MOTIVATION_GROUP_DECIDER = 1.2     # 小组出线关键战（战意高）
 MOTIVATION_NORMAL = 1.0            # 正常比赛
 
 # ==================== 蒙特卡洛模拟配置 ====================
-MC_SIMULATIONS = 50000             # 模拟次数（从10000提升至50000，提高统计稳定性）
+MC_SIMULATIONS = 10000             # 模拟次数（统一配置，见 model/config.mjs）
 MC_SEED = None                     # 随机种子（None = 随机）
 
 # ==================== 贝叶斯融合配置 ====================
@@ -111,6 +111,17 @@ TACTICAL_SET_PIECE = 0.03               # 定位球强队 vs 防空弱队
 # 裁判执法风格
 REFEREE_CARD_STRICT = 0.03              # 严格裁判（黄牌多 → 影响进攻）
 REFEREE_CARD_LENIENT = -0.02            # 宽松裁判
+
+# ==================== xG 预期进球模型配置 ====================
+XG_WEIGHT_GROUP = 0.35                 # 小组赛 xG 融合权重
+XG_WEIGHT_KNOCKOUT = 0.50              # 淘汰赛 xG 融合权重（单场淘汰，xG 更可靠）
+XG_FORM_WINDOW = 3                      # xG 趋势窗口（最近 N 场）
+XG_MIN_MATCHES = 3                      # xG 数据最低可靠场次
+XG_SIMULATED_PENALTY = 0.7             # 仅模拟数据时的可靠性折扣
+XG_VARIANCE_THRESHOLD = 0.5            # xG 方差阈值，超过则降低权重
+XG_VARIANCE_PENALTY = 0.3              # 高方差时的最大权重扣减
+XG_DIFF_LAMBDA_CAP = 0.30              # xG 差对 Poisson λ 最大修正幅度
+XG_LEAGUE_AVG_DEFENSIVE_XG = 1.4       # 联赛平均防守 xG（对手调整基准）
 
 # 历史对战（H2H）
 H2H_MAX_IMPACT = 0.08                   # H2H 最大影响 ±8%

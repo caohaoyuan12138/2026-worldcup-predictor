@@ -1,0 +1,2814 @@
+{
+  "射手榜": [
+    {
+      "rank": "1",
+      "player": "梅西",
+      "team": "阿根廷",
+      "value": "6"
+    },
+    {
+      "rank": "2",
+      "player": "登贝莱",
+      "team": "法国",
+      "value": "4"
+    },
+    {
+      "rank": "2",
+      "player": "姆巴佩",
+      "team": "法国",
+      "value": "4"
+    },
+    {
+      "rank": "2",
+      "player": "哈兰德",
+      "team": "挪威",
+      "value": "4"
+    },
+    {
+      "rank": "2",
+      "player": "维尼修斯",
+      "team": "巴西",
+      "value": "4"
+    },
+    {
+      "rank": "6",
+      "player": "昂达夫",
+      "team": "德国",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "伊斯梅拉-萨尔",
+      "team": "塞内加尔",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "贾斯特",
+      "team": "新西兰",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "马特乌斯-库尼亚",
+      "team": "巴西",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "乔纳森-戴维",
+      "team": "加拿大",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "布罗比",
+      "team": "荷兰",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "赛巴里",
+      "team": "摩洛哥",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "曼赞比",
+      "team": "瑞士",
+      "value": "3"
+    },
+    {
+      "rank": "6",
+      "player": "哈里-凯恩",
+      "team": "英格兰",
+      "value": "3(1)"
+    },
+    {
+      "rank": "6",
+      "player": "维萨",
+      "team": "刚果民主共和国",
+      "value": "3(1)"
+    },
+    {
+      "rank": "16",
+      "player": "C罗",
+      "team": "葡萄牙",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "雷扎扬",
+      "team": "伊朗",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "特罗萨德",
+      "team": "比利时",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "马赫雷斯",
+      "team": "阿尔及利亚",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "尼古拉-佩佩",
+      "team": "科特迪瓦",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "拉林",
+      "team": "加拿大",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "奥亚萨瓦尔",
+      "team": "西班牙",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "镰田大地",
+      "team": "日本",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "胡利安-基尼奥内斯",
+      "team": "墨西哥",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "加克波",
+      "team": "荷兰",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "帕普-盖伊",
+      "team": "塞内加尔",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "穆尼奥斯",
+      "team": "哥伦比亚",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "鲁文-巴尔加斯",
+      "team": "瑞士",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "马克西-阿劳霍",
+      "team": "乌拉圭",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "上田绮世",
+      "team": "日本",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "巴洛贡",
+      "team": "美国",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "萨默维尔",
+      "team": "荷兰",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "埃兰加",
+      "team": "瑞典",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "贝林厄姆",
+      "team": "英格兰",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "亚辛-阿亚里",
+      "team": "瑞典",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "埃尔明-马赫米奇",
+      "team": "波黑",
+      "value": "2"
+    },
+    {
+      "rank": "16",
+      "player": "阿瑙托维奇",
+      "team": "奥地利",
+      "value": "2(1)"
+    },
+    {
+      "rank": "16",
+      "player": "哈弗茨",
+      "team": "德国",
+      "value": "2(1)"
+    },
+    {
+      "rank": "39",
+      "player": "布季米尔",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "哈桑-海多斯",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "德布劳内",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "卢卡库",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "萨拉赫",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "萨比策",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "布瓦勒姆-胡希",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "艾汉",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "范戴克",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "劳尔-希门尼斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马哈茂德-特雷泽盖",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "麦金",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "萨内",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "弗拉希奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "凯西",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "卢卡森",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "肖穆罗多夫",
+      "team": "乌兹别克斯坦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "卡莱季奇",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿尔瓦罗-菲达尔戈",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "斯万贝里",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "萨迪莱克",
+      "team": "捷克",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "艾曼-侯赛因",
+      "team": "伊拉克",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "伊东纯也",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "洛塞尔索",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "黄仁范",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "欧斯塔基奥",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "哲凯赖什",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿什拉夫",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "拉什福德",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "伊萨克",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "特拉斯蒂",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "穆萨",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "前田大然",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "施密德",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "卡诺比奥",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "穆萨-塔马里",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "古伊里",
+      "team": "阿尔及利亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "路易斯-罗莫",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "克雷伊奇",
+      "team": "捷克",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "坎帕斯",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "厄斯蒂高",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿卜杜拉-阿姆里",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "路易斯-迪亚斯",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "伊西多尔",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "中村敬斗",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "梅特卡夫",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "莱奥",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "巴里什-伊尔马兹",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "凯文-皮纳",
+      "team": "佛得角",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "巴埃纳",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "雷纳",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "萨勒马克尔斯",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马库斯-彼得森",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "贡萨洛-普拉塔",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "卢基奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "苏菲安-拉希米",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿舒尔",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "施洛特贝克",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "奥斯高",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "费利克斯-恩梅加",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "恩迪亚耶",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "穆西亚拉",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "奥马尔-雷基克",
+      "team": "突尼斯",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "范赫克",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "吴贤揆",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿里-乌勒万",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "加拉尔萨",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马哈茂德-萨比尔",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "毛里西奥",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "莫赫比",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "努诺-门德斯",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "巴尔科拉",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿马德-迪亚洛",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "苏契奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "芬-苏尔曼",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马耶莱",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "尼扎尔-拉什丹",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "贝尔哈特",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "法伊祖拉耶夫",
+      "team": "乌兹别克斯坦",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "埃利奥-瓦雷拉",
+      "team": "佛得角",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "居莱尔",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "本布阿利",
+      "team": "阿尔及利亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "内森-萨利巴",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "巴图里纳",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "科梅嫩西亚",
+      "team": "库拉索",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "哈比卜-迪亚拉",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "普罗米斯-戴维",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "杜埃",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "伊兰昆达",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马塞科",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "纳撒尼尔-布朗",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "亚马尔",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "亚历克斯-弗里曼",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马斯图里",
+      "team": "突尼斯",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "拉菲克-贝尔加利",
+      "team": "阿尔及利亚",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "尼尔松-安古洛",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "若昂-内维斯",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "穆斯塔法-齐科",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "马特奥-查韦斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "易卜拉欣-姆巴耶",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "亚辛",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "阿拉伊贝戈维奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "凯莱布-耶林基",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "39",
+      "player": "扎卡",
+      "team": "瑞士",
+      "value": "1(1)"
+    },
+    {
+      "rank": "39",
+      "player": "恩博洛",
+      "team": "瑞士",
+      "value": "1(1)"
+    },
+    {
+      "rank": "39",
+      "player": "劳塔罗-马丁内斯",
+      "team": "阿根廷",
+      "value": "1(1)"
+    },
+    {
+      "rank": "39",
+      "player": "泰博霍-莫科纳",
+      "team": "南非",
+      "value": "1(1)"
+    }
+  ],
+  "助攻榜": [
+    {
+      "rank": "1",
+      "player": "吉马良斯",
+      "team": "巴西",
+      "value": "3"
+    },
+    {
+      "rank": "1",
+      "player": "伊萨克",
+      "team": "瑞典",
+      "value": "3"
+    },
+    {
+      "rank": "1",
+      "player": "奥利塞",
+      "team": "法国",
+      "value": "3"
+    },
+    {
+      "rank": "4",
+      "player": "克里斯-伍德",
+      "team": "新西兰",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "萨拉赫",
+      "team": "埃及",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "基米希",
+      "team": "德国",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "恩博洛",
+      "team": "瑞士",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "罗伯托-阿尔瓦拉多",
+      "team": "墨西哥",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "厄德高",
+      "team": "挪威",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "邓弗里斯",
+      "team": "荷兰",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "姆巴佩",
+      "team": "法国",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "昂达夫",
+      "team": "德国",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "哲凯赖什",
+      "team": "瑞典",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "奥亚尔",
+      "team": "阿尔及利亚",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "卜拉欣-迪亚斯",
+      "team": "摩洛哥",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "赫拉芬贝赫",
+      "team": "荷兰",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "萨卡",
+      "team": "英格兰",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "汉尼拔-梅布里",
+      "team": "突尼斯",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "恩迪亚耶",
+      "team": "塞内加尔",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "恩西索",
+      "team": "巴拉圭",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "维尔茨",
+      "team": "德国",
+      "value": "2"
+    },
+    {
+      "rank": "4",
+      "player": "内森-萨利巴",
+      "team": "加拿大",
+      "value": "2"
+    },
+    {
+      "rank": "23",
+      "player": "莫德里奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "佩里西奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "阿拉巴",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "胡安-金特罗",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "卢卡库",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "雷扎扬",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "蒂姆-佩恩",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "格雷戈里奇",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "瓦纳肯",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "科瓦契奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马赫雷斯",
+      "team": "阿尔及利亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "曹法尔",
+      "team": "捷克",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "德佩",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "坎塞洛",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "拉波尔特",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "范戴克",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马内",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马苏亚库",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "科拉希纳茨",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "拉比奥",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "德保罗",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马哈茂德-特雷泽盖",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "埃德米尔森-儒尼奥尔",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "布鲁诺-费尔南德斯",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "阿米里",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "阿米尔-阿马里",
+      "team": "伊拉克",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马科斯-略伦特",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "帕特里克-贝格",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "莱默尔",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "施拉格尔",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "登贝莱",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "伊赫桑-哈达德",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "塞克",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "杜维尔",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "哈兹卡杜尼奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "奥亚萨瓦尔",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "奥尔莫",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "堂安律",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "穆罕默德-哈尼",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "板仓滉",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "黄仁范",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "库乔-埃尔南德斯",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "桑加雷",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "赖斯",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "普利希奇",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "埃利奥特-安德森",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "阿什拉夫",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "梅沙克-埃利亚",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "小川航基",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "加克波",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "帕奎塔",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "豪尔赫-桑切斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "尼古拉斯-冈萨雷斯",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "托马斯-阿桑特",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "伊斯梅拉-萨尔",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "穆萨-塔马里",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "路易斯-罗莫",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "帕普-盖伊",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "楚阿梅尼",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "法昆多-梅迪纳",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "维尼修斯",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "久保建英",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "佩德罗-内托",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "路易斯-迪亚斯",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "中村敬斗",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "鲁文-巴尔加斯",
+      "team": "瑞士",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "拉斯金",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "赖因德斯",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "努尔-拉瓦比德",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "巴里什-伊尔马兹",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "李刚仁",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "莫兹戈沃伊",
+      "team": "乌兹别克斯坦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马克西-阿劳霍",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "柯克曲",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "霍马姆-艾哈迈德",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "上田绮世",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "苏菲安-拉希米",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "斯塔尼希奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "利拉",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "费利克斯-恩梅加",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "萨默维尔",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "马里克-蒂尔曼",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "佐野海舟",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "辛戈",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "比特",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "戴维-沃尔费",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "贝林厄姆",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "巴尔科拉",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "伊万-巴希奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "苏契奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "贝尔哈特",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "沙迪-里亚德",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "尼古拉-雅克松",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "莫雷米",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "谢尔德鲁普",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "古斯塔沃-普埃尔塔",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "普罗米斯-戴维",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "纳撒尼尔-布朗",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "亚历克斯-弗里曼",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "努瓦马",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "卢卡斯-贝里瓦尔",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "拉明-卡马拉",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "凯文-罗德里格斯",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "奥孔-恩斯特勒",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "穆斯塔法-齐科",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "索伊卡",
+      "team": "捷克",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "曼赞比",
+      "team": "瑞士",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "拉扬",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "23",
+      "player": "扬-迪奥曼德",
+      "team": "科特迪瓦",
+      "value": "1"
+    }
+  ],
+  "黄牌": [
+    {
+      "rank": "1",
+      "player": "卡斯塔内尔",
+      "team": "库拉索",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "艾哈迈德-法特希",
+      "team": "卡塔尔",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "埃扎托拉希",
+      "team": "伊朗",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "阿米尔-阿马里",
+      "team": "伊拉克",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "儒尼尼奥-巴库纳",
+      "team": "库拉索",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "泰博霍-莫科纳",
+      "team": "南非",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "穆哈纳德-拉欣",
+      "team": "埃及",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "迭戈-戈麦斯",
+      "team": "巴拉圭",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "洛佩斯-卡布拉尔",
+      "team": "佛得角",
+      "value": "2"
+    },
+    {
+      "rank": "1",
+      "player": "胡桑诺夫",
+      "team": "乌兹别克斯坦",
+      "value": "2"
+    },
+    {
+      "rank": "11",
+      "player": "佩里西奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "哲科",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "哈伊萨菲",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿瑙托维奇",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "普拉西德",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "达尼洛",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卢卡库",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "莱安德罗-巴库纳",
+      "team": "库拉索",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "扎卡",
+      "team": "瑞士",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卡塞米罗",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "麦克莱恩",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "哈利扎德",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "萨比策",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德佩",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "帕雷德斯",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "莫希卡",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "吉列尔莫-巴雷拉",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "姆本巴",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "拉尼-赫迪拉",
+      "team": "突尼斯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "萨勒姆-达瓦萨里",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "杰克逊-欧文",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "塞科-福法纳",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "侯赛因-卡纳尼",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "道格拉斯-桑托斯",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "法比尼奥",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "儒尼奥尔-阿隆索",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿尔米隆",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿尔库斯",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "罗伯逊",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "巴尔塞纳斯",
+      "team": "巴拿马",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "塞梅多",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "纳松",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "尼科-埃尔维迪",
+      "team": "瑞士",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "伊尼亚基-威廉斯",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "尼古拉-佩佩",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "莱尔马",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "科尼利厄斯",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "哈姆罗别科夫",
+      "team": "乌兹别克斯坦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "克里斯蒂",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卡斯塔涅",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "伯纳多-席尔瓦",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "亚西尔-易卜拉欣",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "加里",
+      "team": "库拉索",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "穆罕默德-卡努",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "帕特里克-贝格",
+      "team": "挪威",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "斯特凡-波施",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "莱默尔",
+      "team": "奥地利",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "凯西",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "伊萨-迪奥普",
+      "team": "摩洛哥",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "谷口彰悟",
+      "team": "日本",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "穆图萨米",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "拉林",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "塞克",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "皮克尔",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "迪尼伊",
+      "team": "佛得角",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "白昇浩",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "扎卡里亚",
+      "team": "瑞士",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "萨尔佩特-辛格",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卢库米",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "本坦库尔",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "莫迪巴",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿兰-弗朗哥",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿莱士-阿尔塞",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "苏塔",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "泰勒-亚当斯",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "马蒂亚斯-奥利韦拉",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "赖斯",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "罗宾逊",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "哲凯赖什",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德拉克鲁斯",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "贝勒加德",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "麦克科瓦特",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "安德拉德",
+      "team": "巴拿马",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "塞萨尔-布莱克曼",
+      "team": "巴拿马",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卡蒂奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "古德蒙松",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "西比斯",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "皮埃罗",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "埃德松-阿尔瓦雷斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "帕普-盖伊",
+      "team": "塞内加尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿克金",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "克雷伊奇",
+      "team": "捷克",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "楚阿梅尼",
+      "team": "法国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "法昆多-梅迪纳",
+      "team": "阿根廷",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "纳赛尔-达乌萨里",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "艾哈迈德-法托",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "菲拉斯-布赖坎",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "希恩",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿卜杜拉-阿姆里",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德米罗维奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "贾斯特",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "罗热-伊巴涅斯",
+      "team": "巴西",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "波罗索",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "胡安-萨纳夫里亚",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "内马蒂",
+      "team": "伊朗",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "亚赞-阿拉伯",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "意大利诺",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "法哈多",
+      "team": "巴拿马",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "巴埃纳",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "李刚仁",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "利亚姆-米勒",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿尔西瓦尔",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "克里斯-理查兹",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "贡萨洛-普拉塔",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卢基奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "纳斯鲁拉耶夫",
+      "team": "乌兹别克斯坦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卡西米尔",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "姆布库",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德迪奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "巴洛贡",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德克伊珀",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "萨默维尔",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卡洛斯-哈维",
+      "team": "巴拿马",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "让-雅克",
+      "team": "海地",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "沙特-阿卜杜勒哈米德",
+      "team": "沙特阿拉伯",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿伦-希基",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "穆罕默德-阿布纳达",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "加拉尔萨",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "曹圭成",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "因卡皮耶",
+      "team": "厄瓜多尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "埃尔马利",
+      "team": "土耳其",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "约翰斯顿",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "马哈茂德-萨比尔",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "沙拉拉",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "泽鲁基",
+      "team": "阿尔及利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "佩德里",
+      "team": "西班牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "范德芬",
+      "team": "荷兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "盖拉-杜埃",
+      "team": "科特迪瓦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "夸安萨",
+      "team": "英格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "托马斯-阿劳若",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "苏契奇",
+      "team": "克罗地亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "斯塔梅尼奇",
+      "team": "新西兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "马尔万-阿特亚",
+      "team": "埃及",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "贾西姆-贾比尔",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "姆巴萨",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "贝尔哈特",
+      "team": "美国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "胡安-卡塞雷斯",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "布里安-古铁雷斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "亚辛-阿亚里",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "梅尔查斯-多斯基",
+      "team": "伊拉克",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "内森-萨利巴",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "李期奕",
+      "team": "韩国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "科梅嫩西亚",
+      "team": "库拉索",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "阿布-塔哈",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "胡萨姆-达哈卜",
+      "team": "约旦",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "古斯塔沃-普埃尔塔",
+      "team": "哥伦比亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "亚历山大-帕夫洛维奇",
+      "team": "德国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "乔丹-博斯",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "奇尔卡蒂",
+      "team": "澳大利亚",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "扎伊德-塔赫辛",
+      "team": "伊拉克",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "萨迪基",
+      "team": "刚果民主共和国",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "卢卡斯-贝里瓦尔",
+      "team": "瑞典",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "尼科-西古尔",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "雷纳托-韦加",
+      "team": "葡萄牙",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "瓦格纳-皮纳",
+      "team": "佛得角",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "德富热罗勒",
+      "team": "加拿大",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "科乔-奥蓬",
+      "team": "加纳",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "埃尔明-马赫米奇",
+      "team": "波黑",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "芬德利-柯蒂斯",
+      "team": "苏格兰",
+      "value": "1"
+    },
+    {
+      "rank": "11",
+      "player": "凯莱布-耶林基",
+      "team": "加纳",
+      "value": "1"
+    }
+  ],
+  "红牌": [
+    {
+      "rank": "1",
+      "player": "兹瓦内",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "雷宾-苏拉卡",
+      "team": "伊拉克",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "阿尔米隆",
+      "team": "巴拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "阿西姆-马迪博",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "塞萨尔-蒙特斯",
+      "team": "墨西哥",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "亚亚-西索尔",
+      "team": "南非",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "卡诺比奥",
+      "team": "乌拉圭",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "霍马姆-艾哈迈德",
+      "team": "卡塔尔",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "恩戈伊",
+      "team": "比利时",
+      "value": "1"
+    },
+    {
+      "rank": "1",
+      "player": "穆哈雷莫维奇",
+      "team": "波黑",
+      "value": "1"
+    }
+  ],
+  "点球": [
+    {
+      "rank": "1",
+      "player": "维萨",
+      "team": "刚果民主共和国",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "劳塔罗-马丁内斯",
+      "team": "阿根廷",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "哈弗茨",
+      "team": "德国",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "泰博霍-莫科纳",
+      "team": "南非",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "阿瑙托维奇",
+      "team": "奥地利",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "梅西",
+      "team": "阿根廷",
+      "value": "1(0)"
+    },
+    {
+      "rank": "1",
+      "player": "扎卡",
+      "team": "瑞士",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "塔雷米",
+      "team": "伊朗",
+      "value": "1(0)"
+    },
+    {
+      "rank": "1",
+      "player": "哈里-凯恩",
+      "team": "英格兰",
+      "value": "1(1)"
+    },
+    {
+      "rank": "1",
+      "player": "尤尔根-拉森",
+      "team": "挪威",
+      "value": "1(0)"
+    },
+    {
+      "rank": "1",
+      "player": "恩博洛",
+      "team": "瑞士",
+      "value": "1(1)"
+    }
+  ]
+}

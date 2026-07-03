@@ -1,5 +1,6 @@
 /**
  * ⚽ 2026 世界杯预测系统 - 前端逻辑
+ * BUILD: 2026-07-01T12:15
  */
 
 const API = '';
@@ -305,7 +306,9 @@ async function doCustomPredict() {
     });
     
     if (data.error) { $('customPredResult').innerHTML = `<div style="color:var(--accent-red);padding:12px;">❌ ${data.error}</div>`; return; }
-    
+
+    console.log('预测结果:', {hasAI: !!data.aiReport, hasReport: !!(data.aiReport && data.aiReport.report), hasError: !!(data.aiReport && data.aiReport.error)});
+
     const fusion = data.fusion;
     const top = fusion.top5[0];
     const models = data.models;
@@ -349,145 +352,137 @@ async function doCustomPredict() {
     
     let modelHtml = `
     <div class="pred-modal-overlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:300;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-      <div class="pred-scroll-card" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:16px;max-width:680px;width:92%;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 8px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
-        
+      <div class="pred-scroll-card" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:16px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto;padding:0;box-shadow:0 8px 40px rgba(0,0,0,0.5);" onclick="event.stopPropagation()">
+
         <!-- 头部 VS -->
-        <div style="background:linear-gradient(135deg,#1a2338,#0f1a2e);padding:20px;border-radius:16px 16px 0 0;text-align:center;border-bottom:1px solid var(--border);">
-          <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
-            <div style="text-align:right;">
-              <div style="font-size:1.3rem;font-weight:700;color:var(--accent-blue);">${home}</div>
-              <div style="font-size:0.7rem;color:var(--text-muted);">Elo ${models.elo.rating.home}</div>
+        <div style="background:linear-gradient(135deg,#1a2338,#0f1a2e);padding:16px 20px;border-radius:16px 16px 0 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="text-align:left;flex:1;">
+              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-blue);">${home}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Elo ${models.elo.rating.home}</div>
             </div>
-            <div style="font-size:1.6rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VS</div>
-            <div style="text-align:left;">
-              <div style="font-size:1.3rem;font-weight:700;color:var(--accent-red);">${away}</div>
-              <div style="font-size:0.7rem;color:var(--text-muted);">Elo ${models.elo.rating.away}</div>
+            <div style="text-align:center;flex:0 0 80px;">
+              <div style="font-size:1.4rem;font-weight:900;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VS</div>
+              <div style="font-size:0.6rem;color:var(--text-muted);">DC ρ=${models.poisson.dcRho}</div>
             </div>
-          </div>
-          <div style="margin-top:8px;display:flex;justify-content:center;gap:20px;">
-            <div class="live-badge">${models.market ? (models.market.isInferred ? '📊 Elo隐含' : '📊 含赔率') : '📊 无赔率'}</div>
-            <div style="color:var(--text-muted);font-size:0.7rem;padding-top:3px;">🧮 DC ρ=${models.poisson.dcRho}</div>
+            <div style="text-align:right;flex:1;">
+              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-red);">${away}</div>
+              <div style="font-size:0.65rem;color:var(--text-muted);">Elo ${models.elo.rating.away}</div>
+            </div>
           </div>
         </div>
-        
-        <!-- 胜率条 -->
-        <div style="padding:16px 20px 0;">
-          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-secondary);margin-bottom:4px;">
-            <span>🏠 ${home}</span>
-            <span>🤝 平局</span>
-            <span>✈️ ${away}</span>
-          </div>
-          <div class="win-bar-wrap" style="height:28px;">
-            <div class="win-bar home-bar" style="width:${Math.round(fusion.winPct)}%;font-size:0.75rem;">${fusion.winPct}%</div>
-            <div class="win-bar draw-bar" style="width:${Math.max(Math.round(fusion.drawPct), 6)}%;font-size:0.7rem;">${fusion.drawPct}%</div>
-            <div class="win-bar away-bar" style="width:${Math.round(fusion.awayPct)}%;font-size:0.75rem;">${fusion.awayPct}%</div>
-          </div>
-        </div>
-        
-        
-        <div style="padding:14px 20px 0;">
-          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:6px;">🔬 各模型胜率对比</div>
-          ${modelBar('⚡ Elo', models.elo.winPct, models.elo.drawPct, models.elo.awayPct, '#3b82f6')}
-          ${modelBar('📊 泊松', models.poisson.winPct, models.poisson.drawPct, models.poisson.awayPct, '#8b5cf6')}
-          ${modelBar('💰 经济', models.economic.winPct, models.economic.drawPct, models.economic.awayPct, '#22c55e')}
-          ${models.market ? modelBar('🎯 市场', models.market.winPct, models.market.drawPct, models.market.awayPct, '#f59e0b') : ''}
-          <div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;">
-            ${modelBar('🏆 融合', fusion.winPct, fusion.drawPct, fusion.awayPct, '#ef4444')}
-          </div>
-        </div>
-        
-        <!-- 赔率信息 -->
-        ${oddsInfo ? `<div style="padding:14px 20px 0;">${oddsInfo}</div>` : ''}
-        
-        <!-- 融合 λ -->
-        <div style="padding:14px 20px;">
-          <div style="display:flex;justify-content:center;gap:24px;background:var(--bg-hover);border-radius:10px;padding:10px;">
-            <div style="text-align:center;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">📈 融合λ</div>
-              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-blue);">${fusion.lambda.home.toFixed(2)}</div>
+
+        <!-- 主体：左右分栏 -->
+        <div style="display:flex;gap:0;">
+
+          <!-- 左侧：胜率 + 模型对比 -->
+          <div style="flex:1;padding:14px 16px;border-right:1px solid var(--border);">
+            <!-- 胜率条 -->
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-secondary);margin-bottom:3px;">
+                <span>🏠 ${home}</span>
+                <span>🤝 平</span>
+                <span>✈️ ${away}</span>
+              </div>
+              <div class="win-bar-wrap" style="height:22px;">
+                <div class="win-bar home-bar" style="width:${Math.round(fusion.winPct)}%;font-size:0.7rem;">${fusion.winPct}%</div>
+                <div class="win-bar draw-bar" style="width:${Math.max(Math.round(fusion.drawPct), 8)}%;font-size:0.65rem;">${fusion.drawPct}%</div>
+                <div class="win-bar away-bar" style="width:${Math.round(fusion.awayPct)}%;font-size:0.7rem;">${fusion.awayPct}%</div>
+              </div>
             </div>
-            <div style="text-align:center;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">⚖️ 权重分配</div>
-              <div style="font-size:0.75rem;color:var(--text-secondary);">${weights.elo*100}%/${weights.poisson*100}%/${weights.economic*100}%/${weights.market*100}%</div>
+
+            <!-- 各模型胜率 -->
+            <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:4px;">🔬 各模型对比</div>
+            ${modelBar('⚡ Elo', models.elo.winPct, models.elo.drawPct, models.elo.awayPct, '#3b82f6')}
+            ${modelBar('📊 泊松', models.poisson.winPct, models.poisson.drawPct, models.poisson.awayPct, '#8b5cf6')}
+            ${modelBar('💰 经济', models.economic.winPct, models.economic.drawPct, models.economic.awayPct, '#22c55e')}
+            ${models.market ? modelBar('🎯 市场', models.market.winPct, models.market.drawPct, models.market.awayPct, '#f59e0b') : ''}
+            <div style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px;">
+              ${modelBar('🏆 融合', fusion.winPct, fusion.drawPct, fusion.awayPct, '#ef4444')}
             </div>
-            <div style="text-align:center;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">📉 融合λ</div>
-              <div style="font-size:1.2rem;font-weight:700;color:var(--accent-red);">${fusion.lambda.away.toFixed(2)}</div>
+
+            <!-- 赔率信息 -->
+            ${oddsInfo ? `<div style="margin-top:8px;">${oddsInfo}</div>` : ''}
+          </div>
+
+          <!-- 右侧：λ + 战术 + Top比分 -->
+          <div style="flex:1;padding:14px 16px;">
+            <!-- 融合 λ -->
+            <div style="display:flex;justify-content:space-around;background:var(--bg-hover);border-radius:8px;padding:8px;margin-bottom:10px;">
+              <div style="text-align:center;">
+                <div style="font-size:0.6rem;color:var(--text-muted);">📈 ${home} λ</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--accent-blue);">${fusion.lambda.home.toFixed(2)}</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:0.6rem;color:var(--text-muted);">⚖️ 权重</div>
+                <div style="font-size:0.65rem;color:var(--text-secondary);">${weights.elo*100}%/${weights.poisson*100}%/${weights.economic*100}%/${weights.market*100}%</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:0.6rem;color:var(--text-muted);">📉 ${away} λ</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--accent-red);">${fusion.lambda.away.toFixed(2)}</div>
+              </div>
+            </div>
+
+            <!-- Top 5 比分 -->
+            <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:4px;">🏅 Top 5 比分</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+              ${fusion.top5.slice(0, 5).map((s, i) => `<span style="background:var(--bg-hover);border:1px solid ${i===0?'var(--accent-orange)':'var(--border)'};border-radius:6px;padding:3px 8px;font-size:0.75rem;font-weight:${i===0?'700':'400'};color:${i===0?'var(--accent-orange)':'var(--text-primary)'};">${s.score.replace('-',':')} ${s.pct}%</span>`).join('')}
+            </div>
+
+            <!-- 战术分析 -->
+            ${data.tactics && data.tactics.style ? `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;">
+              <div style="font-size:0.7rem;font-weight:600;color:var(--accent-blue);margin-bottom:4px;">🎯 战术</div>
+              <div style="font-size:0.7rem;line-height:1.5;">
+                <div><span style="color:var(--text-muted);">风格：</span>${data.tactics.style.description || '—'}</div>
+                <div><span style="color:var(--text-muted);">主/客：</span>${data.tactics.homeAway?.homeWinRate || '?'}% / ${data.tactics.homeAway?.awayWinRate || '?'}%</div>
+                <div><span style="color:var(--text-muted);">预期进球：</span>${data.tactics.goalExpectation?.expectedTotal || '?'}</div>
+              </div>
+            </div>` : ''}
+          </div>
+        </div>`;
+
+    // AI 推理报告（底部全宽）
+    try {
+      if (data.aiReport && data.aiReport.report) {
+        const report = data.aiReport.report;
+        const reportHtml = report.split('\n').filter(l => l.trim()).map(line => {
+          if (line.startsWith('## ')) return `<h4 style="margin:12px 0 6px;color:var(--accent-orange);font-size:0.9rem;">${line.replace(/^##\s*/, '')}</h4>`;
+          if (line.startsWith('| ')) {
+            const cells = line.split('|').filter(c => c.trim());
+            if (cells.length >= 4 && cells[0].includes('排名')) return `<div style="display:grid;grid-template-columns:50px 1fr 80px 1fr;gap:4px;font-weight:600;color:var(--text-secondary);font-size:0.75rem;margin:8px 0 4px;padding:0 4px;">${cells.map(c => `<div>${c.trim()}</div>`).join('')}</div>`;
+            if (cells.length >= 4) {
+              const isTop1 = cells[0].trim() === '1';
+              return `<div style="display:grid;grid-template-columns:50px 1fr 80px 1fr;gap:4px;font-size:0.78rem;margin:3px 0;padding:4px;border-radius:6px;${isTop1?'background:var(--bg-hover);border:1px solid var(--accent-orange)':'background:var(--bg-hover)'}">
+                ${cells.map((c, i) => `<div style="${i===0?'font-weight:700;color:var(--accent-orange)':i===1?'font-weight:700':i===3?'color:var(--text-muted);font-size:0.72rem':''}">${c.trim()}</div>`).join('')}
+              </div>`;
+            }
+            return `<div style="color:var(--text-secondary);padding:2px 0;">${line}</div>`;
+          }
+          if (line.startsWith('- **')) {
+            const bold = line.match(/- \*\*(.*?)\*\*[：:](.*)/);
+            if (bold) return `<div style="margin:3px 0;padding-left:8px;"><strong style="color:var(--accent-blue);">${bold[1]}</strong>：${bold[2]}</div>`;
+          }
+          return `<div style="padding:1px 0;">${line}</div>`;
+        }).join('');
+
+        modelHtml += `<div style="padding:0 20px 16px;">
+          <div style="background:var(--bg-secondary);border:1px solid var(--accent-purple);border-radius:12px;overflow:hidden;">
+            <div style="background:var(--accent-purple);padding:8px 14px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1rem;">🧠</span>
+              <span style="font-weight:600;font-size:0.85rem;color:#fff;">AI 推理裁判</span>
+              <span style="font-size:0.7rem;color:rgba(255,255,255,0.7);">${data.aiReport.method || 'deepseek-v4-flash'}</span>
+            </div>
+            <div style="padding:12px 14px;font-size:0.82rem;line-height:1.7;">
+              ${reportHtml}
             </div>
           </div>
         </div>`;
-    
-    // ---- 战术分析面板 ----
-    if (data.tactics && data.tactics.style) {
-      const tac = data.tactics;
-      modelHtml += `<div style="padding:0 20px 12px;">
-        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px 14px;">
-          <div style="font-size:0.75rem;font-weight:600;color:var(--accent-blue);margin-bottom:8px;">🎯 战术分析</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:120px;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">风格匹配</div>
-              <div style="font-size:0.8rem;font-weight:600;">${tac.style.description || '—'}</div>
-            </div>
-            <div style="flex:1;min-width:100px;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">主/客场胜率</div>
-              <div style="font-size:0.8rem;">${tac.homeAway?.homeWinRate || '?'}% / ${tac.homeAway?.awayWinRate || '?'}%</div>
-            </div>
-            <div style="flex:1;min-width:100px;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">大赛胜率</div>
-              <div style="font-size:0.8rem;">${tac.bigGame?.homeTournamentWinRate || '?'}% / ${tac.bigGame?.awayTournamentWinRate || '?'}%</div>
-            </div>
-            <div style="flex:1;min-width:100px;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">近期状态</div>
-              <div style="font-size:0.8rem;">${tac.bigGame?.homeRecentForm || '?'} / ${tac.bigGame?.awayRecentForm || '?'}</div>
-            </div>
-            <div style="flex:1;min-width:80px;">
-              <div style="font-size:0.65rem;color:var(--text-muted);">预期总进球</div>
-              <div style="font-size:0.8rem;font-weight:600;">${tac.goalExpectation?.expectedTotal || '?'}</div>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    }
-
-    // AI 推理报告
-    if (data.aiReport && data.aiReport.report) {
-      const report = data.aiReport.report;
-      // 解析报告中的表格
-      const tableMatch = report.match(/\|.*?\|.*?\|.*?\|.*?\|/g);
-      const conclusionMatch = report.match(/## 四、最终结论[\s\S]*?(?=\n##|$)/);
-      
-      modelHtml += `<div style="padding:0 20px 16px;">
-        <div style="background:var(--bg-secondary);border:1px solid var(--accent-purple);border-radius:12px;overflow:hidden;">
-          <div style="background:var(--accent-purple);padding:8px 14px;display:flex;align-items:center;gap:8px;">
-            <span style="font-size:1rem;">🧠</span>
-            <span style="font-weight:600;font-size:0.85rem;color:#fff;">AI 推理裁判</span>
-            <span style="font-size:0.7rem;color:rgba(255,255,255,0.7);">deepseek-v4-flash</span>
-          </div>
-          <div style="padding:12px 14px;font-size:0.82rem;line-height:1.7;">
-            ${report.split('\n').filter(l => l.trim()).map(line => {
-              if (line.startsWith('## ')) return `<h4 style="margin:12px 0 6px;color:var(--accent-orange);font-size:0.9rem;">${line.replace(/^##\s*/, '')}</h4>`;
-              if (line.startsWith('| ')) {
-                const cells = line.split('|').filter(c => c.trim());
-                if (cells.length >= 4 && cells[0].includes('排名')) return `<div style="display:grid;grid-template-columns:50px 1fr 80px 1fr;gap:4px;font-weight:600;color:var(--text-secondary);font-size:0.75rem;margin:8px 0 4px;padding:0 4px;">${cells.map(c => `<div>${c.trim()}</div>`).join('')}</div>`;
-                if (cells.length >= 4) {
-                  const isTop1 = cells[0].trim() === '1';
-                  return `<div style="display:grid;grid-template-columns:50px 1fr 80px 1fr;gap:4px;font-size:0.78rem;margin:3px 0;padding:4px;border-radius:6px;${isTop1?'background:var(--bg-hover);border:1px solid var(--accent-orange)':'background:var(--bg-hover)'}">
-                    ${cells.map((c, i) => `<div style="${i===0?'font-weight:700;color:var(--accent-orange)':i===1?'font-weight:700':i===3?'color:var(--text-muted);font-size:0.72rem':''}">${c.trim()}</div>`).join('')}
-                  </div>`;
-                }
-                return `<div style="color:var(--text-secondary);padding:2px 0;">${line}</div>`;
-              }
-              if (line.startsWith('- **')) {
-                const bold = line.match(/- \*\*(.*?)\*\*：(.*)/);
-                if (bold) return `<div style="margin:3px 0;padding-left:8px;"><strong style="color:var(--accent-blue);">${bold[1]}</strong>：${bold[2]}</div>`;
-              }
-              return `<div style="padding:1px 0;">${line}</div>`;
-            }).join('')}
-          </div>
-        </div>
-      </div>`;
-    } else if (data.aiReport && data.aiReport.error) {
-      modelHtml += `<div style="padding:0 20px 16px;"><div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--accent-red);border-radius:10px;font-size:0.8rem;color:var(--accent-red);">❌ AI推理暂不可用: ${data.aiReport.error}</div></div>`;
+      } else if (data.aiReport && data.aiReport.error) {
+        modelHtml += `<div style="padding:0 20px 16px;"><div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--accent-red);border-radius:10px;font-size:0.8rem;color:var(--accent-red);">❌ AI推理暂不可用: ${data.aiReport.error}</div></div>`;
+      }
+    } catch(e) {
+      console.error('AI报告渲染错误:', e);
+      modelHtml += `<div style="padding:0 20px 16px;"><div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--accent-red);border-radius:10px;font-size:0.8rem;color:var(--accent-red);">❌ AI报告渲染失败: ${e.message}</div></div>`;
     }
     
     // 关闭按钮
@@ -500,7 +495,8 @@ async function doCustomPredict() {
     $('customPredResult').innerHTML = modelHtml;
     await Promise.all([loadHistory(), loadPredLogs()]);
   } catch (e) {
-    $('customPredResult').innerHTML = `<div style="color:var(--accent-red);padding:12px;">❌ ${e.message}</div>`;
+    console.error('预测渲染错误:', e);
+    $('customPredResult').innerHTML = `<div style="color:var(--accent-red);padding:12px;">❌ 渲染失败: ${e.message}<br><small>${e.stack || ''}</small></div>`;
   }
 }
 
@@ -1022,21 +1018,57 @@ async function loadKnockout() {
   try {
     const data = await api('/api/knockout');
     const tree = data.knockoutTree;
-    const groupInfo = data.groupInfo;
-    const allStandings = data.standings;
-    
+    const predictions = data.predictions || [];
+
     if (!tree) {
       $('knockoutContainer').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">暂无淘汰赛数据</div>';
       return;
     }
-    
+
+    // 获取已完成的比赛结果和日期信息
+    const allMatches = await api('/api/matches/completed');
+    const completedMatches = allMatches.filter(m =>
+      m.round === '16强' || m.round === '1/16' || m.round === '8强' || m.round === '四分之一决赛' || m.round === '半决赛' || m.round === '决赛'
+    );
+    const completedMap = {};
+    for (const m of completedMatches) {
+      const key = [m.home, m.away].sort().join('|');
+      completedMap[key] = m;
+    }
+
+    // 从 knockoutMatches 获取日期信息
+    const koMatches = await api('/api/matches/knockout');
+    const dateMap = {};
+    for (const m of koMatches) {
+      const key = [m.home, m.away].sort().join('|');
+      if (m.date) {
+        // 格式化日期: 2026-06-28 → 6月28日
+        const parts = m.date.split('-');
+        if (parts.length >= 3) {
+          dateMap[key] = parts[1].replace(/^0/, '') + '月' + parts[2].replace(/^0/, '') + '日';
+        }
+      }
+    }
+
+    // 为 knockoutTree 添加日期
+    if (tree.round64) {
+      for (const m of tree.round64) {
+        const key = [m.home, m.away].sort().join('|');
+        m.date = dateMap[key] || null;
+      }
+    }
+
     let html = '';
-    
+
     // 小组形势卡片
+    const groupInfo = data.groupInfo || null;
+    if (!groupInfo || Object.keys(groupInfo).length === 0) {
+      html += '<div style="text-align:center;padding:20px;color:var(--text-muted);">小组赛已全部结束，淘汰赛对阵已确定</div>';
+    }
     html += '<div style="margin-bottom:16px;">';
     html += '<h3 style="font-size:0.95rem;margin-bottom:8px;color:var(--text-primary);">📋 小组末轮形势</h3>';
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;">';
-    for (const [g, info] of Object.entries(groupInfo)) {
+    for (const [g, info] of Object.entries(groupInfo || {})) {
       const desc = info.description || '';
       const rankHtml = (info.currentRanking || []).map((s, i) => {
         const r = i + 1;
@@ -1053,47 +1085,137 @@ async function loadKnockout() {
       </div>`;
     }
     html += '</div></div>';
-    
-    // 淘汰赛晋级图
-    html += '<h3 style="font-size:0.95rem;margin:16px 0 8px;color:var(--text-primary);">🏆 淘汰赛对阵</h3>';
-    
-    const rounds = [
-      { key: 'round64', label: '1/16 决赛 (32强)', color: '#2563eb' },
-      { key: 'round16', label: '1/8 决赛 (16强)', color: '#7c3aed' },
-      { key: 'round8', label: '1/4 决赛 (8强)', color: '#d97706' },
-      { key: 'semi', label: '半决赛', color: '#dc2626' },
-      { key: 'final', label: '决赛', color: '#16a34a' },
-    ];
-    
-    for (const round of rounds) {
-      const matches = tree[round.key];
-      if (!matches || matches.length === 0) continue;
-      
-      html += `<div style="margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <div style="width:10px;height:10px;border-radius:50%;background:${round.color};"></div>
-          <span style="font-weight:600;font-size:0.85rem;">${round.label}</span>
-          <span style="font-size:0.7rem;color:var(--text-muted);">${matches.length}场</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;">
-          ${matches.map(m => {
-            const hName = m.home.startsWith('T3') ? '小组第三' : m.home.startsWith('W') ? '待定' : m.home.startsWith('L') ? '待定' : m.home;
-            const aName = m.away.startsWith('T3') ? '小组第三' : m.away.startsWith('W') ? '待定' : m.away.startsWith('L') ? '待定' : m.away;
-            const hClass = m.home.startsWith('T3') || m.home.startsWith('W') || m.home.startsWith('L') ? 'color:var(--text-muted)' : 'color:var(--accent-blue);font-weight:600';
-            const aClass = m.away.startsWith('T3') || m.away.startsWith('W') || m.away.startsWith('L') ? 'color:var(--text-muted)' : 'color:var(--accent-red);font-weight:600';
-            return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:0.8rem;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="${hClass}">${hName}</span>
-                <span style="font-size:0.65rem;color:var(--text-muted);padding:0 6px;">vs</span>
-                <span style="${aClass}">${aName}</span>
-              </div>
-              <div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;text-align:center;">📍 ${m.venue}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
+
+    // ============================================================
+    // 淘汰赛晋级图 - 全屏宽树状对阵表
+    // ============================================================
+    html += '<div style="text-align:center;margin-bottom:8px;"><span style="font-size:0.85rem;font-weight:700;color:var(--text-primary);">🏆 淘汰赛晋级图</span><span style="font-size:0.65rem;color:var(--text-muted);margin-left:8px;">1/16决赛 → 1/8决赛 → 1/4决赛 → 半决赛 → 决赛</span></div>';
+
+    // 获取数据
+    const round64 = tree.round64 || [];
+    const round16 = tree.round16 || [];
+    const round8 = tree.round8 || [];
+    const semi = tree.semi || [];
+    const finalMatch = tree.final && !Array.isArray(tree.final) ? tree.final : null;
+    const thirdMatch = tree.third && !Array.isArray(tree.third) ? tree.third : null;
+
+    // 卡片尺寸（根据屏幕宽度自适应）
+    const vw = window.innerWidth;
+    const cardW = Math.min(200, Math.max(150, (vw - 200) / 8 - 12));
+    const cardH = 52;
+    const vGap = 6;
+
+    // 比赛卡片生成器
+    function matchCard(m) {
+      if (!m) return '<div style="width:' + cardW + 'px;height:' + cardH + 'px;"></div>';
+      const hName = m.home.startsWith('T3') ? '小组第三' : m.home.startsWith('W') ? '待定' : m.home.startsWith('L') ? '待定' : m.home;
+      const aName = m.away.startsWith('T3') ? '小组第三' : m.away.startsWith('W') ? '待定' : m.away.startsWith('L') ? '待定' : m.away;
+      const hIsTBD = m.home.startsWith('T3') || m.home.startsWith('W') || m.home.startsWith('L');
+      const aIsTBD = m.away.startsWith('T3') || m.away.startsWith('W') || m.away.startsWith('L');
+
+      const matchKey = [m.home, m.away].sort().join('|');
+      const completed = completedMap[matchKey];
+      const isFinished = !!completed;
+
+      let dateHtml = '';
+      if (m.date) dateHtml = '<div style="font-size:0.5rem;color:#999;text-align:center;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + m.date + '</div>';
+
+      let scoreHtml = '';
+      if (completed) {
+        const parts = completed.score.split('-');
+        const hScore = parseInt(parts[0]), aScore = parseInt(parts[1]);
+        const hWin = hScore > aScore, aWin = aScore > hScore;
+        scoreHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:3px;margin-top:2px;padding:1px 0;background:var(--bg-primary);border-radius:2px;">' +
+          '<span style="font-weight:800;font-size:0.75rem;color:' + (hWin ? '#16a34a' : '#999') + ';">' + hScore + '</span>' +
+          '<span style="color:#ccc;font-size:0.5rem;">:</span>' +
+          '<span style="font-weight:800;font-size:0.75rem;color:' + (aWin ? '#16a34a' : '#999') + ';">' + aScore + '</span></div>';
+      }
+
+      let statusHtml = '';
+      if (isFinished) statusHtml = '<div style="font-size:0.45rem;color:#16a34a;text-align:center;margin-top:1px;font-weight:600;">✓</div>';
+      else if (!hIsTBD && !aIsTBD) statusHtml = '<div style="font-size:0.45rem;color:#bbb;text-align:center;margin-top:1px;">即将开始</div>';
+
+      return '<div style="background:#fff;border:1.5px solid ' + (isFinished ? '#16a34a' : '#d0d7de') + ';border-radius:6px;padding:4px 6px;width:' + cardW + 'px;height:' + cardH + 'px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;' + (isFinished ? 'box-shadow:0 1px 6px rgba(22,163,74,0.2);' : '') + '">' +
+        dateHtml +
+        '<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:0.75rem;">' + flag(hName) + '</span><span style="font-size:0.62rem;font-weight:' + (hIsTBD ? '400' : '600') + ';color:' + (hIsTBD ? '#aaa' : '#1a1a2e') + ';font-style:' + (hIsTBD ? 'italic' : 'normal') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + hName + '</span></div>' +
+        '<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:0.75rem;">' + flag(aName) + '</span><span style="font-size:0.62rem;font-weight:' + (aIsTBD ? '400' : '600') + ';color:' + (aIsTBD ? '#aaa' : '#1a1a2e') + ';font-style:' + (aIsTBD ? 'italic' : 'normal') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + aName + '</span></div>' +
+        scoreHtml + statusHtml + '</div>';
     }
-    
+
+    function tbdCard() {
+      return '<div style="background:#fafafa;border:1.5px dashed #ddd;border-radius:6px;width:' + cardW + 'px;height:' + cardH + 'px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:0.55rem;">待定</div>';
+    }
+
+    // 轮次高度
+    const h64 = 8 * cardH + 7 * vGap;
+    const h16 = 4 * cardH + 3 * vGap;
+    const h8  = 2 * cardH + 1 * vGap;
+
+    // 连接线 SVG（精确对齐）
+    function connector(nFrom, nTo, totalH) {
+      const w = 20;
+      const d = totalH / nFrom;
+      let p = '';
+      for (let i = 0; i < nTo; i++) {
+        const yA = (i * 2) * d + d / 2;
+        const yB = (i * 2 + 1) * d + d / 2;
+        const yM = (yA + yB) / 2;
+        p += 'M0,' + yA + ' L' + (w/2) + ',' + yA + ' L' + (w/2) + ',' + yB + ' L0,' + yB + ' ';
+        p += 'M' + (w/2) + ',' + yM + ' L' + w + ',' + yM + ' ';
+      }
+      return '<svg width="' + w + '" height="' + totalH + '" style="flex-shrink:0;"><path d="' + p + '" fill="none" stroke="#c0c8d4" stroke-width="1.5"/></svg>';
+    }
+
+    // 轮次列
+    function roundCol(matches, title, color, mt) {
+      let cards = '';
+      for (let i = 0; i < matches.length; i++) {
+        cards += '<div style="height:' + cardH + 'px;">' + (matches[i] ? matchCard(matches[i]) : tbdCard()) + '</div>';
+        if (i < matches.length - 1) cards += '<div style="height:' + vGap + 'px;"></div>';
+      }
+      return '<div style="display:flex;flex-direction:column;align-items:center;margin-top:' + (mt || 0) + 'px;">' +
+        '<div style="font-size:0.55rem;font-weight:700;color:' + color + ';margin-bottom:4px;letter-spacing:0.5px;">' + title + '</div>' +
+        '<div style="display:flex;flex-direction:column;">' + cards + '</div></div>';
+    }
+
+    const mt16 = (h64 - h16) / 2;
+    const mt8 = (h64 - h8) / 2;
+
+    // 渲染 - 使用 CSS Grid 精确对齐
+    html += '<div style="width:100%;padding:8px 16px 20px;box-sizing:border-box;">';
+    html += '<div style="display:flex;align-items:flex-start;justify-content:center;gap:0;">';
+
+    // 左半区：1/16 → 1/8 → 1/4 → 半决赛
+    html += roundCol(round64.slice(0, 8), '1/16 决赛', '#2563eb');
+    html += connector(8, 4, h64);
+    html += roundCol(round16.slice(0, 4), '1/8 决赛', '#7c3aed', mt16);
+    html += connector(4, 2, h64);
+    html += roundCol(round8.slice(0, 2), '1/4 决赛', '#d97706', mt8);
+    html += connector(2, 1, h64);
+    html += roundCol(semi.slice(0, 1), '半决赛', '#dc2626', (h64 - cardH) / 2);
+
+    // 中间：三四名 + 决赛
+    html += '<div style="display:flex;flex-direction:column;align-items:center;padding:0 6px;min-width:' + (cardW + 10) + 'px;">';
+    html += '<div style="display:flex;flex-direction:column;align-items:center;margin-top:' + ((h64 - cardH * 2 - 16) / 2) + 'px;margin-bottom:16px;">';
+    html += '<div style="font-size:0.5rem;font-weight:600;color:#999;margin-bottom:3px;">🥉 三四名</div>';
+    html += thirdMatch ? matchCard(thirdMatch) : tbdCard();
+    html += '</div>';
+    html += '<div style="display:flex;flex-direction:column;align-items:center;">';
+    html += '<div style="font-size:0.55rem;font-weight:800;color:#d4af37;margin-bottom:4px;letter-spacing:1px;">🏆 决 赛</div>';
+    html += finalMatch ? matchCard(finalMatch) : '<div style="background:linear-gradient(135deg,#fffef5,#fff8e1);border:2px solid #d4af37;border-radius:6px;width:' + cardW + 'px;height:' + cardH + 'px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#b8860b;font-size:0.6rem;font-weight:600;">待定</div>';
+    html += '</div></div>';
+
+    // 右半区（镜像）
+    html += roundCol(semi.slice(1, 2), '半决赛', '#dc2626', (h64 - cardH) / 2);
+    html += connector(1, 2, h64);
+    html += roundCol(round8.slice(2, 4), '1/4 决赛', '#d97706', mt8);
+    html += connector(2, 4, h64);
+    html += roundCol(round16.slice(4, 8), '1/8 决赛', '#7c3aed', mt16);
+    html += connector(4, 8, h64);
+    html += roundCol(round64.slice(8, 16), '1/16 决赛', '#2563eb');
+
+    html += '</div></div>';
+
     $('knockoutContainer').innerHTML = html;
   } catch (e) {
     $('knockoutContainer').innerHTML = `<div style="color:var(--accent-red);text-align:center;padding:20px;">${e.message}</div>`;

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      { "tool": "Read", "always": true, "description": "Read any file" },
+      { "tool": "Write", "always": true, "description": "Create/overwrite files" },
+      { "tool": "Edit", "always": true, "description": "Edit existing files" },
+      { "tool": "Glob", "always": true, "description": "Search files by pattern" },
+      { "tool": "Grep", "always": true, "description": "Search file contents" },
+      { "tool": "Bash", "always": true, "description": "Run shell commands" },
+      { "tool": "WebSearch", "always": true, "description": "Web search" },
+      { "tool": "WebFetch", "always": true, "description": "Fetch web URLs" },
+      { "tool": "Agent", "always": true, "description": "Launch sub-agents" },
+      { "tool": "TaskCreate", "always": true, "description": "Create tasks" },
+      { "tool": "TaskUpdate", "always": true, "description": "Update tasks" },
+      { "tool": "TaskList", "always": true, "description": "List tasks" },
+      { "tool": "TaskGet", "always": true, "description": "Get task details" },
+      { "tool": "TaskStop", "always": true, "description": "Stop tasks" },
+      { "tool": "AskUserQuestion", "always": true, "description": "Ask questions" },
+      { "tool": "NotebookEdit", "always": true, "description": "Edit notebook cells" },
+      { "tool": "CronCreate", "always": true, "description": "Schedule cron jobs" },
+      { "tool": "CronDelete", "always": true, "description": "Delete cron jobs" },
+      { "tool": "CronList", "always": true, "description": "List cron jobs" },
+      { "tool": "ScheduleWakeup", "always": true, "description": "Schedule wakeup" },
+      { "tool": "EnterPlanMode", "always": true, "description": "Enter plan mode" },
+      { "tool": "ExitPlanMode", "always": true, "description": "Exit plan mode" }
+    ]
+  }
+}

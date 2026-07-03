@@ -1,0 +1,1330 @@
+{
+  "阿根廷": [
+    {
+      "date": "2026-06-17",
+      "opponent": "阿尔及利亚",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 2100,
+      "eloAfter": 2111
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "奥地利",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 2111,
+      "eloAfter": 2122
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "约旦",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 2122,
+      "eloAfter": 2122
+    }
+  ],
+  "法国": [
+    {
+      "date": "2026-06-16",
+      "opponent": "塞内加尔",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 2081,
+      "eloAfter": 2092
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "伊拉克",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 2092,
+      "eloAfter": 2103
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "挪威",
+      "goalFor": 4,
+      "goalAgainst": 1,
+      "eloBefore": 2103,
+      "eloAfter": 2106
+    },
+    {
+      "date": "2026-07-01",
+      "opponent": "瑞典",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 2106,
+      "eloAfter": 2119
+    }
+  ],
+  "巴西": [
+    {
+      "date": "2026-06-13",
+      "opponent": "摩洛哥",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 2062,
+      "eloAfter": 2056
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "海地",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 2056,
+      "eloAfter": 2067
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "苏格兰",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 2067,
+      "eloAfter": 2069
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "日本",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 2069,
+      "eloAfter": 2078
+    }
+  ],
+  "英格兰": [
+    {
+      "date": "2026-06-18",
+      "opponent": "克罗地亚",
+      "goalFor": 4,
+      "goalAgainst": 2,
+      "eloBefore": 2043,
+      "eloAfter": 2057
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "加纳",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 2057,
+      "eloAfter": 2048
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "巴拿马",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 2048,
+      "eloAfter": 2049
+    }
+  ],
+  "德国": [
+    {
+      "date": "2026-06-14",
+      "opponent": "库拉索",
+      "goalFor": 7,
+      "goalAgainst": 1,
+      "eloBefore": 2023,
+      "eloAfter": 2034
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "科特迪瓦",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 2034,
+      "eloAfter": 2042
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "厄瓜多尔",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 2042,
+      "eloAfter": 2019
+    },
+    {
+      "date": "2026-06-29",
+      "opponent": "巴拉圭",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 2019,
+      "eloAfter": 2010
+    }
+  ],
+  "西班牙": [
+    {
+      "date": "2026-06-15",
+      "opponent": "佛得角",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 2004,
+      "eloAfter": 1994
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "沙特阿拉伯",
+      "goalFor": 4,
+      "goalAgainst": 0,
+      "eloBefore": 1994,
+      "eloAfter": 2005
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "乌拉圭",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 2005,
+      "eloAfter": 2014
+    }
+  ],
+  "葡萄牙": [
+    {
+      "date": "2026-06-17",
+      "opponent": "刚果(金)",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1985,
+      "eloAfter": 1975
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "乌兹别克斯坦",
+      "goalFor": 5,
+      "goalAgainst": 0,
+      "eloBefore": 1975,
+      "eloAfter": 1986
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "哥伦比亚",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1986,
+      "eloAfter": 1984
+    }
+  ],
+  "荷兰": [
+    {
+      "date": "2026-06-15",
+      "opponent": "日本",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1966,
+      "eloAfter": 1961
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "瑞典",
+      "goalFor": 5,
+      "goalAgainst": 1,
+      "eloBefore": 1961,
+      "eloAfter": 1976
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "突尼斯",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1976,
+      "eloAfter": 1976
+    }
+  ],
+  "比利时": [
+    {
+      "date": "2026-06-16",
+      "opponent": "埃及",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1947,
+      "eloAfter": 1938
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "伊朗",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1938,
+      "eloAfter": 1929
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "新西兰",
+      "goalFor": 5,
+      "goalAgainst": 1,
+      "eloBefore": 1929,
+      "eloAfter": 1929
+    }
+  ],
+  "乌拉圭": [
+    {
+      "date": "2026-06-16",
+      "opponent": "沙特阿拉伯",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1928,
+      "eloAfter": 1919
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "佛得角",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1919,
+      "eloAfter": 1909
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "西班牙",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1909,
+      "eloAfter": 1900
+    }
+  ],
+  "克罗地亚": [
+    {
+      "date": "2026-06-18",
+      "opponent": "英格兰",
+      "goalFor": 2,
+      "goalAgainst": 4,
+      "eloBefore": 1909,
+      "eloAfter": 1895
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "巴拿马",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1895,
+      "eloAfter": 1896
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "加纳",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1896,
+      "eloAfter": 1904
+    }
+  ],
+  "美国": [
+    {
+      "date": "2026-06-13",
+      "opponent": "巴拉圭",
+      "goalFor": 4,
+      "goalAgainst": 1,
+      "eloBefore": 1889,
+      "eloAfter": 1901
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "澳大利亚",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 1901,
+      "eloAfter": 1913
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "土耳其",
+      "goalFor": 2,
+      "goalAgainst": 3,
+      "eloBefore": 1913,
+      "eloAfter": 1889
+    }
+  ],
+  "摩洛哥": [
+    {
+      "date": "2026-06-13",
+      "opponent": "巴西",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1870,
+      "eloAfter": 1876
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "苏格兰",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1876,
+      "eloAfter": 1880
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "海地",
+      "goalFor": 4,
+      "goalAgainst": 2,
+      "eloBefore": 1880,
+      "eloAfter": 1890
+    }
+  ],
+  "哥伦比亚": [
+    {
+      "date": "2026-06-18",
+      "opponent": "乌兹别克斯坦",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1851,
+      "eloAfter": 1852
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "刚果(金)",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1852,
+      "eloAfter": 1859
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "葡萄牙",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1859,
+      "eloAfter": 1861
+    }
+  ],
+  "墨西哥": [
+    {
+      "date": "2026-06-11",
+      "opponent": "南非",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 1832,
+      "eloAfter": 1843
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "韩国",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1843,
+      "eloAfter": 1853
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "捷克",
+      "goalFor": 3,
+      "goalAgainst": 0,
+      "eloBefore": 1853,
+      "eloAfter": 1858
+    }
+  ],
+  "日本": [
+    {
+      "date": "2026-06-15",
+      "opponent": "荷兰",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1813,
+      "eloAfter": 1818
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "突尼斯",
+      "goalFor": 4,
+      "goalAgainst": 0,
+      "eloBefore": 1818,
+      "eloAfter": 1819
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "瑞典",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1819,
+      "eloAfter": 1816
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "巴西",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1816,
+      "eloAfter": 1807
+    }
+  ],
+  "瑞典": [
+    {
+      "date": "2026-06-15",
+      "opponent": "突尼斯",
+      "goalFor": 5,
+      "goalAgainst": 1,
+      "eloBefore": 1794,
+      "eloAfter": 1805
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "荷兰",
+      "goalFor": 1,
+      "goalAgainst": 5,
+      "eloBefore": 1805,
+      "eloAfter": 1790
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "日本",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1790,
+      "eloAfter": 1793
+    },
+    {
+      "date": "2026-07-01",
+      "opponent": "法国",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1793,
+      "eloAfter": 1780
+    }
+  ],
+  "瑞士": [
+    {
+      "date": "2026-06-13",
+      "opponent": "卡塔尔",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1774,
+      "eloAfter": 1767
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "波黑",
+      "goalFor": 4,
+      "goalAgainst": 1,
+      "eloBefore": 1767,
+      "eloAfter": 1780
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "加拿大",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1780,
+      "eloAfter": 1793
+    }
+  ],
+  "挪威": [
+    {
+      "date": "2026-06-17",
+      "opponent": "伊拉克",
+      "goalFor": 4,
+      "goalAgainst": 1,
+      "eloBefore": 1755,
+      "eloAfter": 1757
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "塞内加尔",
+      "goalFor": 3,
+      "goalAgainst": 2,
+      "eloBefore": 1757,
+      "eloAfter": 1770
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "法国",
+      "goalFor": 1,
+      "goalAgainst": 4,
+      "eloBefore": 1770,
+      "eloAfter": 1767
+    },
+    {
+      "date": "2026-07-01",
+      "opponent": "科特迪瓦",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1767,
+      "eloAfter": 1776
+    }
+  ],
+  "加拿大": [
+    {
+      "date": "2026-06-12",
+      "opponent": "波黑",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1736,
+      "eloAfter": 1728
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "卡塔尔",
+      "goalFor": 6,
+      "goalAgainst": 0,
+      "eloBefore": 1728,
+      "eloAfter": 1741
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "瑞士",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1741,
+      "eloAfter": 1728
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "南非",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1728,
+      "eloAfter": 1732
+    }
+  ],
+  "塞内加尔": [
+    {
+      "date": "2026-06-16",
+      "opponent": "法国",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1717,
+      "eloAfter": 1706
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "挪威",
+      "goalFor": 2,
+      "goalAgainst": 3,
+      "eloBefore": 1706,
+      "eloAfter": 1693
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "伊拉克",
+      "goalFor": 5,
+      "goalAgainst": 0,
+      "eloBefore": 1693,
+      "eloAfter": 1705
+    }
+  ],
+  "厄瓜多尔": [
+    {
+      "date": "2026-06-15",
+      "opponent": "科特迪瓦",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1698,
+      "eloAfter": 1683
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "库拉索",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1683,
+      "eloAfter": 1674
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "德国",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1674,
+      "eloAfter": 1697
+    }
+  ],
+  "科特迪瓦": [
+    {
+      "date": "2026-06-15",
+      "opponent": "厄瓜多尔",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1679,
+      "eloAfter": 1694
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "德国",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1694,
+      "eloAfter": 1686
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "库拉索",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 1686,
+      "eloAfter": 1688
+    },
+    {
+      "date": "2026-07-01",
+      "opponent": "挪威",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1688,
+      "eloAfter": 1679
+    }
+  ],
+  "奥地利": [
+    {
+      "date": "2026-06-17",
+      "opponent": "约旦",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1660,
+      "eloAfter": 1671
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "阿根廷",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1671,
+      "eloAfter": 1660
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "阿尔及利亚",
+      "goalFor": 3,
+      "goalAgainst": 3,
+      "eloBefore": 1660,
+      "eloAfter": 1658
+    }
+  ],
+  "捷克": [
+    {
+      "date": "2026-06-12",
+      "opponent": "韩国",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1640,
+      "eloAfter": 1625
+    },
+    {
+      "date": "2026-06-18",
+      "opponent": "南非",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1625,
+      "eloAfter": 1619
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "墨西哥",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1619,
+      "eloAfter": 1614
+    }
+  ],
+  "韩国": [
+    {
+      "date": "2026-06-12",
+      "opponent": "捷克",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1621,
+      "eloAfter": 1636
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "墨西哥",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1636,
+      "eloAfter": 1626
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "南非",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1626,
+      "eloAfter": 1606
+    }
+  ],
+  "澳大利亚": [
+    {
+      "date": "2026-06-14",
+      "opponent": "土耳其",
+      "goalFor": 2,
+      "goalAgainst": 0,
+      "eloBefore": 1602,
+      "eloAfter": 1617
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "美国",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1617,
+      "eloAfter": 1605
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "巴拉圭",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1605,
+      "eloAfter": 1603
+    }
+  ],
+  "苏格兰": [
+    {
+      "date": "2026-06-14",
+      "opponent": "海地",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1583,
+      "eloAfter": 1588
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "摩洛哥",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1588,
+      "eloAfter": 1584
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "巴西",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1584,
+      "eloAfter": 1582
+    }
+  ],
+  "埃及": [
+    {
+      "date": "2026-06-16",
+      "opponent": "比利时",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1564,
+      "eloAfter": 1573
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "新西兰",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1573,
+      "eloAfter": 1576
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "伊朗",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1576,
+      "eloAfter": 1573
+    }
+  ],
+  "伊朗": [
+    {
+      "date": "2026-06-16",
+      "opponent": "新西兰",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1545,
+      "eloAfter": 1537
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "比利时",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1537,
+      "eloAfter": 1546
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "埃及",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1546,
+      "eloAfter": 1549
+    }
+  ],
+  "阿尔及利亚": [
+    {
+      "date": "2026-06-17",
+      "opponent": "阿根廷",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1526,
+      "eloAfter": 1515
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "约旦",
+      "goalFor": 2,
+      "goalAgainst": 1,
+      "eloBefore": 1515,
+      "eloAfter": 1521
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "奥地利",
+      "goalFor": 3,
+      "goalAgainst": 3,
+      "eloBefore": 1521,
+      "eloAfter": 1523
+    }
+  ],
+  "加纳": [
+    {
+      "date": "2026-06-18",
+      "opponent": "巴拿马",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1506,
+      "eloAfter": 1517
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "英格兰",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1517,
+      "eloAfter": 1526
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "克罗地亚",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1526,
+      "eloAfter": 1518
+    }
+  ],
+  "土耳其": [
+    {
+      "date": "2026-06-14",
+      "opponent": "澳大利亚",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1487,
+      "eloAfter": 1472
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "巴拉圭",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1472,
+      "eloAfter": 1460
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "美国",
+      "goalFor": 3,
+      "goalAgainst": 2,
+      "eloBefore": 1460,
+      "eloAfter": 1484
+    }
+  ],
+  "巴拉圭": [
+    {
+      "date": "2026-06-13",
+      "opponent": "美国",
+      "goalFor": 1,
+      "goalAgainst": 4,
+      "eloBefore": 1468,
+      "eloAfter": 1456
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "土耳其",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1456,
+      "eloAfter": 1468
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "澳大利亚",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1468,
+      "eloAfter": 1470
+    },
+    {
+      "date": "2026-06-29",
+      "opponent": "德国",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1470,
+      "eloAfter": 1479
+    }
+  ],
+  "波黑": [
+    {
+      "date": "2026-06-12",
+      "opponent": "加拿大",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1449,
+      "eloAfter": 1457
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "瑞士",
+      "goalFor": 1,
+      "goalAgainst": 4,
+      "eloBefore": 1457,
+      "eloAfter": 1444
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "卡塔尔",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1444,
+      "eloAfter": 1461
+    }
+  ],
+  "南非": [
+    {
+      "date": "2026-06-11",
+      "opponent": "墨西哥",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1430,
+      "eloAfter": 1419
+    },
+    {
+      "date": "2026-06-18",
+      "opponent": "捷克",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1419,
+      "eloAfter": 1425
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "韩国",
+      "goalFor": 1,
+      "goalAgainst": 0,
+      "eloBefore": 1425,
+      "eloAfter": 1445
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "加拿大",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1445,
+      "eloAfter": 1441
+    }
+  ],
+  "卡塔尔": [
+    {
+      "date": "2026-06-13",
+      "opponent": "瑞士",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1411,
+      "eloAfter": 1418
+    },
+    {
+      "date": "2026-06-19",
+      "opponent": "加拿大",
+      "goalFor": 0,
+      "goalAgainst": 6,
+      "eloBefore": 1418,
+      "eloAfter": 1405
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "波黑",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1405,
+      "eloAfter": 1388
+    }
+  ],
+  "刚果(金)": [
+    {
+      "date": "2026-06-17",
+      "opponent": "葡萄牙",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1391,
+      "eloAfter": 1401
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "哥伦比亚",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1401,
+      "eloAfter": 1394
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "乌兹别克斯坦",
+      "goalFor": 3,
+      "goalAgainst": 1,
+      "eloBefore": 1394,
+      "eloAfter": 1410
+    }
+  ],
+  "巴拿马": [
+    {
+      "date": "2026-06-18",
+      "opponent": "加纳",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1372,
+      "eloAfter": 1361
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "克罗地亚",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1361,
+      "eloAfter": 1360
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "英格兰",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1360,
+      "eloAfter": 1359
+    }
+  ],
+  "乌兹别克斯坦": [
+    {
+      "date": "2026-06-18",
+      "opponent": "哥伦比亚",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1353,
+      "eloAfter": 1352
+    },
+    {
+      "date": "2026-06-24",
+      "opponent": "葡萄牙",
+      "goalFor": 0,
+      "goalAgainst": 5,
+      "eloBefore": 1352,
+      "eloAfter": 1341
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "刚果(金)",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1341,
+      "eloAfter": 1325
+    }
+  ],
+  "约旦": [
+    {
+      "date": "2026-06-17",
+      "opponent": "奥地利",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1334,
+      "eloAfter": 1323
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "阿尔及利亚",
+      "goalFor": 1,
+      "goalAgainst": 2,
+      "eloBefore": 1323,
+      "eloAfter": 1317
+    },
+    {
+      "date": "2026-06-28",
+      "opponent": "阿根廷",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1317,
+      "eloAfter": 1317
+    }
+  ],
+  "海地": [
+    {
+      "date": "2026-06-14",
+      "opponent": "苏格兰",
+      "goalFor": 0,
+      "goalAgainst": 1,
+      "eloBefore": 1315,
+      "eloAfter": 1310
+    },
+    {
+      "date": "2026-06-20",
+      "opponent": "巴西",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1310,
+      "eloAfter": 1299
+    },
+    {
+      "date": "2026-06-25",
+      "opponent": "摩洛哥",
+      "goalFor": 2,
+      "goalAgainst": 4,
+      "eloBefore": 1299,
+      "eloAfter": 1289
+    }
+  ],
+  "伊拉克": [
+    {
+      "date": "2026-06-17",
+      "opponent": "挪威",
+      "goalFor": 1,
+      "goalAgainst": 4,
+      "eloBefore": 1296,
+      "eloAfter": 1294
+    },
+    {
+      "date": "2026-06-23",
+      "opponent": "法国",
+      "goalFor": 0,
+      "goalAgainst": 3,
+      "eloBefore": 1294,
+      "eloAfter": 1283
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "塞内加尔",
+      "goalFor": 0,
+      "goalAgainst": 5,
+      "eloBefore": 1283,
+      "eloAfter": 1271
+    }
+  ],
+  "突尼斯": [
+    {
+      "date": "2026-06-15",
+      "opponent": "瑞典",
+      "goalFor": 1,
+      "goalAgainst": 5,
+      "eloBefore": 1277,
+      "eloAfter": 1266
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "日本",
+      "goalFor": 0,
+      "goalAgainst": 4,
+      "eloBefore": 1266,
+      "eloAfter": 1265
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "荷兰",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1265,
+      "eloAfter": 1265
+    }
+  ],
+  "沙特阿拉伯": [
+    {
+      "date": "2026-06-16",
+      "opponent": "乌拉圭",
+      "goalFor": 1,
+      "goalAgainst": 1,
+      "eloBefore": 1257,
+      "eloAfter": 1266
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "西班牙",
+      "goalFor": 0,
+      "goalAgainst": 4,
+      "eloBefore": 1266,
+      "eloAfter": 1255
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "佛得角",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1255,
+      "eloAfter": 1257
+    }
+  ],
+  "佛得角": [
+    {
+      "date": "2026-06-15",
+      "opponent": "西班牙",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1238,
+      "eloAfter": 1248
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "乌拉圭",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1248,
+      "eloAfter": 1258
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "沙特阿拉伯",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1258,
+      "eloAfter": 1256
+    }
+  ],
+  "新西兰": [
+    {
+      "date": "2026-06-16",
+      "opponent": "伊朗",
+      "goalFor": 2,
+      "goalAgainst": 2,
+      "eloBefore": 1219,
+      "eloAfter": 1227
+    },
+    {
+      "date": "2026-06-22",
+      "opponent": "埃及",
+      "goalFor": 1,
+      "goalAgainst": 3,
+      "eloBefore": 1227,
+      "eloAfter": 1224
+    },
+    {
+      "date": "2026-06-27",
+      "opponent": "比利时",
+      "goalFor": 1,
+      "goalAgainst": 5,
+      "eloBefore": 1224,
+      "eloAfter": 1224
+    }
+  ],
+  "库拉索": [
+    {
+      "date": "2026-06-14",
+      "opponent": "德国",
+      "goalFor": 1,
+      "goalAgainst": 7,
+      "eloBefore": 1200,
+      "eloAfter": 1189
+    },
+    {
+      "date": "2026-06-21",
+      "opponent": "厄瓜多尔",
+      "goalFor": 0,
+      "goalAgainst": 0,
+      "eloBefore": 1189,
+      "eloAfter": 1198
+    },
+    {
+      "date": "2026-06-26",
+      "opponent": "科特迪瓦",
+      "goalFor": 0,
+      "goalAgainst": 2,
+      "eloBefore": 1198,
+      "eloAfter": 1196
+    }
+  ]
+}

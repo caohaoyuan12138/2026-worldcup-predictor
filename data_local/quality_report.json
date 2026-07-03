@@ -1,0 +1,31 @@
+{
+  "overall": 73,
+  "dimensions": {
+    "completeness": {
+      "max": 30,
+      "earned": 20,
+      "issues": [
+        "赔率覆盖率仅 0.0%"
+      ]
+    },
+    "consistency": {
+      "max": 25,
+      "earned": 12.5,
+      "issues": []
+    },
+    "timeliness": {
+      "max": 25,
+      "earned": 20,
+      "issues": []
+    },
+    "accuracy": {
+      "max": 20,
+      "earned": 20,
+      "issues": []
+    }
+  },
+  "totalIssues": 1,
+  "teamCount": 48,
+  "matchCount": 78,
+  "lastUpdated": "2026-07-01"
+}

@@ -1,0 +1,754 @@
+{
+  "mae": 1.0641217948717945,
+  "rmse": 1.4022085167188854,
+  "total_xg": 229.159,
+  "total_goals": 229,
+  "n_matches": 78,
+  "xg_goal_ratio": 1.001,
+  "calibration": [
+    {
+      "bin_label": "0.070",
+      "bin_center": 0.0696,
+      "n_shots": 118,
+      "n_goals": 7,
+      "actual_rate": 0.0593,
+      "expected_rate": 0.0696
+    },
+    {
+      "bin_label": "0.070",
+      "bin_center": 0.0696,
+      "n_shots": 118,
+      "n_goals": 4,
+      "actual_rate": 0.0339,
+      "expected_rate": 0.0696
+    },
+    {
+      "bin_label": "0.070",
+      "bin_center": 0.0696,
+      "n_shots": 118,
+      "n_goals": 6,
+      "actual_rate": 0.0508,
+      "expected_rate": 0.0696
+    },
+    {
+      "bin_label": "0.076",
+      "bin_center": 0.0762,
+      "n_shots": 118,
+      "n_goals": 2,
+      "actual_rate": 0.0169,
+      "expected_rate": 0.0762
+    },
+    {
+      "bin_label": "0.099",
+      "bin_center": 0.0994,
+      "n_shots": 118,
+      "n_goals": 10,
+      "actual_rate": 0.0847,
+      "expected_rate": 0.0994
+    },
+    {
+      "bin_label": "0.099",
+      "bin_center": 0.0994,
+      "n_shots": 118,
+      "n_goals": 4,
+      "actual_rate": 0.0339,
+      "expected_rate": 0.0994
+    },
+    {
+      "bin_label": "0.275",
+      "bin_center": 0.2748,
+      "n_shots": 118,
+      "n_goals": 40,
+      "actual_rate": 0.339,
+      "expected_rate": 0.2748
+    },
+    {
+      "bin_label": "0.329",
+      "bin_center": 0.3294,
+      "n_shots": 118,
+      "n_goals": 59,
+      "actual_rate": 0.5,
+      "expected_rate": 0.3294
+    },
+    {
+      "bin_label": "0.373",
+      "bin_center": 0.3732,
+      "n_shots": 118,
+      "n_goals": 57,
+      "actual_rate": 0.4831,
+      "expected_rate": 0.3732
+    },
+    {
+      "bin_label": "0.473",
+      "bin_center": 0.4729,
+      "n_shots": 120,
+      "n_goals": 40,
+      "actual_rate": 0.3333,
+      "expected_rate": 0.4729
+    }
+  ],
+  "team_results": [
+    {
+      "team": "法国",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 13,
+      "xg_vs_actual": 6.844,
+      "mae": 1.711,
+      "goals_per_game": 3.25,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "挪威",
+      "matches": 4,
+      "total_xg": 4.164,
+      "total_goals": 10,
+      "xg_vs_actual": 5.836,
+      "mae": 1.4795,
+      "goals_per_game": 2.5,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "德国",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 11,
+      "xg_vs_actual": 4.844,
+      "mae": 1.75,
+      "goals_per_game": 2.75,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "荷兰",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 11,
+      "xg_vs_actual": 4.844,
+      "mae": 1.4805,
+      "goals_per_game": 2.75,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "日本",
+      "matches": 4,
+      "total_xg": 4.164,
+      "total_goals": 8,
+      "xg_vs_actual": 3.836,
+      "mae": 1.0,
+      "goals_per_game": 2.0,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "美国",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 8,
+      "xg_vs_actual": 3.383,
+      "mae": 1.1277,
+      "goals_per_game": 2.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "阿根廷",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 8,
+      "xg_vs_actual": 3.383,
+      "mae": 1.1277,
+      "goals_per_game": 2.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "奥地利",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 6,
+      "xg_vs_actual": 2.877,
+      "mae": 1.653,
+      "goals_per_game": 2.0,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "巴西",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 9,
+      "xg_vs_actual": 2.844,
+      "mae": 0.9805,
+      "goals_per_game": 2.25,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "塞内加尔",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 8,
+      "xg_vs_actual": 1.886,
+      "mae": 1.346,
+      "goals_per_game": 2.667,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "波黑",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 5,
+      "xg_vs_actual": 1.877,
+      "mae": 0.6803,
+      "goals_per_game": 1.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "克罗地亚",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 5,
+      "xg_vs_actual": 1.877,
+      "mae": 0.653,
+      "goals_per_game": 1.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "墨西哥",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 6,
+      "xg_vs_actual": 1.383,
+      "mae": 0.8203,
+      "goals_per_game": 2.0,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "葡萄牙",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 6,
+      "xg_vs_actual": 1.383,
+      "mae": 1.8463,
+      "goals_per_game": 2.0,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "瑞士",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 7,
+      "xg_vs_actual": 0.886,
+      "mae": 1.0127,
+      "goals_per_game": 2.333,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "加拿大",
+      "matches": 4,
+      "total_xg": 8.152,
+      "total_goals": 9,
+      "xg_vs_actual": 0.848,
+      "mae": 1.769,
+      "goals_per_game": 2.25,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "摩洛哥",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 7,
+      "xg_vs_actual": 0.844,
+      "mae": 1.0195,
+      "goals_per_game": 1.75,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "瑞典",
+      "matches": 4,
+      "total_xg": 6.156,
+      "total_goals": 7,
+      "xg_vs_actual": 0.844,
+      "mae": 1.5195,
+      "goals_per_game": 1.75,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "科特迪瓦",
+      "matches": 4,
+      "total_xg": 4.164,
+      "total_goals": 5,
+      "xg_vs_actual": 0.836,
+      "mae": 0.2705,
+      "goals_per_game": 1.25,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "阿尔及利亚",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 5,
+      "xg_vs_actual": 0.383,
+      "mae": 1.1537,
+      "goals_per_game": 1.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "英格兰",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 6,
+      "xg_vs_actual": -0.114,
+      "mae": 1.346,
+      "goals_per_game": 2.0,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "约旦",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 3,
+      "xg_vs_actual": -0.123,
+      "mae": 0.041,
+      "goals_per_game": 1.0,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "新西兰",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 4,
+      "xg_vs_actual": -0.617,
+      "mae": 0.513,
+      "goals_per_game": 1.333,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "刚果(金)",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 4,
+      "xg_vs_actual": -0.617,
+      "mae": 1.1797,
+      "goals_per_game": 1.333,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "西班牙",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 5,
+      "xg_vs_actual": -1.114,
+      "mae": 1.6793,
+      "goals_per_game": 1.667,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "埃及",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 5,
+      "xg_vs_actual": -1.114,
+      "mae": 1.0127,
+      "goals_per_game": 1.667,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "卡塔尔",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 2,
+      "xg_vs_actual": -1.123,
+      "mae": 0.3743,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "澳大利亚",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 2,
+      "xg_vs_actual": -1.123,
+      "mae": 1.0137,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "突尼斯",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 2,
+      "xg_vs_actual": -1.123,
+      "mae": 0.3743,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "加纳",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 2,
+      "xg_vs_actual": -1.123,
+      "mae": 0.3743,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "乌兹别克斯坦",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 2,
+      "xg_vs_actual": -1.123,
+      "mae": 0.3743,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "巴拉圭",
+      "matches": 4,
+      "total_xg": 4.164,
+      "total_goals": 3,
+      "xg_vs_actual": -1.164,
+      "mae": 0.291,
+      "goals_per_game": 0.75,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "比利时",
+      "matches": 3,
+      "total_xg": 7.608,
+      "total_goals": 6,
+      "xg_vs_actual": -1.608,
+      "mae": 2.1787,
+      "goals_per_game": 2.0,
+      "xg_per_game": 2.536
+    },
+    {
+      "team": "伊朗",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 3,
+      "xg_vs_actual": -1.617,
+      "mae": 0.8463,
+      "goals_per_game": 1.0,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "哥伦比亚",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 4,
+      "xg_vs_actual": -2.114,
+      "mae": 1.346,
+      "goals_per_game": 1.333,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "苏格兰",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 1,
+      "xg_vs_actual": -2.123,
+      "mae": 0.7077,
+      "goals_per_game": 0.333,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "库拉索",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 1,
+      "xg_vs_actual": -2.123,
+      "mae": 0.7077,
+      "goals_per_game": 0.333,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "沙特阿拉伯",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 1,
+      "xg_vs_actual": -2.123,
+      "mae": 0.7077,
+      "goals_per_game": 0.333,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "伊拉克",
+      "matches": 3,
+      "total_xg": 3.123,
+      "total_goals": 1,
+      "xg_vs_actual": -2.123,
+      "mae": 0.7077,
+      "goals_per_game": 0.333,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "南非",
+      "matches": 4,
+      "total_xg": 4.164,
+      "total_goals": 2,
+      "xg_vs_actual": -2.164,
+      "mae": 0.541,
+      "goals_per_game": 0.5,
+      "xg_per_game": 1.041
+    },
+    {
+      "team": "韩国",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 2,
+      "xg_vs_actual": -2.617,
+      "mae": 1.1797,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "捷克",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 2,
+      "xg_vs_actual": -2.617,
+      "mae": 0.8723,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "海地",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 2,
+      "xg_vs_actual": -2.617,
+      "mae": 1.1797,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "厄瓜多尔",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 2,
+      "xg_vs_actual": -2.617,
+      "mae": 1.1797,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "佛得角",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 2,
+      "xg_vs_actual": -2.617,
+      "mae": 1.1797,
+      "goals_per_game": 0.667,
+      "xg_per_game": 1.539
+    },
+    {
+      "team": "乌拉圭",
+      "matches": 3,
+      "total_xg": 6.114,
+      "total_goals": 3,
+      "xg_vs_actual": -3.114,
+      "mae": 1.038,
+      "goals_per_game": 1.0,
+      "xg_per_game": 2.038
+    },
+    {
+      "team": "土耳其",
+      "matches": 3,
+      "total_xg": 7.608,
+      "total_goals": 3,
+      "xg_vs_actual": -4.608,
+      "mae": 1.8453,
+      "goals_per_game": 1.0,
+      "xg_per_game": 2.536
+    },
+    {
+      "team": "巴拿马",
+      "matches": 3,
+      "total_xg": 4.617,
+      "total_goals": 0,
+      "xg_vs_actual": -4.617,
+      "mae": 1.539,
+      "goals_per_game": 0.0,
+      "xg_per_game": 1.539
+    }
+  ],
+  "match_errors": [
+    {
+      "match_id": "德国-库拉索",
+      "home_team": "德国",
+      "away_team": "库拉索",
+      "total_xg": 2.58,
+      "total_goals": 8,
+      "error": 5.42,
+      "abs_error": 5.42
+    },
+    {
+      "match_id": "比利时-伊朗",
+      "home_team": "比利时",
+      "away_team": "伊朗",
+      "total_xg": 4.075,
+      "total_goals": 0,
+      "error": -4.075,
+      "abs_error": 4.075
+    },
+    {
+      "match_id": "西班牙-佛得角",
+      "home_team": "西班牙",
+      "away_team": "佛得角",
+      "total_xg": 3.577,
+      "total_goals": 0,
+      "error": -3.577,
+      "abs_error": 3.577
+    },
+    {
+      "match_id": "哥伦比亚-葡萄牙",
+      "home_team": "哥伦比亚",
+      "away_team": "葡萄牙",
+      "total_xg": 3.577,
+      "total_goals": 0,
+      "error": -3.577,
+      "abs_error": 3.577
+    },
+    {
+      "match_id": "瑞典-突尼斯",
+      "home_team": "瑞典",
+      "away_team": "突尼斯",
+      "total_xg": 2.58,
+      "total_goals": 6,
+      "error": 3.42,
+      "abs_error": 3.42
+    },
+    {
+      "match_id": "阿尔及利亚-奥地利",
+      "home_team": "阿尔及利亚",
+      "away_team": "奥地利",
+      "total_xg": 2.58,
+      "total_goals": 6,
+      "error": 3.42,
+      "abs_error": 3.42
+    },
+    {
+      "match_id": "英格兰-加纳",
+      "home_team": "英格兰",
+      "away_team": "加纳",
+      "total_xg": 3.079,
+      "total_goals": 0,
+      "error": -3.079,
+      "abs_error": 3.079
+    },
+    {
+      "match_id": "乌拉圭-西班牙",
+      "home_team": "乌拉圭",
+      "away_team": "西班牙",
+      "total_xg": 4.076,
+      "total_goals": 1,
+      "error": -3.076,
+      "abs_error": 3.076
+    },
+    {
+      "match_id": "荷兰-瑞典",
+      "home_team": "荷兰",
+      "away_team": "瑞典",
+      "total_xg": 3.078,
+      "total_goals": 6,
+      "error": 2.922,
+      "abs_error": 2.922
+    },
+    {
+      "match_id": "摩洛哥-海地",
+      "home_team": "摩洛哥",
+      "away_team": "海地",
+      "total_xg": 3.078,
+      "total_goals": 6,
+      "error": 2.922,
+      "abs_error": 2.922
+    },
+    {
+      "match_id": "英格兰-克罗地亚",
+      "home_team": "英格兰",
+      "away_team": "克罗地亚",
+      "total_xg": 3.079,
+      "total_goals": 6,
+      "error": 2.921,
+      "abs_error": 2.921
+    },
+    {
+      "match_id": "加拿大-卡塔尔",
+      "home_team": "加拿大",
+      "away_team": "卡塔尔",
+      "total_xg": 3.079,
+      "total_goals": 6,
+      "error": 2.921,
+      "abs_error": 2.921
+    },
+    {
+      "match_id": "伊拉克-挪威",
+      "home_team": "伊拉克",
+      "away_team": "挪威",
+      "total_xg": 2.082,
+      "total_goals": 5,
+      "error": 2.918,
+      "abs_error": 2.918
+    },
+    {
+      "match_id": "厄瓜多尔-库拉索",
+      "home_team": "厄瓜多尔",
+      "away_team": "库拉索",
+      "total_xg": 2.58,
+      "total_goals": 0,
+      "error": -2.58,
+      "abs_error": 2.58
+    },
+    {
+      "match_id": "佛得角-沙特阿拉伯",
+      "home_team": "佛得角",
+      "away_team": "沙特阿拉伯",
+      "total_xg": 2.58,
+      "total_goals": 0,
+      "error": -2.58,
+      "abs_error": 2.58
+    },
+    {
+      "match_id": "土耳其-巴拉圭",
+      "home_team": "土耳其",
+      "away_team": "巴拉圭",
+      "total_xg": 3.577,
+      "total_goals": 1,
+      "error": -2.577,
+      "abs_error": 2.577
+    },
+    {
+      "match_id": "哥伦比亚-刚果(金)",
+      "home_team": "哥伦比亚",
+      "away_team": "刚果(金)",
+      "total_xg": 3.577,
+      "total_goals": 1,
+      "error": -2.577,
+      "abs_error": 2.577
+    },
+    {
+      "match_id": "比利时-埃及",
+      "home_team": "比利时",
+      "away_team": "埃及",
+      "total_xg": 4.574,
+      "total_goals": 2,
+      "error": -2.574,
+      "abs_error": 2.574
+    },
+    {
+      "match_id": "美国-巴拉圭",
+      "home_team": "美国",
+      "away_team": "巴拉圭",
+      "total_xg": 2.58,
+      "total_goals": 5,
+      "error": 2.42,
+      "abs_error": 2.42
+    },
+    {
+      "match_id": "葡萄牙-乌兹别克斯坦",
+      "home_team": "葡萄牙",
+      "away_team": "乌兹别克斯坦",
+      "total_xg": 2.58,
+      "total_goals": 5,
+      "error": 2.42,
+      "abs_error": 2.42
+    }
+  ]
+}

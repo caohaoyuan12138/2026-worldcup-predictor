@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026美加墨世界杯淘汰赛对阵表</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #ffffff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .bracket-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    overflow-x: auto;
+  }
+
+  .bracket-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .bracket-header h1 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #1a1a2e;
+    letter-spacing: -0.5px;
+  }
+
+  .bracket-header .subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  /* 主对阵容器 */
+  .bracket {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    min-width: 1100px;
+  }
+
+  /* 半区 */
+  .half {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  /* 轮次列 */
+  .round-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 200px;
+    padding: 0 2px;
+  }
+
+  /* 轮次标题 */
+  .round-title {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding: 4px 0;
+    white-space: nowrap;
+  }
+
+  /* 比赛卡片容器（用于对齐） */
+  .matches-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 0;
+    flex: 1;
+  }
+
+  /* 比赛卡片 */
+  .match-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 4px 0;
+    position: relative;
+    transition: box-shadow 0.2s;
+  }
+
+  .match-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .match-card.completed {
+    border-color: #4caf50;
+    background: #f8fff9;
+  }
+
+  /* 日期时间 */
+  .match-date {
+    font-size: 0.6rem;
+    color: #999;
+    margin-bottom: 5px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* 队伍行 */
+  .team-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+    gap: 6px;
+  }
+
+  .team-row .team-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .team-row .flag {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .team-row .team-name {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .team-row .team-name.winner {
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .team-row .score {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #333;
+    min-width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .team-row .score.winner-score {
+    color: #4caf50;
+  }
+
+  /* 状态 */
+  .match-status {
+    font-size: 0.58rem;
+    color: #aaa;
+    text-align: center;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .match-status.live {
+    color: #f44336;
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  .match-status.upcoming {
+    color: #2196f3;
+  }
+
+  /* 连接器区域 */
+  .connector {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 20px;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .connector svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 决赛区域 */
+  .final-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+    padding: 0 12px;
+  }
+
+  .final-trophy {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .final-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #d4af37;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  .final-card {
+    background: linear-gradient(135deg, #fffef5, #fff8e1);
+    border: 2px solid #d4af37;
+    border-radius: 8px;
+    padding: 12px 16px;
+    width: 100%;
+    max-width: 220px;
+  }
+
+  .final-card .match-date {
+    font-size: 0.65rem;
+    color: #b8860b;
+    font-weight: 600;
+  }
+
+  .final-card .team-row .team-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  /* 响应式 */
+  @media (max-width: 1200px) {
+    .bracket-container { overflow-x: auto; }
+    .bracket { min-width: 1000px; }
+    .round-col { min-width: 170px; }
+  }
+
+  @media (max-width: 768px) {
+    .bracket { min-width: 900px; }
+    .round-col { min-width: 150px; }
+    .team-row .team-name { font-size: 0.65rem; }
+  }
+
+  /* 打印样式 */
+  @media print {
+    body { padding: 10px; }
+    .bracket { min-width: auto; }
+    .match-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bracket-container">
+  <div class="bracket-header">
+    <h1>🏆 2026 美加墨世界杯淘汰赛对阵表</h1>
+    <div class="subtitle">FIFA World Cup 2026 · USA Canada Mexico · Knockout Stage</div>
+  </div>
+
+  <div class="bracket" id="bracket">
+    <!-- 由JavaScript动态生成 -->
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 国旗映射
+// ============================================================
+const FLAGS = {
+  '德国':'🇩🇪','法国':'🇫🇷','英格兰':'🏴','荷兰':'🇳🇱','葡萄牙':'🇵🇹','西班牙':'🇪🇸',
+  '比利时':'🇧🇪','瑞士':'🇨🇭','克罗地亚':'🇭🇷','意大利':'🇮🇹','丹麦':'🇩🇰','波兰':'🇵🇱',
+  '巴西':'🇧🇷','阿根廷':'🇦🇷','乌拉圭':'🇺🇾','哥伦比亚':'🇨🇴','厄瓜多尔':'🇪🇨','巴拉圭':'🇾🇵',
+  '日本':'🇯🇵','韩国':'🇰🇷','澳大利亚':'🇦🇺','伊朗':'🇮🇷','沙特阿拉伯':'🇸🇦','卡塔尔':'🇶🇦',
+  '美国':'🇺🇸','墨西哥':'🇲🇽','加拿大':'🇨🇦','哥斯达黎加':'🇨🇷','巴拿马':'🇵🇦','牙买加':'🇯🇲',
+  '摩洛哥':'🇲🇦','塞内加尔':'🇸🇳','加纳':'🇬🇭','喀麦隆':'🇨🇲','尼日利亚':'🇳🇬','科特迪瓦':'🇨🇮',
+  '埃及':'🇪🇬','阿尔及利亚':'🇩🇿','突尼斯':'🇹🇳','刚果民主共和国':'🇨🇩','刚果(金)':'🇨🇩',
+  '南非':'🇿🇦','土耳其':'🇹🇷','乌兹别克斯坦':'🇺🇿','瑞典':'🇸🇪','挪威':'🇳🇴','海地':'🇭🇹',
+  '奥地利':'🇦🇹','波斯尼亚':'🇧🇦','佛得角':'🇨�',
+  '小组第三':'❓','待定':'❓','即将开始':'⏳',
+};
+
+function flag(name) { return FLAGS[name] || '🏳️'; }
+
+// ============================================================
+// 比赛数据（根据PDF一比一复刻）
+// ============================================================
+const MATCHES = {
+  // 左半区 32强赛（8场，从上到下）
+  l_r32: [
+    { date: '6月29日 23:30', home: '德国', away: '巴拉圭', status: 'upcoming' },
+    { date: '7月1日 00:00', home: '法国', away: '瑞典', status: 'upcoming' },
+    { date: '6月28日 23:00', home: '南非', away: '加拿大', score: '0-1', status: 'completed' },
+    { date: '6月30日 04:00', home: '荷兰', away: '摩洛哥', status: 'upcoming' },
+    { date: '7月3日 02:00', home: '葡萄牙', away: '克罗地亚', status: 'upcoming' },
+    { date: '7月2日 22:00', home: '西班牙', away: '奥地利', status: 'upcoming' },
+    { date: '7月2日 03:00', home: '美国', away: '波斯尼亚', status: 'upcoming' },
+    { date: '7月1日 23:00', home: '比利时', away: '塞内加尔', status: 'upcoming' },
+  ],
+  // 左半区 16强赛（4场）
+  l_r16: [
+    { date: '7月4日 20:00', home: 'W74', away: 'W75', status: 'upcoming' },
+    { date: '7月5日 00:00', home: 'W76', away: 'W77', status: 'upcoming' },
+    { date: '7月6日 03:00', home: 'W78', away: 'W79', status: 'upcoming' },
+    { date: '7月7日 03:00', home: 'W80', away: 'W81', status: 'upcoming' },
+  ],
+  // 左半区 8强赛（2场）
+  l_qf: [
+    { date: '7月9日 23:00', home: 'W83', away: 'W84', status: 'upcoming' },
+    { date: '7月10日 22:00', home: 'W89', away: 'W90', status: 'upcoming' },
+  ],
+  // 左半区 半决赛（1场）
+  l_sf: [
+    { date: '7月14日 22:00', home: 'W91', away: 'W92', status: 'upcoming' },
+  ],
+  // 决赛
+  final: [
+    { date: '7月19日 22:00', home: 'W101', away: 'W102', status: 'upcoming' },
+  ],
+  // 右半区 半决赛（1场）
+  r_sf: [
+    { date: '7月15日 22:00', home: 'W99', away: 'W100', status: 'upcoming' },
+  ],
+  // 右半区 8强赛（2场）
+  r_qf: [
+    { date: '7月12日 00:00', home: 'W93', away: 'W94', status: 'upcoming' },
+    { date: '7月12日 04:00', home: 'W97', away: 'W98', status: 'upcoming' },
+  ],
+  // 右半区 16强赛（4场）
+  r_r16: [
+    { date: '7月5日 23:00', home: 'W76', away: 'W78', status: 'upcoming' },
+    { date: '7月6日 03:00', home: 'W79', away: 'W80', status: 'upcoming' },
+    { date: '7月7日 23:00', home: 'W82', away: 'W85', status: 'upcoming' },
+    { date: '7月7日 03:00', home: 'W86', away: 'W87', status: 'upcoming' },
+  ],
+  // 右半区 32强赛（8场，从上到下）
+  r_r32: [
+    { date: '6月29日 20:00', home: '巴西', away: '日本', status: 'upcoming' },
+    { date: '6月30日 20:00', home: '科特迪瓦', away: '尼日利亚', status: 'upcoming' },
+    { date: '7月1日 04:00', home: '墨西哥', away: '厄瓜多尔', status: 'upcoming' },
+    { date: '7月1日 19:00', home: '英格兰', away: '刚果民主共和国', status: 'upcoming' },
+    { date: '7月4日 01:00', home: '阿根廷', away: '佛得角', status: 'upcoming' },
+    { date: '7月3日 21:00', home: '澳大利亚', away: '埃及', status: 'upcoming' },
+    { date: '7月3日 06:00', home: '瑞士', away: '阿尔及利亚', status: 'upcoming' },
+    { date: '7月4日 04:30', home: '哥伦比亚', away: '加纳', status: 'upcoming' },
+  ],
+};
+
+// ============================================================
+// 生成比赛卡片HTML
+// ============================================================
+function matchCard(match) {
+  const isCompleted = match.status === 'completed';
+  const isLive = match.status === 'live';
+  const cardClass = isCompleted ? 'match-card completed' : 'match-card';
+
+  let scoreHtml = '';
+  if (isCompleted && match.score) {
+    const [hScore, aScore] = match.score.split('-').map(Number);
+    const hWin = hScore > aScore;
+    const aWin = aScore > hScore;
+    scoreHtml = `
+      <div class="team-row">
+        <div class="team-info"><span class="flag">${flag(match.home)}</span><span class="team-name ${hWin ? 'winner' : ''}">${match.home}</span></div>
+        <span class="score ${hWin ? 'winner-score' : ''}">${hScore}</span>
+      </div>
+      <div class="team-row">
+        <div class="team-info"><span class="flag">${flag(match.away)}</span><span class="team-name ${aWin ? 'winner' : ''}">${match.away}</span></div>
+        <span class="score ${aWin ? 'winner-score' : ''}">${aScore}</span>
+      </div>`;
+  } else {
+    scoreHtml = `
+      <div class="team-row">
+        <div class="team-info"><span class="flag">${flag(match.home)}</span><span class="team-name">${match.home}</span></div>
+      </div>
+      <div class="team-row">
+        <div class="team-info"><span class="flag">${flag(match.away)}</span><span class="team-name">${match.away}</span></div>
+      </div>`;
+  }
+
+  let statusHtml = '';
+  if (isLive) {
+    statusHtml = '<div class="match-status live">🔴 进行中</div>';
+  } else if (match.status === 'upcoming') {
+    statusHtml = '<div class="match-status">即将开始</div>';
+  } else if (isCompleted) {
+    statusHtml = '<div class="match-status" style="color:#4caf50;">✓ 已结束</div>';
+  }
+
+  return `<div class="${cardClass}">
+    <div class="match-date">${match.date}</div>
+    ${scoreHtml}
+    ${statusHtml}
+  </div>`;
+}
+
+// ============================================================
+// 生成连接线SVG
+// ============================================================
+function connectorSvg(fromCount, toCount) {
+  const svgParts = [];
+  const totalHeight = fromCount * 60;
+
+  if (fromCount === 8 && toCount === 4) {
+    // 32强 → 16强: 每2场连到1场
+    for (let i = 0; i < 4; i++) {
+      const y1 = (i * 2) * 60 + 30;
+      const y2 = (i * 2 + 1) * 60 + 30;
+      const yMid = i * 120 + 60;
+      svgParts.push(`<polyline points="0,${y1} 10,${y1} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+      svgParts.push(`<polyline points="0,${y2} 10,${y2} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+    }
+  } else if (fromCount === 4 && toCount === 2) {
+    // 16强 → 8强
+    for (let i = 0; i < 2; i++) {
+      const y1 = (i * 2) * 120 + 60;
+      const y2 = (i * 2 + 1) * 120 + 60;
+      const yMid = i * 240 + 120;
+      svgParts.push(`<polyline points="0,${y1} 10,${y1} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+      svgParts.push(`<polyline points="0,${y2} 10,${y2} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+    }
+  } else if (fromCount === 2 && toCount === 1) {
+    // 8强 → 半决赛
+    const y1 = 120;
+    const y2 = 360;
+    const yMid = 240;
+    svgParts.push(`<polyline points="0,${y1} 10,${y1} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+    svgParts.push(`<polyline points="0,${y2} 10,${y2} 10,${yMid} 20,${yMid}" fill="none" stroke="#ccc" stroke-width="1.5"/>`);
+  }
+
+  return svgParts.join('');
+}
+
+// ============================================================
+// 渲染对阵表（左右对称）
+// ============================================================
+function renderBracket() {
+  const bracket = document.getElementById('bracket');
+
+  // 左半区
+  const leftHalf = `
+    <div class="half">
+      <div class="round-col">
+        <div class="round-title">32强赛</div>
+        <div class="matches-col">${MATCHES.l_r32.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(8, 4)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">16强赛</div>
+        <div class="matches-col">${MATCHES.l_r16.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(4, 2)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">四分之一决赛</div>
+        <div class="matches-col">${MATCHES.l_qf.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(2, 1)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">半决赛</div>
+        <div class="matches-col">${MATCHES.l_sf.map(matchCard).join('')}</div>
+      </div>
+    </div>`;
+
+  // 决赛
+  const finalSection = `
+    <div class="final-section">
+      <div class="final-trophy">🏆</div>
+      <div class="final-title">决赛</div>
+      <div class="final-card">
+        <div class="match-date">${MATCHES.final[0].date}</div>
+        <div class="team-row"><div class="team-info"><span class="flag">${flag(MATCHES.final[0].home)}</span><span class="team-name">${MATCHES.final[0].home}</span></div></div>
+        <div class="team-row"><div class="team-info"><span class="flag">${flag(MATCHES.final[0].away)}</span><span class="team-name">${MATCHES.final[0].away}</span></div></div>
+        <div class="match-status">即将开始</div>
+      </div>
+      <div class="final-trophy" style="margin-top:8px;margin-bottom:0;">🏟️</div>
+    </div>`;
+
+  // 右半区（镜像对称）
+  const rightHalf = `
+    <div class="half">
+      <div class="round-col">
+        <div class="round-title">半决赛</div>
+        <div class="matches-col">${MATCHES.r_sf.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(1, 2)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">四分之一决赛</div>
+        <div class="matches-col">${MATCHES.r_qf.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(2, 4)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">16强赛</div>
+        <div class="matches-col">${MATCHES.r_r16.map(matchCard).join('')}</div>
+      </div>
+      <div class="connector"><svg viewBox="0 0 20 480">${connectorSvg(4, 8)}</svg></div>
+      <div class="round-col">
+        <div class="round-title">32强赛</div>
+        <div class="matches-col">${MATCHES.r_r32.map(matchCard).join('')}</div>
+      </div>
+    </div>`;
+
+  bracket.innerHTML = leftHalf + finalSection + rightHalf;
+}
+
+// 初始化
+renderBracket();
+</script>
+
+</body>
+</html>

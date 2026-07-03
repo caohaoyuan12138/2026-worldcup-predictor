@@ -101,6 +101,15 @@ body {
   padding: 20px;
 }
 
+/* 晋级图全宽模式 */
+.tab-content.full-width {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
@@ -807,3 +816,41 @@ body {
 .progress-mid { background: linear-gradient(90deg, var(--accent-blue), #60a5fa); }
 .progress-low { background: linear-gradient(90deg, var(--accent-orange), #fbbf24); }
 .progress-none { background: linear-gradient(90deg, var(--accent-red), #f87171); }
+
+/* ========== 淘汰赛晋级图 ========== */
+.ko-match {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.ko-match:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.ko-match .match-date {
+  font-size: 0.55rem;
+  color: #999;
+  margin-bottom: 3px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ko-match .team-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+}
+.ko-match .score-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 2px 4px;
+  background: var(--bg-primary);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.ko-match .score-display .winner { color: var(--accent-green); }
+.ko-match .score-display .loser { color: var(--text-muted); }

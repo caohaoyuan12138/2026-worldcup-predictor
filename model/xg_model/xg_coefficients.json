@@ -1,0 +1,9 @@
+{
+  "BASE_RATE": 1.06,
+  "DISTANCE_LAMBDA": 18,
+  "ANGLE_EXPONENT": 0.9,
+  "HEADER_DISTANCE_LAMBDA": 12,
+  "PENALTY_XG": 0.76,
+  "RMSE": 0.0275,
+  "n_reference_points": 24
+}

@@ -121,7 +121,7 @@
   <!-- ============================================= -->
   <!-- TAB 7: 晋级图 -->
   <!-- ============================================= -->
-  <div class="tab-content" id="tab-knockout">
+  <div class="tab-content full-width" id="tab-knockout">
     <h2 style="margin: 0 0 8px; font-size:1.1rem; color:#1a2338; border-left:3px solid var(--accent-blue); padding-left:10px;">🏆 2026 世界杯晋级图</h2>
     <p style="color:var(--text-secondary); font-size:0.8rem; margin-bottom:12px;">小组赛末轮 + 32强淘汰赛对阵</p>
     <div id="knockoutContainer">
@@ -196,6 +196,21 @@
         <input type="checkbox" id="predUseAI" checked> 🧠 AI推理
       </label>
     </div>
+    <div class="form-row" style="margin-top:6px;">
+      <details style="color:var(--text-secondary); font-size:0.8rem;">
+        <summary style="cursor:pointer;">🌍 环境修正 (点击展开)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;padding:6px;background:var(--bg-hover);border-radius:6px;">
+          <input type="number" id="envAltitude" placeholder="海拔(米)" step="100" min="0" style="width:100%;">
+          <input type="number" id="envTemp" placeholder="气温(°C)" step="5" style="width:100%;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.75rem;"><input type="checkbox" id="envRain"> 雨天</label>
+          <input type="number" id="envHomeMissing" placeholder="主队伤停(人)" step="1" min="0" style="width:100%;">
+          <input type="number" id="envAwayMissing" placeholder="客队伤停(人)" step="1" min="0" style="width:100%;">
+          <input type="number" id="envHomeTravel" placeholder="主队旅行距离(km)" step="500" min="0" style="width:100%;">
+          <input type="number" id="envHomeRest" placeholder="主队休息(天)" step="1" min="0" style="width:100%;">
+          <input type="number" id="envTzDiff" placeholder="时差(小时)" step="1" min="0" style="width:100%;">
+        </div>
+      </details>
+    </div>
     <div class="form-row" style="margin-top:10px;">
       <button class="btn btn-primary" onclick="doCustomPredict()">🔮 预测</button>
       <button class="btn btn-outline" onclick="closeCustomPred()">取消</button>
@@ -204,6 +219,6 @@
   </div>
 </div>
 
-<script src="/app.js"></script>
+<script src="/app.js?v=BUILD202607011215"></script>
 </body>
 </html>

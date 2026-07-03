@@ -13,6 +13,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import sharedConfig from './config.mjs';
 
 // 战术分析模块 (可选加载)
 let __tactics = {};
@@ -21,6 +22,66 @@ try {
   __tactics.loadTactics();
 } catch (e) {
   __tactics = { tacticalLambdaAdjust: () => ({ adjust: 1.0 }), fullTacticalAnalysis: () => ({}), loadTactics: () => ({}) };
+}
+
+// 贝叶斯融合模块 (Python 移植)
+function bayesian_fusion_js(model_probs, market_probs, stage, model_confidence) {
+  /**
+   * 贝叶斯加权融合: P_final = w_model * P_model + w_market * P_market
+   * 权重按阶段配置: 小组赛 70/30 → 决赛 35/65
+   */
+  const stage_weights = {
+    'group_stage': [0.70, 0.30],
+    'round_of_16': [0.55, 0.45],
+    '16强': [0.55, 0.45],
+    '1/16': [0.55, 0.45],
+    'quarter_final': [0.50, 0.50],
+    '1/4': [0.50, 0.50],
+    'semi_final': [0.40, 0.60],
+    '半决赛': [0.40, 0.60],
+    'final': [0.35, 0.65],
+    '决赛': [0.35, 0.65],
+  };
+  
+  const [w_model_base, w_market_base] = stage_weights[stage] || [0.60, 0.40];
+  const w_model = w_model_base * model_confidence;
+  const w_market = w_market_base;
+  const total_w = w_model + w_market;
+  
+  const home = total_w > 0 ? (w_model * model_probs.homeWinPct + w_market * market_probs.homeWinPct) / total_w : model_probs.homeWinPct;
+  const draw = total_w > 0 ? (w_model * model_probs.drawPct + w_market * market_probs.drawPct) / total_w : model_probs.drawPct;
+  const away = total_w > 0 ? (w_model * model_probs.awayWinPct + w_market * market_probs.awayWinPct) / total_w : model_probs.awayWinPct;
+  
+  // 置信度: 模型与市场一致度
+  const agreement = 1.0 - (
+    Math.abs(model_probs.homeWinPct - market_probs.homeWinPct) +
+    Math.abs(model_probs.drawPct - market_probs.drawPct) +
+    Math.abs(model_probs.awayWinPct - market_probs.awayWinPct)
+  ) / 2;
+  const confidence = Math.min(agreement * model_confidence * 2, 1.0);
+  
+  return {
+    home_win: +(home * 100).toFixed(1),
+    draw: +(draw * 100).toFixed(1),
+    away_win: +(away * 100).toFixed(1),
+    confidence: +confidence.toFixed(3),
+    weight_model: +(w_model / total_w).toFixed(3),
+    weight_market: +(w_market / total_w).toFixed(3),
+  };
+}
+
+/**
+ * 赔率转市场隐含概率（去水）
+ */
+function market_probs_from_odds(h, d, a) {
+  if (!h || !d || !a || h <= 0 || d <= 0 || a <= 0) return null;
+  const ih = 1/h, id = 1/d, ia = 1/a;
+  const total = ih + id + ia;
+  return {
+    homeWinPct: ih / total,
+    drawPct: id / total,
+    awayWinPct: ia / total,
+  };
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -260,7 +321,7 @@ export function handicapAdjust(homeWinPct, drawPct, awayWinPct, handicap) {
 // ============================================================
 // 7. 蒙特卡洛 (含 Dixon-Coles 低比分修正)
 // ============================================================
-export function monteCarlo(lH, lA, N = 5000, rho = 0.02) {
+export function monteCarlo(lH, lA, N = 10000, rho = 0.04, isKnockout = false, knockoutConfig = null) {
   function ps(lambda) {
     const L = Math.exp(-lambda);
     let k = 0, p = 1;
@@ -269,35 +330,62 @@ export function monteCarlo(lH, lA, N = 5000, rho = 0.02) {
   }
 
   // Dixon-Coles tau: 调整 0-0, 0-1, 1-0, 1-1 概率
+  // 🔧 v9.0: 提升 1-1 概率 — 实际世界杯 1-1 是最常见比分(14.1%)
   function tau(i, j, l1, l2, r) {
     if (i === 0 && j === 0) return 1 - l1 * l2 * r;
     if (i === 0 && j === 1) return 1 + l1 * r;
     if (i === 1 && j === 0) return 1 + l2 * r;
-    if (i === 1 && j === 1) return 1 - r;
+    if (i === 1 && j === 1) return 1 + r * 0.5;  // v9.0: 提升1-1概率
     return 1;
   }
+
+  // 🔧 v9.0: 模拟次数提升 + 比分分布修正
+  // 实际世界杯 1-1 最常见(14.1%), 模型长期低估
+  // 小组赛 10000次, 淘汰赛 20000次
+  const effectiveN = isKnockout ? Math.max(N, 20000) : Math.max(N, 10000);
+  
+  // 改进波动系数: 小组赛 vol=0.15, 淘汰赛 vol=0.25
+  const koVol = knockoutConfig?.lambdaVolatility || 0.25;
+  const volatility = isKnockout ? koVol : 0.15;
+
+  // 改进 DC ρ: 提升平局概率
+  let effectiveRho = Math.max(rho, 0.04);
+  if (isKnockout && effectiveRho < 0.06) effectiveRho = 0.06;
 
   const results = {};
   let hW = 0, dr = 0, aW = 0, tG = 0;
 
-  for (let i = 0; i < N; i++) {
-    const h = ps(lH);
-    const a = ps(lA);
-    const t = tau(h, a, lH, lA, rho);
+  for (let i = 0; i < effectiveN; i++) {
+    // 对数正态采样: log(λ) + N(0, σ²), 保证λ>0且分布右偏
+    const hSigma = volatility;
+    const aSigma = volatility;
+    const hRand = Math.exp(Math.log(lH) + (Math.random() + Math.random() + Math.random() - 1.5) * hSigma);
+    const aRand = Math.exp(Math.log(lA) + (Math.random() + Math.random() + Math.random() - 1.5) * aSigma);
+    const hLambda = Math.max(0.15, Math.min(lH * 2.0, hRand));
+    const aLambda = Math.max(0.15, Math.min(lA * 2.0, aRand));
+    
+    const h = ps(hLambda);
+    const a = ps(aLambda);
+    
+    // 🔧 v9.0: 比分上限 — 单队最多 6 球
+    const cappedH = Math.min(h, 6);
+    const cappedA = Math.min(a, 6);
+    
+    const t = tau(cappedH, cappedA, lH, lA, effectiveRho);
     if (t < 1 && Math.random() > t) { i--; continue; }
-    const key = `${h}-${a}`;
+    const key = `${cappedH}-${cappedA}`;
     results[key] = (results[key] || 0) + 1;
-    if (h > a) hW++;
-    else if (h === a) dr++;
+    if (cappedH > cappedA) hW++;
+    else if (cappedH === cappedA) dr++;
     else aW++;
-    tG += h + a;
+    tG += cappedH + cappedA;
   }
 
   const sorted = Object.entries(results)
-    .map(([score, count]) => ({ score, home: Number(score.split('-')[0]), away: Number(score.split('-')[1]), count, pct: +(count / N * 100).toFixed(1) }))
+    .map(([score, count]) => ({ score, home: Number(score.split('-')[0]), away: Number(score.split('-')[1]), count, pct: +(count / effectiveN * 100).toFixed(1) }))
     .sort((a, b) => b.count - a.count);
 
-  return { sorted, top5: sorted.slice(0, 5), top10: sorted.slice(0, 10), homeWinPct: +(hW / N * 100).toFixed(1), drawPct: +(dr / N * 100).toFixed(1), awayWinPct: +(aW / N * 100).toFixed(1), avgGoals: +(tG / N).toFixed(2), totalRuns: N, scoreMatrix: buildScoreMatrix(sorted, 6) };
+  return { sorted, top5: sorted.slice(0, 5), top10: sorted.slice(0, 10), homeWinPct: +(hW / effectiveN * 100).toFixed(1), drawPct: +(dr / effectiveN * 100).toFixed(1), awayWinPct: +(aW / effectiveN * 100).toFixed(1), avgGoals: +(tG / effectiveN).toFixed(2), totalRuns: effectiveN, scoreMatrix: buildScoreMatrix(sorted, 6) };
 }
 
 function buildScoreMatrix(sorted, size = 6) {
@@ -430,18 +518,58 @@ export function simulateBetting(predictions, actualResults, threshold = 0.05) {
 }
 
 // ============================================================
-// 8. 融合预测
+// 新增: 动态模型融合权重（基于近期表现自适应）
+// ============================================================
+
+/**
+ * 基于比赛阶段和各模型近期表现计算动态权重
+ * @param {string} stage - 'group_stage' | 'round_of_16' | 'quarter_final' | 'semi_final' | 'final'
+ * @param {Object} recentPerformance - 各模型近期准确率
+ * @returns {Object} 权重 { elo, poisson, economic, market }
+ */
+export function getDynamicWeights(stage, recentPerformance = {}) {
+  let weights = { elo: 0.22, poisson: 0.28, economic: 0.10, market: 0.40 };
+  
+  // 淘汰赛阶段调整
+  if (stage && stage !== 'group_stage') {
+    weights.elo *= 0.80;
+    weights.poisson *= 1.15;
+    weights.market *= 1.20;
+  }
+  
+  // 基于近期表现微调
+  if (recentPerformance.elo && recentPerformance.elo > 0.60) weights.elo *= 1.15;
+  else if (recentPerformance.elo && recentPerformance.elo < 0.45) weights.elo *= 0.80;
+  if (recentPerformance.market && recentPerformance.market > 0.65) weights.market *= 1.20;
+  else if (recentPerformance.market && recentPerformance.market < 0.50) weights.market *= 0.85;
+  
+  // 归一化
+  const sum = Object.values(weights).reduce((a, b) => a + b, 0);
+  for (const k in weights) weights[k] = Math.round(weights[k] / sum * 100) / 100;
+  
+  return weights;
+}
+
+// ============================================================
+// 8. 融合预测（增强版 — 支持动态权重 + 淘汰赛适配）
 // ============================================================
 export function fusionPredict(home, away, teams, recentMatches, headToHead, options = {}) {
   const {
-    monteCarloRuns = 5000, isFinalRound = false, isKnockout = false,
+    monteCarloRuns = sharedConfig.getMCRuns(isKnockout), isFinalRound = false, isKnockout = false,
     oddsHome, oddsDraw, oddsAway, handicap, dcRho = 0.02,
-    eloWeight = 0.25, poissonWeight = 0.30, economicWeight = 0.10, marketWeight = 0.35,
-    teamUrgency = {}
+    eloWeight: optElo, poissonWeight: optPoisson, economicWeight: optEco, marketWeight: optMarket,
+    teamUrgency = {}, stage = 'group_stage'
   } = options;
 
   const teamHome = teams[home], teamAway = teams[away];
   if (!teamHome || !teamAway) return { error: `球队不存在: ${!teamHome ? home : away}` };
+
+  // === 动态权重 ===
+  const dynWeights = getDynamicWeights(stage);
+  const eloWeight = optElo || dynWeights.elo;
+  const poissonWeight = optPoisson || dynWeights.poisson;
+  const economicWeight = optEco || dynWeights.economic;
+  const marketWeight = optMarket || dynWeights.market;
 
   // === 战术分析 (tactics.mjs) ===
   let tacticalInfo = null;
@@ -456,9 +584,7 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
       if (hAdj && hAdj.adjust != null) hTacticalAdj = hAdj;
       if (aAdj && aAdj.adjust != null) aTacticalAdj = aAdj;
     }
-  } catch (e) {
-    // 战术数据未加载, 跳过
-  }
+  } catch (e) { /* 战术数据未加载 */ }
 
   // === A. Elo ===
   const eloH = teamHome.eloRating || rankToElo(teamHome.rank || 50);
@@ -466,20 +592,18 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   const expectedH = eloExpected(eloH, eloA);
   const eloRawHomePct = expectedH * 100;
   const eloRawAwayPct = (1 - expectedH) * 100;
-  // Elo 平率估算 — 考虑多种因素
-  let baseDrawPct = 27 - Math.abs(eloH - eloA) * 0.012;  // 基础: 实际世界杯平率25.9%, 提升基准并降低Elo差衰减
-  // 主观因素: 末轮战意影响平率
+  
+  // 淘汰赛平率提升
+  let baseDrawPct = 27 - Math.abs(eloH - eloA) * 0.012;
   const homeUrgency = teamUrgency[home] || 0;
   const awayUrgency = teamUrgency[away] || 0;
-  // 双方都保守（已出线/打平就出线）→ 平率升高
   if ((homeUrgency === 4 || homeUrgency === 5) && (awayUrgency === 4 || awayUrgency === 5)) {
-    baseDrawPct *= 1.25;  // 都保守, 各拿1分
+    baseDrawPct *= 1.25;
   }
-  // 一方需赢球 → 平率降低（但世界杯实战中需赢球方经常被逼平, 降低调整幅度）
   if (homeUrgency === 3 || awayUrgency === 3) baseDrawPct *= 0.90;
-  // 淘汰赛平率降低
-  if (isKnockout) baseDrawPct *= 0.85;
-  // 大赛修正: 世界杯小组赛平局显著更多(实际25.9%), 提高系数
+  if (isKnockout) {
+    baseDrawPct *= 1.15;  // 淘汰赛平率提升
+  }
   baseDrawPct *= 1.25;
   
   const eloDrawPctEstimate = Math.max(10, Math.min(38, Math.round(baseDrawPct)));
@@ -491,19 +615,25 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   const ctx = { isFinalRound, isKnockout, homeAdvantage: options.homeAdvantage || 1.08, headToHead, teamUrgency: options.teamUrgency || {} };
   const poissonLH = calcLambda(home, away, true, teams, recentMatches, { ...ctx, tacticalAdj: hTacticalAdj ? { teamName: home, adjust: hTacticalAdj.adjust } : null });
   const poissonLA = calcLambda(away, home, false, teams, recentMatches, { ...ctx, tacticalAdj: aTacticalAdj ? { teamName: away, adjust: aTacticalAdj.adjust } : null });
-  // 动态 DC ρ: 实力接近 ρ 升高 (增加平局), 实力悬殊 ρ 降低
+  
+  // 淘汰赛lambda下调
+  let effLH = poissonLH, effLA = poissonLA;
+  if (isKnockout) {
+    effLH = Math.round(poissonLH * 0.85 * 100) / 100;
+    effLA = Math.round(poissonLA * 0.85 * 100) / 100;
+  }
+  
   const eloDiff = Math.abs(eloH - eloA);
   let dynamicRho = eloDiff < 50 ? 0.06 : eloDiff < 100 ? 0.03 : Math.max(0.02, dcRho);
-  // 低λ平率权重: 当两队预期进球都低时, 平率应显著提升
-  // 复盘教训: 巴拉圭0-0澳大利亚(λ≈0.5/0.7), 实际0-0但模型选了客胜方向
-  if (poissonLH < 0.8 && poissonLA < 0.8) {
-    dynamicRho = Math.max(dynamicRho, 0.08);  // 低λ场景ρ从0.02-0.06提升到至少0.08
-  }
-  const poissonSim = monteCarlo(poissonLH, poissonLA, monteCarloRuns, dynamicRho);
-  const fastRef = fastWinDrawLoss(poissonLH, poissonLA);
+  if (effLH < 0.8 && effLA < 0.8) dynamicRho = Math.max(dynamicRho, 0.08);
+  if (isKnockout) dynamicRho = Math.max(dynamicRho, 0.06);
+  
+  const simRuns = isKnockout ? Math.max(monteCarloRuns, 20000) : monteCarloRuns;
+  const poissonSim = monteCarlo(effLH, effLA, simRuns, dynamicRho, isKnockout);
+  const fastRef = fastWinDrawLoss(effLH, effLA);
 
   // === C. 经济学 ===
-  const ecoSim = monteCarlo(economicModel(teamHome, teamAway, true), economicModel(teamAway, teamHome, false), monteCarloRuns, 0);
+  const ecoSim = monteCarlo(economicModel(teamHome, teamAway, true), economicModel(teamAway, teamHome, false), simRuns, 0);
 
   // === D. 市场赔率 ===
   let marketProb = null;
@@ -511,34 +641,29 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
     marketProb = oddsToProb(oddsHome, oddsDraw, oddsAway);
     if (handicap && marketProb) marketProb = handicapAdjust(marketProb.homeWinPct, marketProb.drawPct, marketProb.awayWinPct, handicap);
   } else if (handicap) {
-    // 有让球无赔率: 基于 Elo 生成隐含概率后再做 handicap 修正
-    const eloDiff = Math.abs(eloH - eloA);
+    const eloDiff2 = Math.abs(eloH - eloA);
     const impliedHomePct = expectedH * 100;
     const impliedAwayPct = (1 - expectedH) * 100;
-    const eloBasedDraw = Math.max(10, Math.min(32, 28 - eloDiff * 0.015));
+    const eloBasedDraw = Math.max(10, Math.min(32, 28 - eloDiff2 * 0.015));
     const totalNonDraw = impliedHomePct + impliedAwayPct;
     marketProb = {
       homeWinPct: +((impliedHomePct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
       drawPct: +eloBasedDraw.toFixed(1),
       awayWinPct: +((impliedAwayPct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
-      overround: 100,
-      isInferred: true
+      overround: 100, isInferred: true
     };
     marketProb = handicapAdjust(marketProb.homeWinPct, marketProb.drawPct, marketProb.awayWinPct, handicap);
   } else {
-    // 无赔率时, 用 Elo 差值生成隐含赔率
-    const eloDiff = Math.abs(eloH - eloA);
+    const eloDiff2 = Math.abs(eloH - eloA);
     const impliedHomePct = expectedH * 100;
     const impliedAwayPct = (1 - expectedH) * 100;
-    // 用 Elo 差值估算平率 (Elo 越接近平率越高)
-    const eloBasedDraw = Math.max(10, Math.min(32, 28 - eloDiff * 0.015));
+    const eloBasedDraw = Math.max(10, Math.min(32, 28 - eloDiff2 * 0.015));
     const totalNonDraw = impliedHomePct + impliedAwayPct;
     marketProb = {
       homeWinPct: +((impliedHomePct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
       drawPct: +eloBasedDraw.toFixed(1),
       awayWinPct: +((impliedAwayPct / totalNonDraw) * (100 - eloBasedDraw)).toFixed(1),
-      overround: 100,
-      isInferred: true
+      overround: 100, isInferred: true
     };
   }
 
@@ -560,11 +685,10 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
   fusedDrawPct = +(fusedDrawPct / fTotal * 100).toFixed(1);
   fusedAwayPct = +(fusedAwayPct / fTotal * 100).toFixed(1);
 
-  // 融合 λ = 各模型加权, 含赔率
-  let fusedLH = poissonLH * (poissonWeight + economicWeight) + (eloHomePct / 50) * eloWeight;
-  let fusedLA = poissonLA * (poissonWeight + economicWeight) + (eloAwayPct / 50) * eloWeight;
+  // 融合 λ
+  let fusedLH = effLH * (poissonWeight + economicWeight) + (eloHomePct / 50) * eloWeight;
+  let fusedLA = effLA * (poissonWeight + economicWeight) + (eloAwayPct / 50) * eloWeight;
   
-  // 如果有赔率, 将赔率转换成 λ 并加权
   if (marketProb) {
     const marketLH = Math.max(0.3, Math.min(4.0, 0.15 + marketProb.homeWinPct * 0.035));
     const marketLA = Math.max(0.3, Math.min(4.0, 0.15 + marketProb.awayWinPct * 0.035));
@@ -575,25 +699,60 @@ export function fusionPredict(home, away, teams, recentMatches, headToHead, opti
     fusedLA = fusedLA / (baseW);
   }
   
-  // 让球盘口 λ 修正 — 确保泊松模拟反映让球预期 (独立于赔率)
   if (handicap) {
-    const handicapBoost = Math.abs(handicap) * 0.25;  // 让1球→λ+0.25, 让2球→λ+0.5
+    const handicapBoost = Math.abs(handicap) * 0.25;
     if (handicap > 0) fusedLH += handicapBoost;
     else fusedLA += handicapBoost;
   }
   fusedLH = +(fusedLH).toFixed(2);
   fusedLA = +(fusedLA).toFixed(2);
-  const fusedSim = monteCarlo(fusedLH, fusedLA, monteCarloRuns, dcRho);
+  const fusedSim = monteCarlo(fusedLH, fusedLA, simRuns, dcRho, isKnockout);
+
+  // === 贝叶斯融合（真正的贝叶斯加权，替代硬编码系数） ===
+  let bayesianResult = null;
+  if (marketProb) {
+    // 模型概率 = 融合后的 Elo+Poisson+Economic
+    const modelProbs = {
+      homeWinPct: fusedHomePct / 100,
+      drawPct: fusedDrawPct / 100,
+      awayWinPct: fusedAwayPct / 100,
+    };
+    // 市场概率 = 赔率隐含概率
+    const marketProbs = market_probs_from_odds(oddsHome, oddsDraw, oddsAway);
+    
+    if (marketProbs) {
+    // 模型置信度: 基于四模型一致性 (归一化到0.3-0.9)
+    const allProbs = [
+      eloHomePct / 100,
+      poissonSim.homeWinPct / 100,
+      ecoSim.homeWinPct / 100,
+      marketProbs.homeWinPct,
+    ];
+    const maxP = Math.max(...allProbs);
+    const minP = Math.min(...allProbs);
+    const spread = maxP - minP;
+    const modelConfidence = Math.max(0.3, Math.min(0.9, 1.0 - spread * 1.5));
+      
+      const stage = options.stage || 'group_stage';
+      bayesianResult = bayesian_fusion_js(modelProbs, marketProbs, stage, modelConfidence);
+      
+      // 用贝叶斯融合结果替代原始融合
+      fusedHomePct = bayesianResult.home_win;
+      fusedDrawPct = bayesianResult.draw;
+      fusedAwayPct = bayesianResult.away_win;
+    }
+  }
 
   return {
     home, away,
     models: {
       elo: { rating: { home: eloH, away: eloA }, expected: eloHomePct, winPct: eloHomePct, drawPct: eloDrawPct, awayPct: eloAwayPct },
-      poisson: { lambda: { home: poissonLH, away: poissonLA }, winPct: poissonSim.homeWinPct, drawPct: poissonSim.drawPct, awayPct: poissonSim.awayWinPct, dcRho },
+      poisson: { lambda: { home: effLH, away: effLA }, winPct: poissonSim.homeWinPct, drawPct: poissonSim.drawPct, awayPct: poissonSim.awayWinPct, dcRho },
       economic: { winPct: ecoSim.homeWinPct, drawPct: ecoSim.drawPct, awayPct: ecoSim.awayWinPct },
       market: marketProb ? { odds: { home: oddsHome, draw: oddsDraw, away: oddsAway }, handicap: handicap || null, winPct: marketProb.homeWinPct, drawPct: marketProb.drawPct, awayPct: marketProb.awayWinPct } : null,
     },
     weights: { elo: eloWeight, poisson: poissonWeight, economic: economicWeight, market: marketProb ? marketWeight : 0 },
+    bayesian: bayesianResult,
     fusion: { lambda: { home: fusedLH, away: fusedLA }, winPct: fusedHomePct, drawPct: fusedDrawPct, awayPct: fusedAwayPct, top5: fusedSim.top5, avgGoals: fusedSim.avgGoals, totalRuns: fusedSim.totalRuns },
     tactics: tacticalInfo,
     timestamp: new Date().toISOString()
@@ -759,7 +918,7 @@ export function analyzeModel(completedMatches, teams, recentMatches) {
 }
 
 // ============================================================
-// 12. Elo 批量更新
+// 12. Elo 批量更新（增强版 — 含大胜过热限制 + 淘汰赛K值）
 // ============================================================
 export function batchUpdateElo(teams, completedMatches) {
   const sorted = [...completedMatches].filter(m => m.score).sort((a, b) => a.date.localeCompare(b.date));
@@ -769,7 +928,17 @@ export function batchUpdateElo(teams, completedMatches) {
     const eloH = tHome.eloRating || rankToElo(tHome.rank || 50);
     const eloA = tAway.eloRating || rankToElo(tAway.rank || 50);
     const [hG, aG] = m.score.split('-').map(Number);
-    const K = m.round && m.round.toString().includes('/') ? 40 : 30;
+    if (isNaN(hG) || isNaN(aG)) continue;
+    
+    // 淘汰赛K值放大
+    let K = 30;
+    if (m.round && (m.round.includes('强') || m.round === 'KO' || m.round === '1/16' || m.round === '16强')) {
+      K = 35;
+    }
+    if (m.round && (m.round.includes('半') || m.round === '决赛')) {
+      K = 45;
+    }
+    
     const updated = updateElo(eloH, eloA, hG, aG, K);
     tHome.eloRating = updated.home;
     tAway.eloRating = updated.away;

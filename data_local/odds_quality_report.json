@@ -1,0 +1,9 @@
+{
+  "totalPredictions": 256,
+  "withOdds": 133,
+  "validOdds": 133,
+  "invalidOdds": 0,
+  "issues": 39,
+  "highSeverity": 39,
+  "mediumSeverity": 0
+}

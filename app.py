@@ -27,6 +27,7 @@ import data.bsd_api as bsd  # BSD实时数据API
 import data.news_api as news  # 新闻数据API
 import data.weather_api as weather  # 天气API（实时环境信息）
 import data.juhe_api as juhe  # 聚合数据API（赛程/球队/积分榜）
+from xg_dashboard import render_xg_dashboard  # xG 分析仪表盘
 
 # 确保LLM模块函数存在（fallback）
 if not hasattr(llm, 'set_llm_enabled'):
@@ -1317,6 +1318,35 @@ def _do_analysis(hid, aid, engine, hn, an, oh, od, oa, stage, extra,
         # 解释层失败不影响主流程
         pass
 
+    # ── 7. xG 预期进球数据 ──
+    try:
+        xg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'xg', 'actual_team_xg.json')
+        if os.path.exists(xg_path):
+            with open(xg_path, 'r', encoding='utf-8') as f:
+                xg_data = json.load(f)
+            hxg = xg_data.get(hn, {})
+            axg = xg_data.get(an, {})
+            result["xg"] = {
+                "home_offensive": hxg.get("offensive_xg"),
+                "home_defensive": hxg.get("defensive_xg"),
+                "home_xg_diff": hxg.get("xg_diff"),
+                "home_conversion": hxg.get("conversion_ratio"),
+                "home_shot_quality": hxg.get("shot_quality"),
+                "home_variance": hxg.get("xg_variance"),
+                "home_matches": hxg.get("matches_played", 0),
+                "away_offensive": axg.get("offensive_xg"),
+                "away_defensive": axg.get("defensive_xg"),
+                "away_xg_diff": axg.get("xg_diff"),
+                "away_conversion": axg.get("conversion_ratio"),
+                "away_shot_quality": axg.get("shot_quality"),
+                "away_variance": axg.get("xg_variance"),
+                "away_matches": axg.get("matches_played", 0),
+            }
+        else:
+            result["xg"] = None
+    except Exception:
+        result["xg"] = None
+
     return result
 
 
@@ -1439,7 +1469,21 @@ def _render_analysis_card(data: dict):
                 c1.metric(f"{_hn}λ", f"{pois.get('lambda_home', '?'):.3f}")
                 c2.metric(f"{_an}λ", f"{pois.get('lambda_away', '?'):.3f}")
                 c3.metric("总期望", f"{pois.get('expected_total', '?'):.2f}")
-            
+
+            # xG预期进球数据
+            xg = data.get("xg")
+            if xg and xg.get("home_offensive") is not None:
+                st.markdown("**xG预期进球数据**")
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric(f"{_hn}进攻xG/场", f"{xg['home_offensive']:.3f}")
+                c2.metric(f"{_hn}防守xG/场", f"{xg['home_defensive']:.3f}")
+                c3.metric(f"{_hn}xG差值", f"{xg['home_xg_diff']:+.3f}")
+                c4.metric(f"{_hn}转换率", f"{xg['home_conversion']:.2f}")
+                c1.metric(f"{_an}进攻xG/场", f"{xg['away_offensive']:.3f}")
+                c2.metric(f"{_an}防守xG/场", f"{xg['away_defensive']:.3f}")
+                c3.metric(f"{_an}xG差值", f"{xg['away_xg_diff']:+.3f}")
+                c4.metric(f"{_an}转换率", f"{xg['away_conversion']:.2f}")
+
             # 蒙特卡洛模拟
             mc = data.get("monte_carlo", {})
             if mc:
@@ -1530,7 +1574,21 @@ def _render_analysis_card(data: dict):
 
                         injury_data_for_llm = {"home_summary": "", "away_summary": ""}
                         news_data_for_llm = []
-                        report_data_for_llm = {"home_report": "", "away_report": ""}
+
+                        # 注入 xG 数据到战报中，让 LLM 分析参考
+                        xg = data.get("xg")
+                        if xg and xg.get("home_offensive") is not None:
+                            xg_report = (
+                                f"\n【xG数据】\n"
+                                f"{_hn}: 进攻xG/场{xg['home_offensive']:.3f}, 防守xG/场{xg['home_defensive']:.3f}, "
+                                f"xG差值{xg['home_xg_diff']:+.3f}, 转换率{xg['home_conversion']:.2f}\n"
+                                f"{_an}: 进攻xG/场{xg['away_offensive']:.3f}, 防守xG/场{xg['away_defensive']:.3f}, "
+                                f"xG差值{xg['away_xg_diff']:+.3f}, 转换率{xg['away_conversion']:.2f}\n"
+                                f"xG转换率>1表示得分效率高于预期, <1表示低于预期"
+                            )
+                        else:
+                            xg_report = ""
+                        report_data_for_llm = {"home_report": xg_report, "away_report": ""}
 
                         with st.spinner("🤖 LongCat 正在分析（最多15秒）..."):
                             try:
@@ -2837,13 +2895,14 @@ def main():
                 del st.session_state["_analysis_cache"]
             st.rerun()
 
-    tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理"])
+    tabs = st.tabs(["📊 积分榜","🏆 淘汰赛","🔮 比赛分析","📝 复盘分析","💰 仓位建议","🛠️ 数据管理","📊 xG 分析"])
     with tabs[0]: render_standings(data)
     with tabs[1]: render_knockout(data)
     with tabs[2]: render_predictions(data)
     with tabs[3]: render_review(data)
     with tabs[4]: render_portfolio(data)
     with tabs[5]: render_data_manager()
+    with tabs[6]: render_xg_dashboard()
 
 
 if __name__ == "__main__":
